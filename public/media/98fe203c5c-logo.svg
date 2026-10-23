@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <defs>
+    <linearGradient id="qq-bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#1B1F42"/>
+      <stop offset="1" stop-color="#06071A"/>
+    </linearGradient>
+    <radialGradient id="qq-glow" cx="32" cy="20" r="24" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#9A8CFF" stop-opacity=".55"/>
+      <stop offset="1" stop-color="#9A8CFF" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="qq-arc" x1="10" y1="0" x2="54" y2="0" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#7C86FF"/>
+      <stop offset=".5" stop-color="#C29BFF"/>
+      <stop offset="1" stop-color="#F3C97C"/>
+    </linearGradient>
+    <clipPath id="qq-clip"><rect width="64" height="64" rx="15"/></clipPath>
+  </defs>
+  <g clip-path="url(#qq-clip)">
+  <rect width="64" height="64" fill="url(#qq-bg)"/>
+  <rect x=".75" y=".75" width="62.5" height="62.5" rx="14.25" fill="none" stroke="#FFFFFF" stroke-opacity=".12" stroke-width="1.5"/>
+  <circle cx="32" cy="20" r="24" fill="url(#qq-glow)"/>
+  <path d="M18.5 46 C 22 30, 42 30, 45.5 46" fill="none" stroke="url(#qq-arc)" stroke-width="1.6" stroke-linecap="round" opacity=".5"/>
+  <path d="M12 46 C 17 17.5, 47 17.5, 52 46" fill="none" stroke="url(#qq-arc)" stroke-width="5" stroke-linecap="round"/>
+  <path d="M32 7.5 C 32.7 11.3 33.7 12.3 37.5 13 C 33.7 13.7 32.7 14.7 32 18.5 C 31.3 14.7 30.3 13.7 26.5 13 C 30.3 12.3 31.3 11.3 32 7.5 Z" fill="#FFFFFF"/>
+  <circle cx="12" cy="46" r="2.9" fill="#8C95FF"/>
+  <circle cx="52" cy="46" r="2.9" fill="#F3C97C"/>
+  </g>
+</svg>

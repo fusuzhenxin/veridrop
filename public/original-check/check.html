@@ -1,0 +1,592 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="check-embed">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GPT降智检测_糖果测试与鹈鹕骑车_API中转站导航</title>
+  <meta name="description" content="在浏览器里检测 API 中转有没有降智。用你自己的地址和 Key 跑基础检测、糖果测试和鹈鹕骑车，对照 GPT、Claude、DeepSeek 这一次调用。Key 不经过本站，也不能当成官方原厂鉴定。">
+  <meta name="keywords" content="API中转站,API中转检测,GPT降智,ChatGPT降智,GPT-6 Astra,中转站降智,模型降智测试,糖果测试,鹈鹕骑车,鹈鹕骑自行车,Claude中转,OpenAI兼容接口,DeepSeek API,GPT中转,模型自测">
+  <meta name="application-name" content="API中转站导航">
+  <meta name="robots" content="index,follow">
+  <meta name="theme-color" content="#f3f6fb">
+  <meta name="applicable-device" content="pc,mobile">
+  <link rel="canonical" href="https://www.veridrop.cn/check">
+  <link rel="sitemap" type="application/xml" href="https://www.veridrop.cn/sitemap.xml">
+  <link rel="icon" type="image/png" sizes="48x48" href="/img/icon-48.png">
+  <link rel="icon" type="image/png" sizes="96x96" href="/img/icon-96.png">
+  <link rel="shortcut icon" href="/favicon.ico">
+  <link rel="icon" href="/favicon.ico" type="image/x-icon" sizes="16x16 32x32 48x48">
+  <link rel="icon" type="image/png" sizes="32x32" href="/img/favicon-32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/img/favicon-16.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="/img/apple-touch-icon.png">
+  <link rel="manifest" href="/site.webmanifest">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="API中转站导航">
+  <meta property="og:locale" content="zh_CN">
+  <meta property="og:title" content="GPT降智检测_糖果测试与鹈鹕骑车_API中转站导航">
+  <meta property="og:description" content="在浏览器里检测 API 中转有没有降智。用你自己的地址和 Key 跑基础检测、糖果测试和鹈鹕骑车，对照 GPT、Claude、DeepSeek 这一次调用。Key 不经过本站，也不能当成官方原厂鉴定。">
+  <meta property="og:url" content="https://www.veridrop.cn/check">
+  <meta property="og:image" content="https://www.veridrop.cn/img/og.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="GPT降智检测_糖果测试与鹈鹕骑车_API中转站导航">
+  <meta name="twitter:description" content="在浏览器里检测 API 中转有没有降智。用你自己的地址和 Key 跑基础检测、糖果测试和鹈鹕骑车，对照 GPT、Claude、DeepSeek 这一次调用。Key 不经过本站，也不能当成官方原厂鉴定。">
+  <meta name="twitter:image" content="https://www.veridrop.cn/img/og.png">
+  <script type="application/ld+json" id="seo-jsonld">{"@context":"https://schema.org","@graph":[{"@type":"WebPage","@id":"https://www.veridrop.cn/check#webpage","name":"GPT降智检测","url":"https://www.veridrop.cn/check","description":"在浏览器里检测 API 中转有没有降智。用你自己的地址和 Key 跑基础检测、糖果测试和鹈鹕骑车，对照 GPT、Claude、DeepSeek 这一次调用。Key 不经过本站，也不能当成官方原厂鉴定。","inLanguage":"zh-CN","isPartOf":{"@type":"WebSite","name":"API中转站导航","url":"https://www.veridrop.cn/"},"primaryImageOfPage":{"@type":"ImageObject","url":"https://www.veridrop.cn/img/og.png"},"breadcrumb":{"@id":"https://www.veridrop.cn/check#breadcrumb"},"hasPart":[{"@id":"https://www.veridrop.cn/check/detect"},{"@id":"https://www.veridrop.cn/check/basic"},{"@id":"https://www.veridrop.cn/check/candy"},{"@id":"https://www.veridrop.cn/check/pelican"},{"@id":"https://www.veridrop.cn/check#faq"}],"keywords":"API中转站,GPT降智,糖果测试,鹈鹕骑车,Claude中转,OpenAI兼容接口"},{"@type":"WebPage","@id":"https://www.veridrop.cn/check/detect","name":"模型检测结果","url":"https://www.veridrop.cn/check/detect","description":"汇总基础分、耗时、通道是否被改，以及糖果测试和鹈鹕骑车能不能判断降智。这一页不连接中转站。","isPartOf":{"@id":"https://www.veridrop.cn/check#webpage"}},{"@type":"WebPage","@id":"https://www.veridrop.cn/check/basic","name":"API中转基础检测","url":"https://www.veridrop.cn/check/basic","description":"检测 OpenAI 兼容和 Claude Messages 的协议、流式、上下文、工具调用和用量。不支持的项跳过，不直接当成降智。","isPartOf":{"@id":"https://www.veridrop.cn/check#webpage"}},{"@type":"WebPage","@id":"https://www.veridrop.cn/check/candy","name":"糖果测试","url":"https://www.veridrop.cn/check/candy","description":"糖果测试用 20 道固定选择题看这一次 API 中转调用会不会做错逻辑题。可选 5、10、15 或 20 道，做完给出正确率、对错，以及迷惑辨析、数量关系、约束求解、演绎四项得分。Key 不经过本站。","isPartOf":{"@id":"https://www.veridrop.cn/check#webpage"}},{"@type":"WebPage","@id":"https://www.veridrop.cn/check/pelican","name":"鹈鹕骑车","url":"https://www.veridrop.cn/check/pelican","description":"用固定提示词让模型交回 SVG 动画 HTML，页面可播放，也可下载。用来看这一次画功，不是问答题。","isPartOf":{"@id":"https://www.veridrop.cn/check#webpage"}},{"@type":"BreadcrumbList","@id":"https://www.veridrop.cn/check#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"API中转站导航","item":"https://www.veridrop.cn/"},{"@type":"ListItem","position":2,"name":"模型检测","item":"https://www.veridrop.cn/check"}]},{"@type":"ItemList","name":"模型检测项目","itemListElement":[{"@type":"ListItem","position":1,"name":"模型检测结果","url":"https://www.veridrop.cn/check/detect"},{"@type":"ListItem","position":2,"name":"API中转基础检测","url":"https://www.veridrop.cn/check/basic"},{"@type":"ListItem","position":3,"name":"糖果测试","url":"https://www.veridrop.cn/check/candy"},{"@type":"ListItem","position":4,"name":"鹈鹕骑车","url":"https://www.veridrop.cn/check/pelican"}]},{"@type":"WebApplication","name":"API中转模型检测","url":"https://www.veridrop.cn/check","applicationCategory":"DeveloperApplication","operatingSystem":"Web","browserRequirements":"需要能在浏览器里直接访问你填写的中转地址","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"},"description":"用自备地址和 Key 做 GPT 降智、糖果测试、鹈鹕骑车和 API 中转基础检测。Key 不经过本站。"},{"@type":"FAQPage","@id":"https://www.veridrop.cn/check#faq","mainEntity":[{"@type":"Question","name":"自测会把 API Key 发到本站吗？","acceptedAnswer":{"@type":"Answer","text":"不会。请求从浏览器直接发到你填写的地址。Key 默认只留在当次页面，勾选后才写进这台浏览器。"}},{"@type":"Question","name":"糖果测试和鹈鹕骑车能证明模型是官方原厂吗？","acceptedAnswer":{"@type":"Answer","text":"不能。它们对照的是这一次调用的推理、画图和有没有改写输入输出。官方原厂要看服务端签名，不在这些题目里。"}},{"@type":"Question","name":"怎么看 API 中转有没有 GPT 降智？","acceptedAnswer":{"@type":"Answer","text":"先跑基础检测看接口通不通，再跑糖果测试和鹈鹕骑车。降智只根据这两项能力题，基础项不支持或网络失败不算降智。这不是官方鉴定。"}},{"@type":"Question","name":"糖果测试在测什么？","acceptedAnswer":{"@type":"Answer","text":"可以从 5、10、15、20 道里选题量。做到哪题展示哪题。跑完给出分数、对错、正确率和迷惑辨析、数量关系、约束求解、演绎四项得分。"}},{"@type":"Question","name":"鹈鹕骑车在测什么？","acceptedAnswer":{"@type":"Answer","text":"用一句固定提示词，让模型交回用 SVG 画的鹈鹕骑自行车 2D 动画 HTML。跑完可以在页面播放，也可以下载。速度滑杆不在提示词里。"}},{"@type":"Question","name":"基础检测没通过是不是降智？","acceptedAnswer":{"@type":"Answer","text":"不是。基础检测看协议、流式、上下文、工具和用量。不支持的记为跳过，不扣成降智。"}},{"@type":"Question","name":"模型名单里没有我的模型怎么办？","acceptedAnswer":{"@type":"Answer","text":"填好地址和 Key 后，会向你填写的接口读取模型列表。列表只留在这台浏览器，不经过本站。"}}]}]}</script>
+  <script>
+    (function () {
+      function apply() {
+        var theme = "light";
+        try {
+          theme = window.parent.document.documentElement.getAttribute("data-theme") || "light";
+        } catch (err) {}
+        document.documentElement.setAttribute("data-theme", theme === "dark" ? "dark" : "light");
+      }
+      apply();
+      try {
+        new MutationObserver(apply).observe(window.parent.document.documentElement, {
+          attributes: true,
+          attributeFilter: ["data-theme"],
+        });
+      } catch (err) {}
+    })();
+  </script>
+  <base target="_top">
+  <link rel="stylesheet" href="/original-check/style.css">
+  <link rel="stylesheet" href="/original-check/embed.css">
+  <style>html.check-embed .topbar{display:none !important}</style>
+</head>
+<body class="mc-page">
+  <header class="topbar">
+    <div class="brand-cluster">
+      <a class="brand" href="/" aria-label="API中转站导航首页">
+        <img class="logo-mark" src="/img/icon-192.png" width="36" height="36" alt="API中转站导航">
+        <p class="brand-title">API中转站导航</p>
+      </a>
+    </div>
+    <nav class="top-links">
+      <a class="top-contact top-out" href="https://www.modeltool.cn/" target="_blank" rel="noopener noreferrer"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 5h5v5"/><path d="M19 5 10 14"/><path d="M16 13.5V19H5V8h5.5"/></svg><span>降智检测</span></a>
+      <a class="top-contact" href="/cat/charity">公益站</a>
+      <a class="top-contact" href="/check" aria-current="page">模型检测</a>
+      <a class="top-contact" href="/apply">申请收录</a>
+      <a class="top-contact" href="/#contact">联系我们</a>
+    </nav>
+  </header>
+  <nav class="mc-links">
+    <a href="/check" data-view="home" class="is-on">检测首页</a>
+    <a href="/check/detect" data-view="detect">检测结果</a>
+    <a href="/check/basic" data-view="basic">基础测试</a>
+    <a href="/check/candy" data-view="candy">糖果测试</a>
+    <a href="/check/pelican" data-view="pelican">鹈鹕骑车</a>
+  </nav>
+  <nav class="mc-tags" aria-label="检测关键词">
+    <a class="t-rose" href="/check/detect">GPT降智</a>
+    <a class="t-rose" href="/check/detect">ChatGPT降智</a>
+    <a class="t-amber" href="/check/basic">API中转检测</a>
+    <a class="t-amber" href="/check/basic">中转站降智</a>
+    <a class="t-teal" href="/check/candy">糖果测试</a>
+    <a class="t-teal" href="/check/pelican">鹈鹕骑车</a>
+    <a class="t-teal" href="/check/pelican">鹈鹕骑自行车</a>
+    <a class="t-blue" href="/check/basic">Claude中转</a>
+    <a class="t-blue" href="/check/basic">OpenAI兼容</a>
+    <a class="t-blue" href="/check/basic">GPT中转</a>
+    <a class="t-blue" href="/check/basic">DeepSeek API</a>
+    <a class="t-amber" href="/check">GPT-6 Astra</a>
+  </nav>
+
+  <div id="mcSetup" class="mc-setup">
+    <div class="mc-fields">
+      <label class="mc-field">
+        <span>API 接口地址</span>
+        <span class="mc-ipt">
+          <svg class="mc-lead" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+          <input id="base" type="url" inputmode="url" placeholder="https://api.anthropic.com" autocomplete="off" spellcheck="false">
+        </span>
+      </label>
+      <label class="mc-field">
+        <span>API KEY</span>
+        <span class="mc-keyline">
+          <svg class="mc-lead" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="8" cy="15" r="4"/><path d="m10.8 12.2 8.2-8.2M16 6l3 3M14 8l2 2"/></svg>
+          <input id="apiKey" type="password" autocomplete="off" spellcheck="false" placeholder="sk-...">
+          <button class="mc-textbtn" id="toggleKey" type="button">显示</button>
+        </span>
+      </label>
+      <div class="mc-field">
+        <span>目标模型</span>
+        <select id="model" class="mc-native" tabindex="-1" aria-hidden="true">
+          <optgroup label="OpenAI">
+            <option>gpt-4o</option>
+            <option>gpt-4o-mini</option>
+            <option>gpt-4.1</option>
+            <option>gpt-5.4</option>
+            <option>gpt-5.4-mini</option>
+            <option>gpt-5.5</option>
+            <option>gpt-6-astra</option>
+            <option>o4-mini</option>
+          </optgroup>
+          <optgroup label="Claude">
+            <option>claude-haiku-4-5</option>
+            <option>claude-sonnet-4-5</option>
+            <option>claude-sonnet-4-6</option>
+            <option>claude-sonnet-5</option>
+            <option>claude-opus-4-6</option>
+            <option>claude-opus-4-7</option>
+            <option>claude-opus-4-8</option>
+            <option>claude-fable-5</option>
+          </optgroup>
+          <optgroup label="Gemini">
+            <option>gemini-2.5-flash</option>
+            <option>gemini-2.5-pro</option>
+            <option>gemini-3.1-pro</option>
+            <option>gemini-3.8-flash</option>
+          </optgroup>
+          <optgroup label="其他">
+            <option>deepseek-chat</option>
+            <option>deepseek-reasoner</option>
+            <option>kimi-k2</option>
+            <option>kimi-k3</option>
+            <option>qwen3-max</option>
+            <option>qwen3.8-max-preview</option>
+          </optgroup>
+        </select>
+        <div class="mc-model-row">
+          <div class="mc-pick" id="modelPick">
+            <button type="button" class="mc-pick-btn" id="modelPickBtn" aria-haspopup="listbox" aria-expanded="false">
+              <span class="mc-pick-lab">
+                <img id="modelMark" class="mc-mark" alt="" width="16" height="16" hidden>
+                <span id="modelPickLabel">gpt-4o</span>
+              </span>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
+            </button>
+            <div class="mc-pick-menu" id="modelPickMenu" role="listbox" hidden></div>
+          </div>
+          <button type="button" class="mc-fetch" id="fetchModels">获取模型列表</button>
+        </div>
+        <p id="modelStatus" class="mc-model-status"></p>
+        <p id="protocolHint" class="mc-model-status"></p>
+      </div>
+    </div>
+    <div class="mc-setup-foot">
+      <label class="mc-check"><input id="rememberKey" type="checkbox"> 把 Key 记在这台浏览器</label>
+      <span id="keyMode">Key 只留在这次打开的页面里</span>
+    </div>
+  </div>
+
+  <main class="mc-wrap">
+    <p id="setupRemind" class="mc-remind" hidden>还不能检测。</p>
+    <section class="mc-view is-on" data-view-panel="home">
+      <div class="mc-hero">
+        <div>
+          <h1>模型检测</h1>
+          <p>用你自己的中转地址和 Key，检测这一次调用有没有降智。可以测 GPT、Claude、DeepSeek 的基础接口、糖果测试和鹈鹕骑车。</p>
+          <i class="mc-bar"></i>
+        </div>
+        <div class="mc-art" aria-hidden="true"></div>
+      </div>
+      <div class="mc-cards">
+        <article class="mc-entry">
+          <span class="mc-ico" aria-hidden="true"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 5 6v6c0 4.2 2.8 6.6 7 8 4.2-1.4 7-3.8 7-8V6l-7-3Z"/><path d="m9 12 2 2 4-4"/></svg></span>
+          <h2>检测结果</h2>
+          <p>汇总基础分、耗时，以及糖果和鹈鹕能不能判断这一次降智。</p>
+          <a class="mc-btn mc-btn-solid" href="/check/detect">查看结果</a>
+        </article>
+        <article class="mc-entry">
+          <span class="mc-ico" aria-hidden="true"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6h12"/><path d="M8 12h12"/><path d="M8 18h12"/><path d="M4 6h.01"/><path d="M4 12h.01"/><path d="M4 18h.01"/></svg></span>
+          <h2>基础测试</h2>
+          <p>看协议、流式、上下文、工具调用和用量。不支持就跳过。</p>
+          <a class="mc-btn" href="/check/basic">开始测试</a>
+        </article>
+        <article class="mc-entry">
+          <span class="mc-ico" aria-hidden="true"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="7"/><circle cx="12" cy="12" r="2.2"/></svg></span>
+          <h2>糖果测试</h2>
+          <p>固定选择题，可选 5、10、15 或 20 道。做完有对错和分项得分。</p>
+          <a class="mc-btn" href="/check/candy">开始测试</a>
+        </article>
+        <article class="mc-entry">
+          <span class="mc-ico" aria-hidden="true"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="6.5" cy="16.5" r="2.5"/><circle cx="17.5" cy="16.5" r="2.5"/><path d="M9 16.5h6"/><path d="M8 16.5 11 8h6l2 5"/><path d="M11 8 9 5"/></svg></span>
+          <h2>鹈鹕骑车</h2>
+          <p>用一句固定提示词，看模型能不能交回会动的 SVG 页面。</p>
+          <a class="mc-btn" href="/check/pelican">开始测试</a>
+        </article>
+      </div>
+      <div class="mc-split">
+        <section class="mc-card">
+          <h2>最近使用</h2>
+          <div id="mcHistory" class="mc-history"></div>
+        </section>
+        <aside class="mc-card mc-tip">
+          <h2>检测说明</h2>
+          <dl class="mc-faq">
+            <dt>自测会把 API Key 发到本站吗？</dt>
+            <dd>不会。请求从浏览器直接发到你填写的地址。Key 默认只留在当次页面，勾选后才写进这台浏览器。</dd>
+            <dt>糖果测试和鹈鹕骑车能证明模型是官方原厂吗？</dt>
+            <dd>不能。它们对照的是这一次调用的推理、画图和有没有改写输入输出。官方原厂要看服务端签名，不在这些题目里。</dd>
+            <dt>怎么看 API 中转有没有 GPT 降智？</dt>
+            <dd>先跑基础检测看接口通不通，再跑糖果测试和鹈鹕骑车。降智只根据这两项能力题，基础项不支持或网络失败不算降智。这不是官方鉴定。</dd>
+            <dt>糖果测试在测什么？</dt>
+            <dd>可以从 5、10、15、20 道里选题量。做到哪题展示哪题。跑完给出分数、对错、正确率和迷惑辨析、数量关系、约束求解、演绎四项得分。</dd>
+            <dt>鹈鹕骑车在测什么？</dt>
+            <dd>用一句固定提示词，让模型交回用 SVG 画的鹈鹕骑自行车 2D 动画 HTML。跑完可以在页面播放，也可以下载。速度滑杆不在提示词里。</dd>
+            <dt>基础检测没通过是不是降智？</dt>
+            <dd>不是。基础检测看协议、流式、上下文、工具和用量。不支持的记为跳过，不扣成降智。</dd>
+            <dt>模型名单里没有我的模型怎么办？</dt>
+            <dd>填好地址和 Key 后，会向你填写的接口读取模型列表。列表只留在这台浏览器，不经过本站。</dd>
+          </dl>
+        </aside>
+      </div>
+    </section>
+
+    <section class="mc-view" data-view-panel="detect">
+      <div class="mc-hero">
+        <div>
+          <h1>检测结果</h1>
+          <p>这一页只汇总你已经跑过的结果：基础分、耗时、通道有没有被改，以及糖果和鹈鹕能不能判断降智。它不会自己去连中转站。检测请求从基础测试、糖果测试或鹈鹕测试发出，用的是你填写的地址和 Key，Key 不经过本站。</p>
+          <i class="mc-bar"></i>
+        </div>
+      </div>
+      <section class="mc-card mc-need" id="needSetup">
+        <h2>还不能检测</h2>
+        <p>还没填接口地址和 Key。填在基础测试页，只存在这台浏览器里。</p>
+        <a class="mc-btn mc-btn-solid" id="goSetup" href="/check/basic">去填写地址和 Key</a>
+      </section>
+      <section class="mc-card mc-detect" id="labScore">
+        <div class="mc-ring-wrap">
+          <div id="scoreRing" class="mc-ring"><strong id="scoreValue">—</strong><span>/100</span></div>
+          <div>
+            <h2 id="scoreVerdict">还没有检测</h2>
+            <p id="scoreMind">先跑基础检测，需要时再跑糖果和鹈鹕。</p>
+            <p class="mc-meta"><span id="scoreTime">耗时还没记到</span><span id="scoreModel">模型还没选</span></p>
+          </div>
+        </div>
+        <div class="mc-minis">
+          <div><b id="scoreBasic">—</b><span>基础测试</span><em id="scoreBasicTag">未测</em></div>
+          <div><b id="scoreCandy">—</b><span>糖果测试</span><em id="scoreCandyTag">未测</em></div>
+          <div><b id="scorePelican">—</b><span>鹈鹕骑车</span><em id="scorePelicanTag">未测</em></div>
+        </div>
+        <p id="scoreCoverage" class="mc-meta"></p>
+        <p id="scoreChannel"></p>
+        <p id="scoreNote" class="mc-meta"></p>
+        <button class="mc-btn mc-btn-solid" id="runAll" type="button" data-run-set="all">重新检测</button>
+      </section>
+      <section class="mc-card">
+        <h2>各项测试详情</h2>
+        <div id="detectRows" class="mc-detect-rows"></div>
+      </section>
+    </section>
+
+    <section class="mc-view" data-view-panel="basic">
+      <div class="mc-hero">
+        <div>
+          <h1>基础测试</h1>
+          <p>检测 OpenAI 兼容和 Claude Messages 是否按协议返回。不支持的项会跳过，不直接当成 GPT 降智。</p>
+          <i class="mc-bar"></i>
+        </div>
+      </div>
+      <section class="mc-card">
+        <h2>测试设置</h2>
+        <div id="setup-basic"></div>
+        <div class="mc-actions">
+          <button class="mc-btn mc-btn-solid" id="runBtn" type="button" data-run-set="basic">开始测试</button>
+          <button class="mc-btn" id="stopBtn" type="button" disabled>停止</button>
+          <button class="mc-btn" id="copyReport" type="button">复制报告</button>
+          <button class="mc-btn" id="curlBtn" type="button" hidden>显示本机 curl</button>
+        </div>
+        <p id="tally" class="mc-meta" aria-live="polite"></p>
+        <p id="runNote" class="mc-meta" aria-live="polite"></p>
+        <textarea id="report" class="mc-export" hidden readonly></textarea>
+        <textarea id="curlBox" class="mc-export" hidden readonly></textarea>
+      </section>
+      <section class="mc-card">
+        <h2>各项测试详情</h2>
+        <div class="lab-rows">
+          <article class="lab-row" data-test="proto"><h2>协议识别</h2><span class="lab-badge" data-badge>未测</span><div data-out></div></article>
+          <article class="lab-row" data-test="structure"><h2>响应结构</h2><span class="lab-badge" data-badge>未测</span><div data-out></div></article>
+          <article class="lab-row" data-test="modelecho"><h2>模型回显</h2><span class="lab-badge" data-badge>未测</span><div data-out></div></article>
+          <article class="lab-row" data-test="consistent"><h2>模型一致性</h2><span class="lab-badge" data-badge>未测</span><div data-out></div></article>
+          <article class="lab-row" data-test="stream"><h2>流式响应</h2><span class="lab-badge" data-badge>未测</span><div data-out></div></article>
+          <article class="lab-row" data-test="control"><h2>输出控制</h2><span class="lab-badge" data-badge>未测</span><div data-out></div></article>
+          <article class="lab-row" data-test="memory"><h2>上下文记忆</h2><span class="lab-badge" data-badge>未测</span><div data-out></div></article>
+          <article class="lab-row" data-test="system"><h2>系统指令</h2><span class="lab-badge" data-badge>未测</span><div data-out></div></article>
+          <article class="lab-row" data-test="tools"><h2>工具调用</h2><span class="lab-badge" data-badge>未测</span><div data-out></div></article>
+          <article class="lab-row" data-test="vision"><h2>多模态</h2><span class="lab-badge" data-badge>未测</span><div data-out></div></article>
+          <article class="lab-row" data-test="reasoning"><h2>推理参数</h2><span class="lab-badge" data-badge>未测</span><div data-out></div></article>
+          <article class="lab-row" data-test="usage"><h2>用量审计</h2><span class="lab-badge" data-badge>未测</span><div data-out></div></article>
+          <article class="lab-row" data-test="replay"><h2>缓存与重放</h2><span class="lab-badge" data-badge>未测</span><div data-out></div></article>
+          <article class="lab-row" data-test="context"><h2>长上下文真实性</h2><span class="lab-badge" data-badge>未测</span><div data-out></div></article>
+        </div>
+      </section>
+    </section>
+
+    <section class="mc-view" data-view-panel="candy">
+      <div id="candyStart">
+        <div class="mc-hero">
+          <div>
+            <h1>糖果测试</h1>
+            <p>题库 20 道，开考前选 5、10、15 或 20 道。做到哪一题就展示题目和选项，做完给出分数、对错和分项得分。</p>
+            <i class="mc-bar"></i>
+          </div>
+        </div>
+        <section class="mc-card mc-setup-card">
+          <h2>测试设置</h2>
+          <div id="setup-candy"></div>
+          <div class="mc-runrow">
+            <fieldset class="mc-field">
+              <span>题量</span>
+              <div class="mc-choices">
+                <label class="t-blue"><input type="radio" name="candyCount" value="5"> 5 题</label>
+                <label class="t-teal"><input type="radio" name="candyCount" value="10" checked> 10 题</label>
+                <label class="t-amber"><input type="radio" name="candyCount" value="15"> 15 题</label>
+                <label class="t-rose"><input type="radio" name="candyCount" value="20"> 20 题</label>
+              </div>
+            </fieldset>
+            <div class="mc-actions">
+              <button class="mc-btn" id="runCandyCard" type="button" data-run-set="candy">再跑一次</button>
+              <button class="mc-btn" id="runAllCandy" type="button" data-run-set="all">三项一起测</button>
+              <button class="mc-btn mc-btn-solid" id="runCandy" type="button" data-run-set="candy">开始测试</button>
+            </div>
+            <p class="mc-jobnote" data-job-note hidden></p>
+          </div>
+        </section>
+        <section class="mc-card">
+          <h2>这页在测什么</h2>
+          <p>糖果测试是 20 道固定选择题，用来看这一次调用会不会把简单逻辑题做错。开考前可以选 5、10、15 或 20 道，默认 10 道。做题时页面给出当前题目和 A、B、C、D，做完给出正确率、对错，以及迷惑辨析、数量关系、约束求解、演绎四项得分。</p>
+          <dl class="mc-faq">
+            <dt>能用来判断中转站降智吗？</dt>
+            <dd>只能看这一次调用。答错说明这题没做对，不能据此判断整站，也不能当成官方原厂鉴定。降智还要连着鹈鹕骑车一起看。</dd>
+            <dt>Key 会留在这个网站吗？</dt>
+            <dd>不会。请求从浏览器直接发到你填写的地址。Key 默认只留在当次页面，勾选后才写进这台浏览器。</dd>
+          </dl>
+        </section>
+      </div>
+      <div id="candyRun" hidden></div>
+      <div id="candyReport" hidden></div>
+      <article class="lab-card" data-test="candy" data-raw="1" hidden>
+        <div class="lab-card-head"><h2>糖果</h2><span class="lab-badge" data-badge>未测</span></div>
+        <div data-out></div>
+      </article>
+    </section>
+
+    <section class="mc-view" data-view-panel="pelican">
+      <div class="mc-hero">
+        <div>
+          <h1>鹈鹕骑车</h1>
+          <p>这不是问答题。让模型交回一整页 HTML，用 SVG 画一只正在骑自行车的鹈鹕，而且要能动。跑完后在下面直接看，也可以把这一页下载下来。</p>
+          <i class="mc-bar"></i>
+        </div>
+      </div>
+      <section class="mc-card mc-setup-card">
+        <h2>测试设置</h2>
+        <p class="mc-meta">提示词只有这一句，原样发送：创建一个HTML，内容是SVG绘制一个鹈鹕骑自行车的2D动画，你不需要任何测试。</p>
+        <p class="mc-meta">看画面时注意长喙和喉囊、两个车轮和车架、脚有没有踩在踏板上。速度滑杆如果出现，是模型自己加的，不在这句提示词里。通过只表示交回了能打开的动画页，像不像要自己看。</p>
+        <div id="setup-pelican"></div>
+        <div class="mc-runrow">
+          <div class="mc-actions">
+            <button class="mc-btn" id="runPelicanCard" type="button" data-run-set="pelican">再跑一次</button>
+            <button class="mc-btn" id="runAllPelican" type="button" data-run-set="all">三项一起测</button>
+            <button class="mc-btn mc-btn-solid" id="runPelican" type="button" data-run-set="pelican">开始测试</button>
+          </div>
+          <p class="mc-jobnote" data-job-note hidden></p>
+        </div>
+      </section>
+      <section class="mc-card">
+        <h2>测试结果</h2>
+        <article class="lab-card" data-test="pelican" data-raw="1">
+          <div class="lab-card-head"><h2>鹈鹕骑车</h2><span class="lab-badge" data-badge>未测</span></div>
+          <div data-out></div>
+        </article>
+      </section>
+    </section>
+    <p class="mc-local">检测数据只在这台浏览器里。地址、Key、历史记录和每一项结果不会同步到别的浏览器，也不会发到本站。</p>
+  </main>
+  <footer class="site-foot mc-foot">
+    <div class="site-foot-inner">
+      <section>
+        <a class="foot-brand" href="/">
+          <img src="/img/icon-192.png" width="40" height="40" alt="API中转站导航">
+          <div>
+            <strong>API中转站导航</strong>
+            <span>模型检测 · 中转自测</span>
+          </div>
+        </a>
+        <p>在浏览器里用你自己的地址和 Key，检测 API 中转这一次调用。基础检测看接口通不通，糖果测试看逻辑题，鹈鹕骑车看能不能交回会动的 SVG 页面。对照 GPT、Claude、DeepSeek 时，Key 不经过本站，结果也不能当成官方原厂鉴定。</p>
+      </section>
+      <section>
+        <h3>检测页</h3>
+        <p>五块都在这一页里：先看汇总，再单独跑基础、糖果或鹈鹕。</p>
+        <nav class="mc-tags" aria-label="检测分页">
+          <a class="t-blue" href="/check">检测首页</a>
+          <a class="t-blue" href="/check/detect">检测结果</a>
+          <a class="t-amber" href="/check/basic">基础测试</a>
+          <a class="t-teal" href="/check/candy">糖果测试</a>
+          <a class="t-teal" href="/check/pelican">鹈鹕骑车</a>
+        </nav>
+      </section>
+      <section>
+        <h3>相关检测</h3>
+        <nav class="mc-tags" aria-label="页脚关键词">
+          <a class="t-rose" href="/check/detect">GPT降智</a>
+          <a class="t-rose" href="/check/detect">ChatGPT降智</a>
+          <a class="t-amber" href="/check/basic">API中转检测</a>
+          <a class="t-amber" href="/check/basic">中转站降智</a>
+          <a class="t-teal" href="/check/candy">糖果测试</a>
+          <a class="t-teal" href="/check/pelican">鹈鹕骑车</a>
+          <a class="t-teal" href="/check/pelican">鹈鹕骑自行车</a>
+          <a class="t-blue" href="/check/basic">Claude中转</a>
+          <a class="t-blue" href="/check/basic">OpenAI兼容</a>
+          <a class="t-blue" href="/check/basic">GPT中转</a>
+          <a class="t-blue" href="/check/basic">DeepSeek API</a>
+          <a class="t-amber" href="/check">GPT-6 Astra</a>
+        </nav>
+      </section>
+      <section id="contact">
+        <h3>联系我们</h3>
+        <p class="foot-contact">
+          邮箱 <a href="mailto:2201219073@qq.com">2201219073@qq.com</a><br>
+          QQ <a href="https://wpa.qq.com/msgrd?v=3&amp;uin=2201219073&amp;site=qq&amp;menu=yes" target="_blank" rel="noopener noreferrer">2201219073</a>
+        </p>
+        <p>目录站只做导航对照。模型检测不代充值，也不保管 Key。要把站点放进目录，去 <a href="/apply">申请收录</a>。</p>
+      </section>
+    </div>
+    <a class="pickapps-badge" href="https://pickapps.org" target="_blank" rel="noopener noreferrer"><img src="https://pickapps.org/pickapps-badge.svg" width="160" height="48" alt="Listed on PickApps"></a>
+    <p class="foot-copy">© API中转站导航 · 模型检测只对照这一次调用，充值与使用风险自负</p>
+  </footer>
+  <script src="/original-check/check-grade.js"></script>
+  <script src="/original-check/check.js"></script>
+  <script>
+    (function () {
+      var select = document.getElementById("model");
+      var root = document.getElementById("modelPick");
+      var button = document.getElementById("modelPickBtn");
+      var label = document.getElementById("modelPickLabel");
+      var menu = document.getElementById("modelPickMenu");
+      if (!select || !root || !button || !label || !menu) return;
+
+      function closeMenu() {
+        menu.hidden = true;
+        button.setAttribute("aria-expanded", "false");
+      }
+
+      var prettyName = {
+        "gpt-6-astra": "GPT 6 Astra",
+        "claude-fable-5-1": "Fable 5.1",
+        "claude-opus-5": "Opus 5",
+        "claude-fable-5": "Fable 5",
+        "claude-opus-4-8": "Opus 4.8",
+        "claude-sonnet-5": "Sonnet 5",
+        "gpt-5.6-sol": "GPT 5.6 Sol",
+        "gpt-5.6-terra": "GPT 5.6 Terra",
+        "gpt-5.6-luna": "GPT 5.6 Luna",
+        "gpt-5.5": "GPT 5.5",
+        "gemini-3.1-pro-preview": "Gemini 3.1 Pro",
+        "gemini-3.1-pro": "Gemini 3.1 Pro"
+      };
+
+      function pretty(id) {
+        return prettyName[id] || id || "选择模型";
+      }
+
+      function vendorOf(id) {
+        var text = String(id || "").toLowerCase();
+        if (/gpt|codex|openai|chatgpt/.test(text)) return ["/icons/vendor/openai.svg", true];
+        if (/claude|fable|opus|sonnet/.test(text)) return ["/icons/vendor/claude.svg", false];
+        if (text.indexOf("gemini") >= 0) return ["/icons/vendor/gemini.svg", false];
+        if (text.indexOf("grok") >= 0) return ["/icons/vendor/grok.svg", true];
+        if (text.indexOf("deepseek") >= 0) return ["/icons/vendor/deepseek.svg", false];
+        if (/glm|zhipu|chatglm/.test(text)) return ["/icons/vendor/zhipu.svg", false];
+        if (/kimi|moonshot/.test(text)) return ["/icons/vendor/moonshot.svg", true];
+        if (/qwen|千问/.test(text)) return ["/icons/vendor/qwen.svg", false];
+        if (text.indexOf("minimax") >= 0) return ["/icons/vendor/minimax.svg", false];
+        if (/mimo|xiaomi/.test(text)) return ["/icons/vendor/xiaomi-mimo.svg", true];
+        if (/hunyuan|混元/.test(text)) return ["/icons/vendor/hunyuan.svg", false];
+        if (/meta|llama/.test(text)) return ["/icons/vendor/meta.svg", false];
+        if (/doubao|豆包/.test(text)) return ["/icons/vendor/doubao.svg", false];
+        return null;
+      }
+
+      function paintMark(id) {
+        var mark = document.getElementById("modelMark");
+        var vendor = vendorOf(id);
+        if (!mark) return;
+        if (!vendor) {
+          mark.hidden = true;
+          mark.removeAttribute("src");
+          return;
+        }
+        mark.hidden = false;
+        mark.src = vendor[0];
+        mark.classList.toggle("mono", vendor[1]);
+      }
+
+      function paint() {
+        var current = select.value;
+        label.textContent = pretty(current);
+        paintMark(current);
+        menu.replaceChildren();
+        Array.prototype.forEach.call(select.children, function (node) {
+          if (node.tagName === "OPTGROUP") {
+            var group = document.createElement("div");
+            group.className = "mc-pick-group";
+            group.textContent = node.label;
+            menu.appendChild(group);
+            Array.prototype.forEach.call(node.children, addOption);
+          } else if (node.tagName === "OPTION") {
+            addOption(node);
+          }
+        });
+      }
+
+      function addOption(option) {
+        var item = document.createElement("button");
+        item.type = "button";
+        item.className = "mc-pick-opt";
+        item.setAttribute("role", "option");
+        var vendor = vendorOf(option.value);
+        if (vendor) {
+          var icon = document.createElement("img");
+          icon.className = vendor[1] ? "mc-mark mono" : "mc-mark";
+          icon.alt = "";
+          icon.width = 16;
+          icon.height = 16;
+          icon.src = vendor[0];
+          item.appendChild(icon);
+        }
+        var text = document.createElement("span");
+        text.textContent = pretty(option.value || option.textContent);
+        item.appendChild(text);
+        if (option.value === select.value) {
+          item.classList.add("on");
+          item.setAttribute("aria-selected", "true");
+        }
+        item.addEventListener("click", function () {
+          select.value = option.value;
+          select.dispatchEvent(new Event("change", { bubbles: true }));
+          closeMenu();
+          paint();
+        });
+        menu.appendChild(item);
+      }
+
+      function start() {
+        paint();
+        new MutationObserver(paint).observe(select, { childList: true, subtree: true });
+        select.addEventListener("change", paint);
+      }
+
+      button.addEventListener("click", function () {
+        var open = menu.hidden;
+        menu.hidden = !open;
+        button.setAttribute("aria-expanded", open ? "true" : "false");
+      });
+      document.addEventListener("mousedown", function (event) {
+        if (!root.contains(event.target)) closeMenu();
+      });
+      document.addEventListener("keydown", function (event) {
+        if (event.key === "Escape") closeMenu();
+      });
+      if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", start);
+      else start();
+    })();
+  </script>
+</body>
+</html>

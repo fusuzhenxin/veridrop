@@ -1,0 +1,2707 @@
+[
+  {
+    "slug": "claude-opus-5-5",
+    "title": "Claude Opus 5.5",
+    "icon": "/icons/vendor/claude.svg",
+    "family": "Claude",
+    "stations": 55,
+    "iq": 96,
+    "mods": [
+      "text",
+      "image",
+      "file"
+    ],
+    "priceIn": 4,
+    "priceOut": 20,
+    "context": 1000000,
+    "released": "2026-09-22",
+    "hot": 0,
+    "cheapest": {
+      "station": "DuckCoding",
+      "in": 0.4,
+      "out": 2,
+      "url": "https://www.duckcoding.ai/sign-up"
+    }
+  },
+  {
+    "slug": "claude-fable-5-1",
+    "title": "Claude Fable 5.1",
+    "icon": "/icons/vendor/claude.svg",
+    "family": "Claude",
+    "stations": 53,
+    "iq": 92,
+    "mods": [
+      "text",
+      "image",
+      "file"
+    ],
+    "priceIn": 10,
+    "priceOut": 50,
+    "context": 1000000,
+    "released": "2026-09-01",
+    "hot": 1,
+    "cheapest": {
+      "station": "DuckCoding",
+      "in": 1,
+      "out": 5,
+      "url": "https://www.duckcoding.ai/sign-up"
+    }
+  },
+  {
+    "slug": "claude-sonnet-5-5",
+    "title": "Claude Sonnet 5.5",
+    "icon": "/icons/vendor/claude.svg",
+    "family": "Claude",
+    "stations": 49,
+    "iq": 94,
+    "mods": [
+      "text",
+      "image",
+      "file"
+    ],
+    "priceIn": 2,
+    "priceOut": 10,
+    "context": 1000000,
+    "released": "2026-09-28",
+    "hot": 2,
+    "cheapest": {
+      "station": "GrooRoute Pro",
+      "in": 0.2,
+      "out": 1,
+      "url": "https://grooroute.com/sign-up"
+    }
+  },
+  {
+    "slug": "gpt-6-astra",
+    "title": "GPT 6 Astra",
+    "icon": "/icons/vendor/openai.svg",
+    "family": "ChatGPT",
+    "stations": 61,
+    "iq": 91,
+    "mods": [
+      "file",
+      "image",
+      "text"
+    ],
+    "priceIn": 10,
+    "priceOut": 50,
+    "context": 1050000,
+    "released": "2026-09-04",
+    "hot": 3,
+    "cheapest": {
+      "station": "Token-AI",
+      "in": 0.36,
+      "out": 0.72,
+      "url": "https://tken.lol/sign-up"
+    }
+  },
+  {
+    "slug": "gpt-6.1-sol",
+    "title": "GPT 6.1 Sol",
+    "icon": "/icons/vendor/openai.svg",
+    "family": "ChatGPT",
+    "stations": 58,
+    "iq": 81,
+    "mods": [
+      "file",
+      "image",
+      "text"
+    ],
+    "priceIn": 2,
+    "priceOut": 10,
+    "context": 1050000,
+    "released": "2026-09-29",
+    "hot": 4,
+    "cheapest": {
+      "station": "百川汇智API",
+      "in": 0.24,
+      "out": 1.2,
+      "url": "https://rivernexus.vip/sign-up"
+    }
+  },
+  {
+    "slug": "gemini-3.1-pro-preview",
+    "title": "Gemini 3.1 Pro",
+    "icon": "/icons/vendor/gemini.svg",
+    "family": "Gemini",
+    "stations": 23,
+    "iq": null,
+    "mods": [
+      "audio",
+      "file",
+      "image",
+      "text",
+      "video"
+    ],
+    "priceIn": 2,
+    "priceOut": 12,
+    "context": 1048576,
+    "released": "2026-02-19",
+    "hot": 5,
+    "cheapest": {
+      "station": "DuckCoding",
+      "in": 1,
+      "out": 6,
+      "url": "https://www.duckcoding.ai/sign-up"
+    }
+  },
+  {
+    "slug": "deepseek-v4.1-flash",
+    "title": "DeepSeek V4.1 Flash",
+    "icon": "/icons/vendor/deepseek.svg",
+    "family": "DeepSeek",
+    "stations": 27,
+    "iq": null,
+    "mods": [
+      "text",
+      "image"
+    ],
+    "priceIn": 0.15,
+    "priceOut": 0.6,
+    "context": 1048576,
+    "released": "2026-10-17",
+    "hot": -1,
+    "cheapest": null
+  },
+  {
+    "slug": "gemini-4-argon",
+    "title": "Gemini 4 Argon",
+    "icon": "/icons/vendor/gemini.svg",
+    "family": "Gemini",
+    "stations": 15,
+    "iq": null,
+    "mods": [
+      "audio",
+      "file",
+      "image",
+      "text",
+      "video"
+    ],
+    "priceIn": 2,
+    "priceOut": 10,
+    "context": 1048576,
+    "released": "2026-10-13",
+    "hot": -1,
+    "cheapest": {
+      "station": "GrooRoute Pro",
+      "in": 0.2,
+      "out": 1,
+      "url": "https://grooroute.com/sign-up"
+    }
+  },
+  {
+    "slug": "claude-haiku-5-5",
+    "title": "Claude Haiku 5.5",
+    "icon": "/icons/vendor/claude.svg",
+    "family": "Claude",
+    "stations": 35,
+    "iq": null,
+    "mods": [
+      "text",
+      "image",
+      "file"
+    ],
+    "priceIn": 0.1,
+    "priceOut": 0.5,
+    "context": 1000000,
+    "released": "2026-10-07",
+    "hot": -1,
+    "cheapest": {
+      "station": "DuckCoding",
+      "in": 7.5,
+      "out": 7.5,
+      "url": "https://www.duckcoding.ai/sign-up"
+    }
+  },
+  {
+    "slug": "gemini-nano-banana-2.1",
+    "title": "Gemini Nano Banana 2.1",
+    "icon": "/icons/vendor/gemini.svg",
+    "family": "Gemini",
+    "stations": 8,
+    "iq": null,
+    "mods": [
+      "image",
+      "text"
+    ],
+    "priceIn": 1.5,
+    "priceOut": 7.5,
+    "context": 65536,
+    "released": "2026-10-06",
+    "hot": -1,
+    "cheapest": null
+  },
+  {
+    "slug": "gpt-6-luna",
+    "title": "GPT 6 Luna",
+    "icon": "/icons/vendor/openai.svg",
+    "family": "ChatGPT",
+    "stations": 36,
+    "iq": 92,
+    "mods": [
+      "file",
+      "image",
+      "text"
+    ],
+    "priceIn": 0.1,
+    "priceOut": 0.5,
+    "context": 1050000,
+    "released": "2026-09-22",
+    "hot": -1,
+    "cheapest": {
+      "station": "SudoCode",
+      "in": 0.2,
+      "out": 1,
+      "url": "https://sudocode.chat/sign-up"
+    }
+  },
+  {
+    "slug": "gpt-6-sol",
+    "title": "GPT 6 Sol",
+    "icon": "/icons/vendor/openai.svg",
+    "family": "ChatGPT",
+    "stations": 60,
+    "iq": 90,
+    "mods": [
+      "file",
+      "image",
+      "text"
+    ],
+    "priceIn": 2,
+    "priceOut": 10,
+    "context": 1050000,
+    "released": "2026-09-22",
+    "hot": -1,
+    "cheapest": {
+      "station": "百川汇智API",
+      "in": 0.24,
+      "out": 1.2,
+      "url": "https://rivernexus.vip/sign-up"
+    }
+  },
+  {
+    "slug": "grok-4.7",
+    "title": "Grok 4.7",
+    "icon": "/icons/vendor/grok.svg",
+    "family": "Grok",
+    "stations": 39,
+    "iq": null,
+    "mods": [
+      "text",
+      "image",
+      "file"
+    ],
+    "priceIn": 2,
+    "priceOut": 6,
+    "context": 500000,
+    "released": "2026-09-21",
+    "hot": -1,
+    "cheapest": {
+      "station": "GrooRoute Pro",
+      "in": 7.5,
+      "out": 7.5,
+      "url": "https://grooroute.com/sign-up"
+    }
+  },
+  {
+    "slug": "mimo-v2.6-flash",
+    "title": "Mimo V2.6 Flash",
+    "icon": "/icons/vendor/xiaomi-mimo.svg",
+    "family": "MiMo",
+    "stations": 7,
+    "iq": null,
+    "mods": [
+      "text",
+      "image",
+      "video",
+      "audio"
+    ],
+    "priceIn": 0.14,
+    "priceOut": 0.28,
+    "context": 1050000,
+    "released": "2026-09-21",
+    "hot": -1,
+    "cheapest": null
+  },
+  {
+    "slug": "mimo-v2.6-pro",
+    "title": "Mimo V2.6 Pro",
+    "icon": "/icons/vendor/xiaomi-mimo.svg",
+    "family": "MiMo",
+    "stations": 6,
+    "iq": null,
+    "mods": [
+      "text",
+      "image",
+      "video",
+      "audio"
+    ],
+    "priceIn": 0.435,
+    "priceOut": 0.87,
+    "context": 1050000,
+    "released": "2026-09-21",
+    "hot": -1,
+    "cheapest": null
+  },
+  {
+    "slug": "glm-5.3-flashx",
+    "title": "GLM 5.3 Flashx",
+    "icon": "/icons/vendor/zhipu.svg",
+    "family": "GLM",
+    "stations": 10,
+    "iq": null,
+    "mods": [
+      "text",
+      "image",
+      "video"
+    ],
+    "priceIn": 0.37,
+    "priceOut": 1.25,
+    "context": 1048576,
+    "released": "2026-09-18",
+    "hot": -1,
+    "cheapest": null
+  },
+  {
+    "slug": "jev",
+    "title": "Jev",
+    "icon": "/icons/vendor/typesafe.png",
+    "family": "TypeSafe",
+    "stations": 6,
+    "iq": null,
+    "mods": [
+      "text"
+    ],
+    "priceIn": 0.042,
+    "priceOut": 0,
+    "context": 64000,
+    "released": "2026-09-15",
+    "hot": -1,
+    "cheapest": null
+  },
+  {
+    "slug": "deepseek-flash",
+    "title": "DeepSeek Flash",
+    "icon": "/icons/vendor/deepseek.svg",
+    "family": "DeepSeek",
+    "stations": 9,
+    "iq": null,
+    "mods": [
+      "text",
+      "image"
+    ],
+    "priceIn": 0.059,
+    "priceOut": 0.6,
+    "context": 1048576,
+    "released": "2026-09-14",
+    "hot": -1,
+    "cheapest": null
+  },
+  {
+    "slug": "qwen3.8-max",
+    "title": "Qwen3.8 Max",
+    "icon": "/icons/vendor/qwen.svg",
+    "family": "千问",
+    "stations": 15,
+    "iq": null,
+    "mods": [
+      "text",
+      "image",
+      "video"
+    ],
+    "priceIn": 2,
+    "priceOut": 6,
+    "context": 1000000,
+    "released": "2026-09-03",
+    "hot": -1,
+    "cheapest": null
+  },
+  {
+    "slug": "gemini-3.8-flash",
+    "title": "Gemini 3.8 Flash",
+    "icon": "/icons/vendor/gemini.svg",
+    "family": "Gemini",
+    "stations": 27,
+    "iq": 88,
+    "mods": [
+      "text",
+      "image",
+      "video",
+      "file",
+      "audio"
+    ],
+    "priceIn": 0.825,
+    "priceOut": 4.125,
+    "context": 1048576,
+    "released": "2026-09-02",
+    "hot": -1,
+    "cheapest": {
+      "station": "GrooRoute Pro",
+      "in": 0.075,
+      "out": 0.375,
+      "url": "https://grooroute.com/sign-up"
+    }
+  },
+  {
+    "slug": "gemini-3.8-flash-tiered",
+    "title": "Gemini 3.8 Flash Tiered",
+    "icon": "/icons/vendor/gemini.svg",
+    "family": "Gemini",
+    "stations": 6,
+    "iq": null,
+    "mods": [
+      "text",
+      "image",
+      "video",
+      "file",
+      "audio"
+    ],
+    "priceIn": 0.825,
+    "priceOut": 4.125,
+    "context": 1048576,
+    "released": "2026-09-02",
+    "hot": -1,
+    "cheapest": null
+  },
+  {
+    "slug": "muse-spark-1.3",
+    "title": "Muse Spark 1.3",
+    "icon": "/icons/vendor/meta.svg",
+    "family": "Meta",
+    "stations": 4,
+    "iq": null,
+    "mods": [
+      "text",
+      "image",
+      "video",
+      "file"
+    ],
+    "priceIn": 1.25,
+    "priceOut": 4.25,
+    "context": 1048576,
+    "released": "2026-09-02",
+    "hot": -1,
+    "cheapest": null
+  },
+  {
+    "slug": "claude-fable-5.1",
+    "title": "Claude Fable 5.1",
+    "icon": "/icons/vendor/claude.svg",
+    "family": "Claude",
+    "stations": 8,
+    "iq": null,
+    "mods": [
+      "text",
+      "image",
+      "file"
+    ],
+    "priceIn": 10,
+    "priceOut": 50,
+    "context": 1000000,
+    "released": "2026-09-01",
+    "hot": -1,
+    "cheapest": {
+      "station": "UoCode",
+      "in": 10.5,
+      "out": 10.5,
+      "url": "https://www.uocode.com/sign-up"
+    }
+  },
+  {
+    "slug": "hy4-preview",
+    "title": "Hy4 Preview",
+    "icon": "/icons/vendor/hunyuan.svg",
+    "family": "混元",
+    "stations": 6,
+    "iq": null,
+    "mods": [
+      "text"
+    ],
+    "priceIn": 0.834,
+    "priceOut": 2.501,
+    "context": 1048576,
+    "released": "2026-08-28",
+    "hot": -1,
+    "cheapest": null
+  },
+  {
+    "slug": "glm-5.3-flash",
+    "title": "GLM 5.3 Flash",
+    "icon": "/icons/vendor/zhipu.svg",
+    "family": "GLM",
+    "stations": 25,
+    "iq": null,
+    "mods": [
+      "text",
+      "image",
+      "video"
+    ],
+    "priceIn": 0.048,
+    "priceOut": 0.2,
+    "context": 1048576,
+    "released": "2026-08-26",
+    "hot": -1,
+    "cheapest": null
+  },
+  {
+    "slug": "qwen3.8-flash",
+    "title": "Qwen3.8 Flash",
+    "icon": "/icons/vendor/qwen.svg",
+    "family": "千问",
+    "stations": 12,
+    "iq": null,
+    "mods": [
+      "text",
+      "image",
+      "video"
+    ],
+    "priceIn": 0.15,
+    "priceOut": 0.47,
+    "context": 1000000,
+    "released": "2026-08-26",
+    "hot": -1,
+    "cheapest": null
+  },
+  {
+    "slug": "glm-5.3",
+    "title": "GLM 5.3",
+    "icon": "/icons/vendor/zhipu.svg",
+    "family": "GLM",
+    "stations": 29,
+    "iq": 89,
+    "mods": [
+      "text"
+    ],
+    "priceIn": 0.079,
+    "priceOut": 1.4,
+    "context": 1048576,
+    "released": "2026-08-18",
+    "hot": -1,
+    "cheapest": null
+  },
+  {
+    "slug": "gemini-3.7-flash",
+    "title": "Gemini 3.7 Flash",
+    "icon": "/icons/vendor/gemini.svg",
+    "family": "Gemini",
+    "stations": 22,
+    "iq": null,
+    "mods": [
+      "text",
+      "image",
+      "video",
+      "file",
+      "audio"
+    ],
+    "priceIn": 0.75,
+    "priceOut": 3.75,
+    "context": 1048576,
+    "released": "2026-08-13",
+    "hot": -1,
+    "cheapest": {
+      "station": "DuckCoding",
+      "in": 0.375,
+      "out": 1.875,
+      "url": "https://www.duckcoding.ai/sign-up"
+    }
+  },
+  {
+    "slug": "gemini-3.7-flash-tiered",
+    "title": "Gemini 3.7 Flash Tiered",
+    "icon": "/icons/vendor/gemini.svg",
+    "family": "Gemini",
+    "stations": 4,
+    "iq": null,
+    "mods": [
+      "text",
+      "image",
+      "video",
+      "file",
+      "audio"
+    ],
+    "priceIn": 0.75,
+    "priceOut": 3.75,
+    "context": 1048576,
+    "released": "2026-08-13",
+    "hot": -1,
+    "cheapest": null
+  },
+  {
+    "slug": "deepseek-v4-pro",
+    "title": "DeepSeek V4 Pro",
+    "icon": "/icons/vendor/deepseek.svg",
+    "family": "DeepSeek",
+    "stations": 28,
+    "iq": 89,
+    "mods": [
+      "text"
+    ],
+    "priceIn": 0.66,
+    "priceOut": 1.98,
+    "context": 1048576,
+    "released": "2026-08-12",
+    "hot": -1,
+    "cheapest": {
+      "station": "SudoCode",
+      "in": 12,
+      "out": 24,
+      "url": "https://sudocode.chat/sign-up"
+    }
+  },
+  {
+    "slug": "grok-4.6",
+    "title": "Grok 4.6",
+    "icon": "/icons/vendor/grok.svg",
+    "family": "Grok",
+    "stations": 38,
+    "iq": null,
+    "mods": [
+      "text",
+      "image",
+      "file"
+    ],
+    "priceIn": 2,
+    "priceOut": 6,
+    "context": 500000,
+    "released": "2026-08-12",
+    "hot": -1,
+    "cheapest": null
+  },
+  {
+    "slug": "deepseek-v4-flash",
+    "title": "DeepSeek V4 Flash",
+    "icon": "/icons/vendor/deepseek.svg",
+    "family": "DeepSeek",
+    "stations": 30,
+    "iq": 93,
+    "mods": [
+      "text"
+    ],
+    "priceIn": 0.15,
+    "priceOut": 0.15,
+    "context": 1048576,
+    "released": "2026-07-31",
+    "hot": -1,
+    "cheapest": {
+      "station": "SudoCode",
+      "in": 3,
+      "out": 9,
+      "url": "https://sudocode.chat/sign-up"
+    }
+  },
+  {
+    "slug": "claude-opus-5",
+    "title": "Claude Opus 5",
+    "icon": "/icons/vendor/claude.svg",
+    "family": "Claude",
+    "stations": 56,
+    "iq": 89,
+    "mods": [
+      "text",
+      "image",
+      "file"
+    ],
+    "priceIn": 5,
+    "priceOut": 25,
+    "context": 1000000,
+    "released": "2026-07-24",
+    "hot": -1,
+    "cheapest": {
+      "station": "DuckCoding",
+      "in": 0.5,
+      "out": 2.5,
+      "url": "https://www.duckcoding.ai/sign-up"
+    }
+  },
+  {
+    "slug": "gemini-3.5-flash-lite",
+    "title": "Gemini 3.5 Flash Lite",
+    "icon": "/icons/vendor/gemini.svg",
+    "family": "Gemini",
+    "stations": 14,
+    "iq": 87,
+    "mods": [
+      "text",
+      "image",
+      "video",
+      "file",
+      "audio"
+    ],
+    "priceIn": 0.3,
+    "priceOut": 2.5,
+    "context": 1048576,
+    "released": "2026-07-21",
+    "hot": -1,
+    "cheapest": {
+      "station": "DuckCoding",
+      "in": 0.15,
+      "out": 1.25,
+      "url": "https://www.duckcoding.ai/sign-up"
+    }
+  },
+  {
+    "slug": "gemini-3.6-flash",
+    "title": "Gemini 3.6 Flash",
+    "icon": "/icons/vendor/gemini.svg",
+    "family": "Gemini",
+    "stations": 21,
+    "iq": null,
+    "mods": [
+      "text",
+      "image",
+      "video",
+      "file",
+      "audio"
+    ],
+    "priceIn": 0.75,
+    "priceOut": 3.75,
+    "context": 1048576,
+    "released": "2026-07-21",
+    "hot": -1,
+    "cheapest": {
+      "station": "DuckCoding",
+      "in": 0.75,
+      "out": 3.75,
+      "url": "https://www.duckcoding.ai/sign-up"
+    }
+  },
+  {
+    "slug": "gemini-3.6-flash-tiered",
+    "title": "Gemini 3.6 Flash Tiered",
+    "icon": "/icons/vendor/gemini.svg",
+    "family": "Gemini",
+    "stations": 4,
+    "iq": null,
+    "mods": [
+      "text",
+      "image",
+      "video",
+      "file",
+      "audio"
+    ],
+    "priceIn": 0.75,
+    "priceOut": 3.75,
+    "context": 1048576,
+    "released": "2026-07-21",
+    "hot": -1,
+    "cheapest": null
+  },
+  {
+    "slug": "kimi-k3",
+    "title": "Kimi K3",
+    "icon": "/icons/vendor/moonshot.svg",
+    "family": "Kimi",
+    "stations": 29,
+    "iq": 90,
+    "mods": [
+      "text",
+      "image",
+      "video"
+    ],
+    "priceIn": 0.239,
+    "priceOut": 11.936,
+    "context": 1048576,
+    "released": "2026-07-16",
+    "hot": -1,
+    "cheapest": null
+  },
+  {
+    "slug": "gpt-5.6",
+    "title": "GPT 5.6",
+    "icon": "/icons/vendor/openai.svg",
+    "family": "ChatGPT",
+    "stations": 25,
+    "iq": null,
+    "mods": [
+      "text",
+      "image",
+      "file"
+    ],
+    "priceIn": 4,
+    "priceOut": 20,
+    "context": 1050000,
+    "released": "2026-07-09",
+    "hot": -1,
+    "cheapest": {
+      "station": "UoCode",
+      "in": 1.25,
+      "out": 10,
+      "url": "https://www.uocode.com/sign-up"
+    }
+  },
+  {
+    "slug": "gpt-5.6-luna",
+    "title": "GPT 5.6 Luna",
+    "icon": "/icons/vendor/openai.svg",
+    "family": "ChatGPT",
+    "stations": 49,
+    "iq": 93,
+    "mods": [
+      "file",
+      "image",
+      "text"
+    ],
+    "priceIn": 0.2,
+    "priceOut": 1.2,
+    "context": 1050000,
+    "released": "2026-07-09",
+    "hot": -1,
+    "cheapest": {
+      "station": "DuckCoding",
+      "in": 0.02,
+      "out": 0.12,
+      "url": "https://www.duckcoding.ai/sign-up"
+    }
+  },
+  {
+    "slug": "gpt-5.6-sol",
+    "title": "GPT 5.6 Sol",
+    "icon": "/icons/vendor/openai.svg",
+    "family": "ChatGPT",
+    "stations": 60,
+    "iq": 93,
+    "mods": [
+      "file",
+      "image",
+      "text"
+    ],
+    "priceIn": 4,
+    "priceOut": 20,
+    "context": 1050000,
+    "released": "2026-07-09",
+    "hot": -1,
+    "cheapest": {
+      "station": "GrooRoute Pro",
+      "in": 0.2,
+      "out": 1,
+      "url": "https://grooroute.com/sign-up"
+    }
+  },
+  {
+    "slug": "gpt-5.6-terra",
+    "title": "GPT 5.6 Terra",
+    "icon": "/icons/vendor/openai.svg",
+    "family": "ChatGPT",
+    "stations": 60,
+    "iq": 89,
+    "mods": [
+      "file",
+      "image",
+      "text"
+    ],
+    "priceIn": 2,
+    "priceOut": 12,
+    "context": 1050000,
+    "released": "2026-07-09",
+    "hot": -1,
+    "cheapest": {
+      "station": "DuckCoding",
+      "in": 0.2,
+      "out": 1.2,
+      "url": "https://www.duckcoding.ai/sign-up"
+    }
+  },
+  {
+    "slug": "grok-4.5",
+    "title": "Grok 4.5",
+    "icon": "/icons/vendor/grok.svg",
+    "family": "Grok",
+    "stations": 38,
+    "iq": null,
+    "mods": [
+      "text",
+      "image",
+      "file"
+    ],
+    "priceIn": 2,
+    "priceOut": 6,
+    "context": 500000,
+    "released": "2026-07-08",
+    "hot": -1,
+    "cheapest": null
+  },
+  {
+    "slug": "hy3",
+    "title": "Hy3",
+    "icon": "/icons/vendor/hunyuan.svg",
+    "family": "混元",
+    "stations": 8,
+    "iq": null,
+    "mods": [
+      "text"
+    ],
+    "priceIn": 0.132,
+    "priceOut": 0.528,
+    "context": 262144,
+    "released": "2026-07-06",
+    "hot": -1,
+    "cheapest": null
+  },
+  {
+    "slug": "claude-sonnet-5",
+    "title": "Claude Sonnet 5",
+    "icon": "/icons/vendor/claude.svg",
+    "family": "Claude",
+    "stations": 55,
+    "iq": 92,
+    "mods": [
+      "text",
+      "image",
+      "file"
+    ],
+    "priceIn": 2,
+    "priceOut": 10,
+    "context": 1000000,
+    "released": "2026-06-30",
+    "hot": -1,
+    "cheapest": {
+      "station": "DuckCoding",
+      "in": 0.2,
+      "out": 1,
+      "url": "https://www.duckcoding.ai/sign-up"
+    }
+  },
+  {
+    "slug": "doubao-seed-2.1-pro",
+    "title": "Doubao Seed 2.1 Pro",
+    "icon": "/icons/vendor/doubao.svg",
+    "family": "豆包",
+    "stations": 3,
+    "iq": null,
+    "mods": [
+      "text",
+      "image",
+      "file"
+    ],
+    "priceIn": 0.8906,
+    "priceOut": 4.453,
+    "context": 256000,
+    "released": "2026-06-23",
+    "hot": -1,
+    "cheapest": null
+  },
+  {
+    "slug": "doubao-seed-2.1-turbo",
+    "title": "Doubao Seed 2.1 Turbo",
+    "icon": "/icons/vendor/doubao.svg",
+    "family": "豆包",
+    "stations": 3,
+    "iq": null,
+    "mods": [
+      "text",
+      "image",
+      "file"
+    ],
+    "priceIn": 0.4453,
+    "priceOut": 2.2265,
+    "context": 256000,
+    "released": "2026-06-23",
+    "hot": -1,
+    "cheapest": null
+  },
+  {
+    "slug": "glm-5.2",
+    "title": "GLM 5.2",
+    "icon": "/icons/vendor/zhipu.svg",
+    "family": "GLM",
+    "stations": 26,
+    "iq": null,
+    "mods": [
+      "text"
+    ],
+    "priceIn": 0.62,
+    "priceOut": 2.42,
+    "context": 1048576,
+    "released": "2026-06-16",
+    "hot": -1,
+    "cheapest": null
+  },
+  {
+    "slug": "kimi-k2.7-code",
+    "title": "Kimi K2.7 Code",
+    "icon": "/icons/vendor/moonshot.svg",
+    "family": "Kimi",
+    "stations": 16,
+    "iq": 86,
+    "mods": [
+      "text",
+      "image"
+    ],
+    "priceIn": 0.6712,
+    "priceOut": 3.35,
+    "context": 262144,
+    "released": "2026-06-12",
+    "hot": -1,
+    "cheapest": null
+  },
+  {
+    "slug": "claude-fable-5",
+    "title": "Claude Fable 5",
+    "icon": "/icons/vendor/claude.svg",
+    "family": "Claude",
+    "stations": 54,
+    "iq": null,
+    "mods": [
+      "text",
+      "image",
+      "file"
+    ],
+    "priceIn": 10,
+    "priceOut": 50,
+    "context": 1000000,
+    "released": "2026-06-09",
+    "hot": -1,
+    "cheapest": {
+      "station": "UoCode",
+      "in": 1.4,
+      "out": 7,
+      "url": "https://www.uocode.com/sign-up"
+    }
+  },
+  {
+    "slug": "qwen3.7-plus",
+    "title": "Qwen3.7 Plus",
+    "icon": "/icons/vendor/qwen.svg",
+    "family": "千问",
+    "stations": 12,
+    "iq": null,
+    "mods": [
+      "text",
+      "image"
+    ],
+    "priceIn": 0.32,
+    "priceOut": 1.28,
+    "context": 1000000,
+    "released": "2026-06-03",
+    "hot": -1,
+    "cheapest": null
+  },
+  {
+    "slug": "minimax-m3",
+    "title": "MiniMax M3",
+    "icon": "/icons/vendor/minimax.svg",
+    "family": "MiniMax",
+    "stations": 16,
+    "iq": null,
+    "mods": [
+      "text",
+      "image",
+      "video"
+    ],
+    "priceIn": 0.3,
+    "priceOut": 1.2,
+    "context": 1048576,
+    "released": "2026-05-31",
+    "hot": -1,
+    "cheapest": null
+  },
+  {
+    "slug": "claude-opus-4-8",
+    "title": "Claude Opus 4.8",
+    "icon": "/icons/vendor/claude.svg",
+    "family": "Claude",
+    "stations": 55,
+    "iq": 78,
+    "mods": [
+      "text",
+      "image",
+      "file"
+    ],
+    "priceIn": 5,
+    "priceOut": 25,
+    "context": 1000000,
+    "released": "2026-05-27",
+    "hot": -1,
+    "cheapest": {
+      "station": "UoCode",
+      "in": 0.7,
+      "out": 3.5,
+      "url": "https://www.uocode.com/sign-up"
+    }
+  },
+  {
+    "slug": "claude-opus-4.8",
+    "title": "Claude Opus 4.8",
+    "icon": "/icons/vendor/claude.svg",
+    "family": "Claude",
+    "stations": 6,
+    "iq": null,
+    "mods": [
+      "text",
+      "image",
+      "file"
+    ],
+    "priceIn": 5,
+    "priceOut": 25,
+    "context": 1000000,
+    "released": "2026-05-27",
+    "hot": -1,
+    "cheapest": null
+  },
+  {
+    "slug": "qwen3.7-max",
+    "title": "Qwen3.7 Max",
+    "icon": "/icons/vendor/qwen.svg",
+    "family": "千问",
+    "stations": 11,
+    "iq": null,
+    "mods": [
+      "text"
+    ],
+    "priceIn": 1.475,
+    "priceOut": 4.425,
+    "context": 1000000,
+    "released": "2026-05-21",
+    "hot": -1,
+    "cheapest": null
+  },
+  {
+    "slug": "grok-build",
+    "title": "Grok Build",
+    "icon": "/icons/vendor/grok.svg",
+    "family": "Grok",
+    "stations": 5,
+    "iq": null,
+    "mods": [
+      "text",
+      "image",
+      "file"
+    ],
+    "priceIn": 1,
+    "priceOut": 2,
+    "context": 256000,
+    "released": "2026-05-20",
+    "hot": -1,
+    "cheapest": null
+  },
+  {
+    "slug": "grok-build-0.1",
+    "title": "Grok Build 0.1",
+    "icon": "/icons/vendor/grok.svg",
+    "family": "Grok",
+    "stations": 11,
+    "iq": null,
+    "mods": [
+      "text",
+      "image",
+      "file"
+    ],
+    "priceIn": 1,
+    "priceOut": 2,
+    "context": 256000,
+    "released": "2026-05-20",
+    "hot": -1,
+    "cheapest": null
+  },
+  {
+    "slug": "gemini-3.5-flash",
+    "title": "Gemini 3.5 Flash",
+    "icon": "/icons/vendor/gemini.svg",
+    "family": "Gemini",
+    "stations": 25,
+    "iq": null,
+    "mods": [
+      "text",
+      "image",
+      "video",
+      "file",
+      "audio"
+    ],
+    "priceIn": 1.5,
+    "priceOut": 9,
+    "context": 1048576,
+    "released": "2026-05-19",
+    "hot": -1,
+    "cheapest": {
+      "station": "DuckCoding",
+      "in": 0.75,
+      "out": 4.5,
+      "url": "https://www.duckcoding.ai/sign-up"
+    }
+  },
+  {
+    "slug": "grok-composer-2.5",
+    "title": "Grok Composer 2.5",
+    "icon": "/icons/vendor/grok.svg",
+    "family": "Grok",
+    "stations": 5,
+    "iq": null,
+    "mods": [
+      "text",
+      "image"
+    ],
+    "priceIn": 0.5,
+    "priceOut": 2.5,
+    "context": 200000,
+    "released": "2026-05-18",
+    "hot": -1,
+    "cheapest": null
+  },
+  {
+    "slug": "grok-composer-2.5-fast",
+    "title": "Grok Composer 2.5 Fast",
+    "icon": "/icons/vendor/grok.svg",
+    "family": "Grok",
+    "stations": 9,
+    "iq": null,
+    "mods": [
+      "text",
+      "image"
+    ],
+    "priceIn": 3,
+    "priceOut": 15,
+    "context": 200000,
+    "released": "2026-05-18",
+    "hot": -1,
+    "cheapest": null
+  },
+  {
+    "slug": "gemini-3.1-flash-lite",
+    "title": "Gemini 3.1 Flash Lite",
+    "icon": "/icons/vendor/gemini.svg",
+    "family": "Gemini",
+    "stations": 14,
+    "iq": null,
+    "mods": [
+      "text",
+      "image",
+      "video",
+      "file",
+      "audio"
+    ],
+    "priceIn": 0.25,
+    "priceOut": 1.5,
+    "context": 1048576,
+    "released": "2026-05-07",
+    "hot": -1,
+    "cheapest": {
+      "station": "DuckCoding",
+      "in": 0.125,
+      "out": 0.75,
+      "url": "https://www.duckcoding.ai/sign-up"
+    }
+  },
+  {
+    "slug": "grok-4.3",
+    "title": "Grok 4.3",
+    "icon": "/icons/vendor/grok.svg",
+    "family": "Grok",
+    "stations": 12,
+    "iq": null,
+    "mods": [
+      "text",
+      "image",
+      "file"
+    ],
+    "priceIn": 1.25,
+    "priceOut": 2.5,
+    "context": 1000000,
+    "released": "2026-04-30",
+    "hot": -1,
+    "cheapest": null
+  },
+  {
+    "slug": "qwen3.5-plus",
+    "title": "Qwen3.5 Plus",
+    "icon": "/icons/vendor/qwen.svg",
+    "family": "千问",
+    "stations": 5,
+    "iq": null,
+    "mods": [
+      "text",
+      "image",
+      "video"
+    ],
+    "priceIn": 0.3,
+    "priceOut": 1.8,
+    "context": 1000000,
+    "released": "2026-04-27",
+    "hot": -1,
+    "cheapest": null
+  },
+  {
+    "slug": "gpt-5.5",
+    "title": "GPT 5.5",
+    "icon": "/icons/vendor/openai.svg",
+    "family": "ChatGPT",
+    "stations": 50,
+    "iq": 82,
+    "mods": [
+      "file",
+      "image",
+      "text"
+    ],
+    "priceIn": 5,
+    "priceOut": 30,
+    "context": 1050000,
+    "released": "2026-04-24",
+    "hot": -1,
+    "cheapest": {
+      "station": "百川汇智API",
+      "in": 0.6,
+      "out": 3.6,
+      "url": "https://rivernexus.vip/sign-up"
+    }
+  },
+  {
+    "slug": "mimo-v2.5",
+    "title": "Mimo V2.5",
+    "icon": "/icons/vendor/xiaomi-mimo.svg",
+    "family": "MiMo",
+    "stations": 10,
+    "iq": null,
+    "mods": [
+      "text",
+      "audio",
+      "image",
+      "video"
+    ],
+    "priceIn": 0.14,
+    "priceOut": 0.28,
+    "context": 1050000,
+    "released": "2026-04-22",
+    "hot": -1,
+    "cheapest": null
+  },
+  {
+    "slug": "mimo-v2.5-pro",
+    "title": "Mimo V2.5 Pro",
+    "icon": "/icons/vendor/xiaomi-mimo.svg",
+    "family": "MiMo",
+    "stations": 10,
+    "iq": null,
+    "mods": [
+      "text"
+    ],
+    "priceIn": 0.435,
+    "priceOut": 0.87,
+    "context": 1050000,
+    "released": "2026-04-22",
+    "hot": -1,
+    "cheapest": null
+  },
+  {
+    "slug": "kimi-k2.6",
+    "title": "Kimi K2.6",
+    "icon": "/icons/vendor/moonshot.svg",
+    "family": "Kimi",
+    "stations": 15,
+    "iq": null,
+    "mods": [
+      "text",
+      "image"
+    ],
+    "priceIn": 0.65,
+    "priceOut": 3.41,
+    "context": 262144,
+    "released": "2026-04-20",
+    "hot": -1,
+    "cheapest": null
+  },
+  {
+    "slug": "claude-opus-4-7",
+    "title": "Claude Opus 4.7",
+    "icon": "/icons/vendor/claude.svg",
+    "family": "Claude",
+    "stations": 54,
+    "iq": 75,
+    "mods": [
+      "text",
+      "image",
+      "file"
+    ],
+    "priceIn": 5,
+    "priceOut": 25,
+    "context": 1000000,
+    "released": "2026-04-16",
+    "hot": -1,
+    "cheapest": {
+      "station": "UoCode",
+      "in": 0.7,
+      "out": 3.5,
+      "url": "https://www.uocode.com/sign-up"
+    }
+  },
+  {
+    "slug": "claude-opus-4.7",
+    "title": "Claude Opus 4.7",
+    "icon": "/icons/vendor/claude.svg",
+    "family": "Claude",
+    "stations": 6,
+    "iq": null,
+    "mods": [
+      "text",
+      "image",
+      "file"
+    ],
+    "priceIn": 5,
+    "priceOut": 25,
+    "context": 1000000,
+    "released": "2026-04-16",
+    "hot": -1,
+    "cheapest": {
+      "station": "LuminAi",
+      "in": 30,
+      "out": 150,
+      "url": "https://ai.luminai.cc/register"
+    }
+  },
+  {
+    "slug": "glm-5.1",
+    "title": "GLM 5.1",
+    "icon": "/icons/vendor/zhipu.svg",
+    "family": "GLM",
+    "stations": 14,
+    "iq": null,
+    "mods": [
+      "text"
+    ],
+    "priceIn": 0.966,
+    "priceOut": 3.036,
+    "context": 204800,
+    "released": "2026-04-07",
+    "hot": -1,
+    "cheapest": null
+  },
+  {
+    "slug": "qwen3.6-plus",
+    "title": "Qwen3.6 Plus",
+    "icon": "/icons/vendor/qwen.svg",
+    "family": "千问",
+    "stations": 7,
+    "iq": null,
+    "mods": [
+      "text",
+      "image",
+      "video"
+    ],
+    "priceIn": 0.325,
+    "priceOut": 1.95,
+    "context": 1000000,
+    "released": "2026-04-02",
+    "hot": -1,
+    "cheapest": null
+  },
+  {
+    "slug": "grok-4.20-0309-non-reasoning",
+    "title": "Grok 4.20 0309 Non Reasoning",
+    "icon": "/icons/vendor/grok.svg",
+    "family": "Grok",
+    "stations": 11,
+    "iq": null,
+    "mods": [
+      "text",
+      "image",
+      "file"
+    ],
+    "priceIn": 1.25,
+    "priceOut": 2.5,
+    "context": 2000000,
+    "released": "2026-03-31",
+    "hot": -1,
+    "cheapest": null
+  },
+  {
+    "slug": "grok-4.20-0309-reasoning",
+    "title": "Grok 4.20 0309 Reasoning",
+    "icon": "/icons/vendor/grok.svg",
+    "family": "Grok",
+    "stations": 11,
+    "iq": null,
+    "mods": [
+      "text",
+      "image",
+      "file"
+    ],
+    "priceIn": 1.25,
+    "priceOut": 2.5,
+    "context": 2000000,
+    "released": "2026-03-31",
+    "hot": -1,
+    "cheapest": null
+  },
+  {
+    "slug": "grok-4.20-multi-agent",
+    "title": "Grok 4.20 Multi Agent",
+    "icon": "/icons/vendor/grok.svg",
+    "family": "Grok",
+    "stations": 4,
+    "iq": null,
+    "mods": [
+      "text",
+      "image",
+      "file"
+    ],
+    "priceIn": 1.25,
+    "priceOut": 2.5,
+    "context": 2000000,
+    "released": "2026-03-31",
+    "hot": -1,
+    "cheapest": null
+  },
+  {
+    "slug": "grok-4.20-non-reasoning",
+    "title": "Grok 4.20 Non Reasoning",
+    "icon": "/icons/vendor/grok.svg",
+    "family": "Grok",
+    "stations": 5,
+    "iq": null,
+    "mods": [
+      "text",
+      "image",
+      "file"
+    ],
+    "priceIn": 1.25,
+    "priceOut": 2.5,
+    "context": 2000000,
+    "released": "2026-03-31",
+    "hot": -1,
+    "cheapest": null
+  },
+  {
+    "slug": "grok-4.20-reasoning",
+    "title": "Grok 4.20 Reasoning",
+    "icon": "/icons/vendor/grok.svg",
+    "family": "Grok",
+    "stations": 5,
+    "iq": null,
+    "mods": [
+      "text",
+      "image",
+      "file"
+    ],
+    "priceIn": 1.25,
+    "priceOut": 2.5,
+    "context": 2000000,
+    "released": "2026-03-31",
+    "hot": -1,
+    "cheapest": null
+  },
+  {
+    "slug": "minimax-m2.7",
+    "title": "MiniMax M2.7",
+    "icon": "/icons/vendor/minimax.svg",
+    "family": "MiniMax",
+    "stations": 11,
+    "iq": null,
+    "mods": [
+      "text"
+    ],
+    "priceIn": 0.3,
+    "priceOut": 1.2,
+    "context": 204800,
+    "released": "2026-03-18",
+    "hot": -1,
+    "cheapest": null
+  },
+  {
+    "slug": "minimax-m2.7-highspeed",
+    "title": "MiniMax M2.7 Highspeed",
+    "icon": "/icons/vendor/minimax.svg",
+    "family": "MiniMax",
+    "stations": 5,
+    "iq": null,
+    "mods": [
+      "text"
+    ],
+    "priceIn": 0.6,
+    "priceOut": 2.4,
+    "context": 204800,
+    "released": "2026-03-18",
+    "hot": -1,
+    "cheapest": null
+  },
+  {
+    "slug": "gpt-5.4-mini",
+    "title": "GPT 5.4 Mini",
+    "icon": "/icons/vendor/openai.svg",
+    "family": "ChatGPT",
+    "stations": 29,
+    "iq": null,
+    "mods": [
+      "file",
+      "image",
+      "text"
+    ],
+    "priceIn": 0.75,
+    "priceOut": 4.5,
+    "context": 400000,
+    "released": "2026-03-17",
+    "hot": -1,
+    "cheapest": {
+      "station": "SudoCode",
+      "in": 0.15,
+      "out": 0.9,
+      "url": "https://sudocode.chat/sign-up"
+    }
+  },
+  {
+    "slug": "gpt-5.4-nano",
+    "title": "GPT 5.4 Nano",
+    "icon": "/icons/vendor/openai.svg",
+    "family": "ChatGPT",
+    "stations": 6,
+    "iq": null,
+    "mods": [
+      "file",
+      "image",
+      "text"
+    ],
+    "priceIn": 0.2,
+    "priceOut": 1.25,
+    "context": 400000,
+    "released": "2026-03-17",
+    "hot": -1,
+    "cheapest": null
+  },
+  {
+    "slug": "gpt-5.4",
+    "title": "GPT 5.4",
+    "icon": "/icons/vendor/openai.svg",
+    "family": "ChatGPT",
+    "stations": 31,
+    "iq": null,
+    "mods": [
+      "text",
+      "image",
+      "file"
+    ],
+    "priceIn": 2.5,
+    "priceOut": 15,
+    "context": 1050000,
+    "released": "2026-03-05",
+    "hot": -1,
+    "cheapest": {
+      "station": "SudoCode",
+      "in": 0.5,
+      "out": 3,
+      "url": "https://sudocode.chat/sign-up"
+    }
+  },
+  {
+    "slug": "gpt-5.4-pro",
+    "title": "GPT 5.4 Pro",
+    "icon": "/icons/vendor/openai.svg",
+    "family": "ChatGPT",
+    "stations": 5,
+    "iq": null,
+    "mods": [
+      "text",
+      "image",
+      "file"
+    ],
+    "priceIn": 30,
+    "priceOut": 180,
+    "context": 1050000,
+    "released": "2026-03-05",
+    "hot": -1,
+    "cheapest": {
+      "station": "PackyAPI",
+      "in": 150,
+      "out": 900,
+      "url": "https://www.packyapi.ai/"
+    }
+  },
+  {
+    "slug": "gemini-3.1-flash-lite-preview",
+    "title": "Gemini 3.1 Flash Lite Preview",
+    "icon": "/icons/vendor/gemini.svg",
+    "family": "Gemini",
+    "stations": 8,
+    "iq": null,
+    "mods": [
+      "text",
+      "image",
+      "video",
+      "file",
+      "audio"
+    ],
+    "priceIn": 0.25,
+    "priceOut": 1.5,
+    "context": 1048576,
+    "released": "2026-03-03",
+    "hot": -1,
+    "cheapest": {
+      "station": "DuckCoding",
+      "in": 0.125,
+      "out": 0.75,
+      "url": "https://www.duckcoding.ai/sign-up"
+    }
+  },
+  {
+    "slug": "gemini-3.1-pro-preview-customtools",
+    "title": "Gemini 3.1 Pro Preview CustomTools",
+    "icon": "/icons/vendor/gemini.svg",
+    "family": "Gemini",
+    "stations": 7,
+    "iq": null,
+    "mods": [
+      "text",
+      "audio",
+      "image",
+      "video",
+      "file"
+    ],
+    "priceIn": 2,
+    "priceOut": 12,
+    "context": 1048576,
+    "released": "2026-02-25",
+    "hot": -1,
+    "cheapest": {
+      "station": "DuckCoding",
+      "in": 1,
+      "out": 6,
+      "url": "https://www.duckcoding.ai/sign-up"
+    }
+  },
+  {
+    "slug": "qwen3.5-flash",
+    "title": "Qwen3.5 Flash",
+    "icon": "/icons/vendor/qwen.svg",
+    "family": "千问",
+    "stations": 4,
+    "iq": null,
+    "mods": [
+      "text",
+      "image",
+      "video"
+    ],
+    "priceIn": 0.065,
+    "priceOut": 0.26,
+    "context": 1000000,
+    "released": "2026-02-25",
+    "hot": -1,
+    "cheapest": null
+  },
+  {
+    "slug": "gpt-5.3-codex",
+    "title": "GPT 5.3 Codex",
+    "icon": "/icons/vendor/openai.svg",
+    "family": "ChatGPT",
+    "stations": 9,
+    "iq": null,
+    "mods": [
+      "text",
+      "image",
+      "file"
+    ],
+    "priceIn": 1.75,
+    "priceOut": 14,
+    "context": 400000,
+    "released": "2026-02-24",
+    "hot": -1,
+    "cheapest": {
+      "station": "UoCode",
+      "in": 0.5,
+      "out": 4,
+      "url": "https://www.uocode.com/sign-up"
+    }
+  },
+  {
+    "slug": "gemini-3.1-pro",
+    "title": "Gemini 3.1 Pro",
+    "icon": "/icons/vendor/gemini.svg",
+    "family": "Gemini",
+    "stations": 6,
+    "iq": null,
+    "mods": [
+      "audio",
+      "file",
+      "image",
+      "text",
+      "video"
+    ],
+    "priceIn": 2,
+    "priceOut": 12,
+    "context": 1048576,
+    "released": "2026-02-19",
+    "hot": -1,
+    "cheapest": null
+  },
+  {
+    "slug": "claude-sonnet-4-6",
+    "title": "Claude Sonnet 4.6",
+    "icon": "/icons/vendor/claude.svg",
+    "family": "Claude",
+    "stations": 53,
+    "iq": 78,
+    "mods": [
+      "text",
+      "image",
+      "file"
+    ],
+    "priceIn": 3,
+    "priceOut": 15,
+    "context": 1000000,
+    "released": "2026-02-17",
+    "hot": -1,
+    "cheapest": {
+      "station": "UoCode",
+      "in": 0.42,
+      "out": 2.1,
+      "url": "https://www.uocode.com/sign-up"
+    }
+  },
+  {
+    "slug": "claude-sonnet-4.6",
+    "title": "Claude Sonnet 4.6",
+    "icon": "/icons/vendor/claude.svg",
+    "family": "Claude",
+    "stations": 5,
+    "iq": null,
+    "mods": [
+      "text",
+      "image",
+      "file"
+    ],
+    "priceIn": 3,
+    "priceOut": 15,
+    "context": 1000000,
+    "released": "2026-02-17",
+    "hot": -1,
+    "cheapest": null
+  },
+  {
+    "slug": "minimax-m2.5",
+    "title": "MiniMax M2.5",
+    "icon": "/icons/vendor/minimax.svg",
+    "family": "MiniMax",
+    "stations": 8,
+    "iq": null,
+    "mods": [
+      "text"
+    ],
+    "priceIn": 0.27,
+    "priceOut": 0.95,
+    "context": 204800,
+    "released": "2026-02-12",
+    "hot": -1,
+    "cheapest": null
+  },
+  {
+    "slug": "glm-5",
+    "title": "GLM 5",
+    "icon": "/icons/vendor/zhipu.svg",
+    "family": "GLM",
+    "stations": 7,
+    "iq": null,
+    "mods": [
+      "text"
+    ],
+    "priceIn": 1,
+    "priceOut": 3.2,
+    "context": 204800,
+    "released": "2026-02-11",
+    "hot": -1,
+    "cheapest": null
+  },
+  {
+    "slug": "gpt-5.3-codex-spark",
+    "title": "GPT 5.3 Codex Spark",
+    "icon": "/icons/vendor/openai.svg",
+    "family": "ChatGPT",
+    "stations": 23,
+    "iq": null,
+    "mods": [
+      "text",
+      "image",
+      "file"
+    ],
+    "priceIn": 1.75,
+    "priceOut": 14,
+    "context": 128000,
+    "released": "2026-02-05",
+    "hot": -1,
+    "cheapest": {
+      "station": "Chintao AI Hub",
+      "in": 2.45,
+      "out": 19.6,
+      "url": "https://chintao.ai/sign-up"
+    }
+  },
+  {
+    "slug": "claude-opus-4-6",
+    "title": "Claude Opus 4.6",
+    "icon": "/icons/vendor/claude.svg",
+    "family": "Claude",
+    "stations": 54,
+    "iq": 73,
+    "mods": [
+      "text",
+      "image",
+      "file"
+    ],
+    "priceIn": 5,
+    "priceOut": 25,
+    "context": 1000000,
+    "released": "2026-02-04",
+    "hot": -1,
+    "cheapest": {
+      "station": "UoCode",
+      "in": 0.7,
+      "out": 3.5,
+      "url": "https://www.uocode.com/sign-up"
+    }
+  },
+  {
+    "slug": "claude-opus-4.6",
+    "title": "Claude Opus 4.6",
+    "icon": "/icons/vendor/claude.svg",
+    "family": "Claude",
+    "stations": 8,
+    "iq": null,
+    "mods": [
+      "text",
+      "image",
+      "file"
+    ],
+    "priceIn": 5,
+    "priceOut": 25,
+    "context": 1000000,
+    "released": "2026-02-04",
+    "hot": -1,
+    "cheapest": {
+      "station": "LuminAi",
+      "in": 2,
+      "out": 10,
+      "url": "https://ai.luminai.cc/register"
+    }
+  },
+  {
+    "slug": "kimi-k2.5",
+    "title": "Kimi K2.5",
+    "icon": "/icons/vendor/moonshot.svg",
+    "family": "Kimi",
+    "stations": 10,
+    "iq": null,
+    "mods": [
+      "text",
+      "image"
+    ],
+    "priceIn": 0.5,
+    "priceOut": 2.5,
+    "context": 262144,
+    "released": "2026-01-27",
+    "hot": -1,
+    "cheapest": null
+  },
+  {
+    "slug": "glm-4.7",
+    "title": "GLM 4.7",
+    "icon": "/icons/vendor/zhipu.svg",
+    "family": "GLM",
+    "stations": 4,
+    "iq": null,
+    "mods": [
+      "text"
+    ],
+    "priceIn": 0.54,
+    "priceOut": 1.98,
+    "context": 204800,
+    "released": "2025-12-22",
+    "hot": -1,
+    "cheapest": null
+  },
+  {
+    "slug": "gemini-3-flash",
+    "title": "Gemini 3 Flash",
+    "icon": "/icons/vendor/gemini.svg",
+    "family": "Gemini",
+    "stations": 15,
+    "iq": null,
+    "mods": [
+      "text",
+      "image",
+      "file",
+      "audio",
+      "video"
+    ],
+    "priceIn": 0.5,
+    "priceOut": 3,
+    "context": 1048576,
+    "released": "2025-12-17",
+    "hot": -1,
+    "cheapest": {
+      "station": "bytecat",
+      "in": 60,
+      "out": 240,
+      "url": "https://www.bytecatcode.org/sign-up"
+    }
+  },
+  {
+    "slug": "gemini-3-flash-preview",
+    "title": "Gemini 3 Flash Preview",
+    "icon": "/icons/vendor/gemini.svg",
+    "family": "Gemini",
+    "stations": 20,
+    "iq": null,
+    "mods": [
+      "text",
+      "image",
+      "file",
+      "audio",
+      "video"
+    ],
+    "priceIn": 0.5,
+    "priceOut": 3,
+    "context": 1048576,
+    "released": "2025-12-17",
+    "hot": -1,
+    "cheapest": {
+      "station": "DuckCoding",
+      "in": 0.25,
+      "out": 1.5,
+      "url": "https://www.duckcoding.ai/sign-up"
+    }
+  },
+  {
+    "slug": "gpt-5.2",
+    "title": "GPT 5.2",
+    "icon": "/icons/vendor/openai.svg",
+    "family": "ChatGPT",
+    "stations": 13,
+    "iq": null,
+    "mods": [
+      "file",
+      "image",
+      "text"
+    ],
+    "priceIn": 1.75,
+    "priceOut": 14,
+    "context": 400000,
+    "released": "2025-12-10",
+    "hot": -1,
+    "cheapest": {
+      "station": "SudoCode",
+      "in": 75,
+      "out": 600,
+      "url": "https://sudocode.chat/sign-up"
+    }
+  },
+  {
+    "slug": "gpt-5.2-pro",
+    "title": "GPT 5.2 Pro",
+    "icon": "/icons/vendor/openai.svg",
+    "family": "ChatGPT",
+    "stations": 6,
+    "iq": null,
+    "mods": [
+      "image",
+      "text",
+      "file"
+    ],
+    "priceIn": 21,
+    "priceOut": 168,
+    "context": 400000,
+    "released": "2025-12-10",
+    "hot": -1,
+    "cheapest": {
+      "station": "A6api-Token聚合站",
+      "in": 75,
+      "out": 600,
+      "url": "https://a6api.com/"
+    }
+  },
+  {
+    "slug": "claude-opus-4-5",
+    "title": "Claude Opus 4.5",
+    "icon": "/icons/vendor/claude.svg",
+    "family": "Claude",
+    "stations": 35,
+    "iq": null,
+    "mods": [
+      "file",
+      "image",
+      "text"
+    ],
+    "priceIn": 5,
+    "priceOut": 25,
+    "context": 200000,
+    "released": "2025-11-24",
+    "hot": -1,
+    "cheapest": {
+      "station": "YKH.AI",
+      "in": 1.065,
+      "out": 5.325,
+      "url": "https://api.ykh.ai/sign-up"
+    }
+  },
+  {
+    "slug": "claude-opus-4.5",
+    "title": "Claude Opus 4.5",
+    "icon": "/icons/vendor/claude.svg",
+    "family": "Claude",
+    "stations": 5,
+    "iq": null,
+    "mods": [
+      "file",
+      "image",
+      "text"
+    ],
+    "priceIn": 5,
+    "priceOut": 25,
+    "context": 200000,
+    "released": "2025-11-24",
+    "hot": -1,
+    "cheapest": null
+  },
+  {
+    "slug": "gemini-3-pro-preview",
+    "title": "Gemini 3 Pro Preview",
+    "icon": "/icons/vendor/gemini.svg",
+    "family": "Gemini",
+    "stations": 16,
+    "iq": null,
+    "mods": [
+      "text",
+      "image",
+      "file",
+      "audio",
+      "video"
+    ],
+    "priceIn": 2,
+    "priceOut": 12,
+    "context": 1048576,
+    "released": "2025-11-18",
+    "hot": -1,
+    "cheapest": {
+      "station": "bytecat",
+      "in": 1.6,
+      "out": 9.6,
+      "url": "https://www.bytecatcode.org/sign-up"
+    }
+  },
+  {
+    "slug": "claude-haiku-4-5",
+    "title": "Claude Haiku 4.5",
+    "icon": "/icons/vendor/claude.svg",
+    "family": "Claude",
+    "stations": 50,
+    "iq": null,
+    "mods": [
+      "text",
+      "image",
+      "file"
+    ],
+    "priceIn": 1,
+    "priceOut": 5,
+    "context": 200000,
+    "released": "2025-10-15",
+    "hot": -1,
+    "cheapest": {
+      "station": "DuckCoding",
+      "in": 0.1,
+      "out": 0.5,
+      "url": "https://www.duckcoding.ai/sign-up"
+    }
+  },
+  {
+    "slug": "claude-sonnet-4-5",
+    "title": "Claude Sonnet 4.5",
+    "icon": "/icons/vendor/claude.svg",
+    "family": "Claude",
+    "stations": 34,
+    "iq": null,
+    "mods": [
+      "text",
+      "image",
+      "file"
+    ],
+    "priceIn": 3,
+    "priceOut": 15,
+    "context": 1000000,
+    "released": "2025-09-29",
+    "hot": -1,
+    "cheapest": {
+      "station": "YKH.AI",
+      "in": 0.645,
+      "out": 3.225,
+      "url": "https://api.ykh.ai/sign-up"
+    }
+  },
+  {
+    "slug": "claude-sonnet-4.5",
+    "title": "Claude Sonnet 4.5",
+    "icon": "/icons/vendor/claude.svg",
+    "family": "Claude",
+    "stations": 4,
+    "iq": null,
+    "mods": [
+      "text",
+      "image",
+      "file"
+    ],
+    "priceIn": 3,
+    "priceOut": 15,
+    "context": 1000000,
+    "released": "2025-09-29",
+    "hot": -1,
+    "cheapest": null
+  },
+  {
+    "slug": "gpt-5",
+    "title": "GPT 5",
+    "icon": "/icons/vendor/openai.svg",
+    "family": "ChatGPT",
+    "stations": 4,
+    "iq": null,
+    "mods": [
+      "text",
+      "image",
+      "file"
+    ],
+    "priceIn": 1.25,
+    "priceOut": 10,
+    "context": 400000,
+    "released": "2025-08-07",
+    "hot": -1,
+    "cheapest": {
+      "station": "DuckCoding",
+      "in": 1.25,
+      "out": 10,
+      "url": "https://www.duckcoding.ai/sign-up"
+    }
+  },
+  {
+    "slug": "claude-opus-4-1",
+    "title": "Claude Opus 4.1",
+    "icon": "/icons/vendor/claude.svg",
+    "family": "Claude",
+    "stations": 10,
+    "iq": null,
+    "mods": [
+      "image",
+      "text",
+      "file"
+    ],
+    "priceIn": 15,
+    "priceOut": 75,
+    "context": 200000,
+    "released": "2025-08-05",
+    "hot": -1,
+    "cheapest": null
+  },
+  {
+    "slug": "gemini-2.5-flash-lite",
+    "title": "Gemini 2.5 Flash Lite",
+    "icon": "/icons/vendor/gemini.svg",
+    "family": "Gemini",
+    "stations": 13,
+    "iq": null,
+    "mods": [
+      "text",
+      "image",
+      "file",
+      "audio",
+      "video"
+    ],
+    "priceIn": 0.1,
+    "priceOut": 0.4,
+    "context": 1048576,
+    "released": "2025-07-22",
+    "hot": -1,
+    "cheapest": {
+      "station": "DuckCoding",
+      "in": 0.05,
+      "out": 0.2,
+      "url": "https://www.duckcoding.ai/sign-up"
+    }
+  },
+  {
+    "slug": "gemini-2.5-flash",
+    "title": "Gemini 2.5 Flash",
+    "icon": "/icons/vendor/gemini.svg",
+    "family": "Gemini",
+    "stations": 18,
+    "iq": null,
+    "mods": [
+      "file",
+      "image",
+      "text",
+      "audio",
+      "video"
+    ],
+    "priceIn": 0.3,
+    "priceOut": 2.5,
+    "context": 1048576,
+    "released": "2025-06-17",
+    "hot": -1,
+    "cheapest": {
+      "station": "DuckCoding",
+      "in": 0.15,
+      "out": 1.25,
+      "url": "https://www.duckcoding.ai/sign-up"
+    }
+  },
+  {
+    "slug": "gemini-2.5-pro",
+    "title": "Gemini 2.5 Pro",
+    "icon": "/icons/vendor/gemini.svg",
+    "family": "Gemini",
+    "stations": 15,
+    "iq": null,
+    "mods": [
+      "text",
+      "image",
+      "file",
+      "audio",
+      "video"
+    ],
+    "priceIn": 1.25,
+    "priceOut": 10,
+    "context": 1048576,
+    "released": "2025-06-17",
+    "hot": -1,
+    "cheapest": {
+      "station": "米醋API",
+      "in": 3.5,
+      "out": 28,
+      "url": "https://www.micuapi.ai/sign-up"
+    }
+  },
+  {
+    "slug": "grok-3-mini",
+    "title": "Grok 3 Mini",
+    "icon": "/icons/vendor/grok.svg",
+    "family": "Grok",
+    "stations": 6,
+    "iq": null,
+    "mods": [
+      "text"
+    ],
+    "priceIn": 0.3,
+    "priceOut": 0.5,
+    "context": 131072,
+    "released": "2025-06-10",
+    "hot": -1,
+    "cheapest": null
+  },
+  {
+    "slug": "grok-3-mini-fast",
+    "title": "Grok 3 Mini Fast",
+    "icon": "/icons/vendor/grok.svg",
+    "family": "Grok",
+    "stations": 5,
+    "iq": null,
+    "mods": [
+      "text"
+    ],
+    "priceIn": null,
+    "priceOut": null,
+    "context": 131072,
+    "released": "2025-06-10",
+    "hot": -1,
+    "cheapest": null
+  },
+  {
+    "slug": "claude-opus-4",
+    "title": "Claude Opus 4",
+    "icon": "/icons/vendor/claude.svg",
+    "family": "Claude",
+    "stations": 10,
+    "iq": null,
+    "mods": [
+      "text",
+      "image",
+      "file"
+    ],
+    "priceIn": 15,
+    "priceOut": 75,
+    "context": 200000,
+    "released": "2025-05-22",
+    "hot": -1,
+    "cheapest": null
+  },
+  {
+    "slug": "claude-sonnet-4",
+    "title": "Claude Sonnet 4",
+    "icon": "/icons/vendor/claude.svg",
+    "family": "Claude",
+    "stations": 13,
+    "iq": null,
+    "mods": [
+      "image",
+      "text",
+      "file"
+    ],
+    "priceIn": 3,
+    "priceOut": 15,
+    "context": 200000,
+    "released": "2025-05-22",
+    "hot": -1,
+    "cheapest": null
+  },
+  {
+    "slug": "claude-3-7-sonnet",
+    "title": "Claude 3.7 Sonnet",
+    "icon": "/icons/vendor/claude.svg",
+    "family": "Claude",
+    "stations": 7,
+    "iq": null,
+    "mods": [
+      "text",
+      "image",
+      "file"
+    ],
+    "priceIn": 3,
+    "priceOut": 15,
+    "context": 200000,
+    "released": "2025-02-24",
+    "hot": -1,
+    "cheapest": null
+  },
+  {
+    "slug": "gemini-2.0-flash",
+    "title": "Gemini 2.0 Flash",
+    "icon": "/icons/vendor/gemini.svg",
+    "family": "Gemini",
+    "stations": 4,
+    "iq": null,
+    "mods": [
+      "text",
+      "image",
+      "file",
+      "audio",
+      "video"
+    ],
+    "priceIn": 0.1,
+    "priceOut": 0.42,
+    "context": 1000000,
+    "released": "2025-02-05",
+    "hot": -1,
+    "cheapest": null
+  },
+  {
+    "slug": "gpt-4o",
+    "title": "GPT 4o",
+    "icon": "/icons/vendor/openai.svg",
+    "family": "ChatGPT",
+    "stations": 7,
+    "iq": null,
+    "mods": [
+      "text",
+      "image",
+      "file"
+    ],
+    "priceIn": 2.5,
+    "priceOut": 10,
+    "context": 128000,
+    "released": "2024-11-20",
+    "hot": -1,
+    "cheapest": {
+      "station": "DuckCoding",
+      "in": 2.5,
+      "out": 10,
+      "url": "https://www.duckcoding.ai/sign-up"
+    }
+  },
+  {
+    "slug": "claude-3-5-haiku",
+    "title": "Claude 3.5 Haiku",
+    "icon": "/icons/vendor/claude.svg",
+    "family": "Claude",
+    "stations": 8,
+    "iq": null,
+    "mods": [
+      "text",
+      "image"
+    ],
+    "priceIn": 0.8,
+    "priceOut": 4,
+    "context": 200000,
+    "released": "2024-11-04",
+    "hot": -1,
+    "cheapest": null
+  },
+  {
+    "slug": "gpt-4o-mini",
+    "title": "GPT 4o Mini",
+    "icon": "/icons/vendor/openai.svg",
+    "family": "ChatGPT",
+    "stations": 7,
+    "iq": null,
+    "mods": [
+      "text",
+      "image",
+      "file"
+    ],
+    "priceIn": 0.15,
+    "priceOut": 0.6,
+    "context": 128000,
+    "released": "2024-07-18",
+    "hot": -1,
+    "cheapest": {
+      "station": "DuckCoding",
+      "in": 0.15,
+      "out": 0.6,
+      "url": "https://www.duckcoding.ai/sign-up"
+    }
+  },
+  {
+    "slug": "claude-3-5-sonnet",
+    "title": "Claude 3.5 Sonnet",
+    "icon": "/icons/vendor/claude.svg",
+    "family": "Claude",
+    "stations": 8,
+    "iq": null,
+    "mods": [
+      "text",
+      "image",
+      "file"
+    ],
+    "priceIn": 3,
+    "priceOut": 15,
+    "context": 200000,
+    "released": "2024-06-20",
+    "hot": -1,
+    "cheapest": null
+  },
+  {
+    "slug": "claude-haiku-4.5",
+    "title": "Claude Haiku 4.5",
+    "icon": "/icons/vendor/claude.svg",
+    "family": "Claude",
+    "stations": 4,
+    "iq": null,
+    "mods": [],
+    "priceIn": null,
+    "priceOut": null,
+    "context": null,
+    "released": null,
+    "hot": -1,
+    "cheapest": null
+  },
+  {
+    "slug": "claude-opus-5.5",
+    "title": "Claude Opus 5.5",
+    "icon": "/icons/vendor/claude.svg",
+    "family": "Claude",
+    "stations": 4,
+    "iq": null,
+    "mods": [],
+    "priceIn": null,
+    "priceOut": null,
+    "context": null,
+    "released": null,
+    "hot": -1,
+    "cheapest": {
+      "station": "Token-AI",
+      "in": 18.75,
+      "out": 18.75,
+      "url": "https://tken.lol/sign-up"
+    }
+  },
+  {
+    "slug": "codex auto review",
+    "title": "Codex auto review",
+    "icon": "/icons/vendor/openai.svg",
+    "family": "ChatGPT",
+    "stations": 5,
+    "iq": null,
+    "mods": [],
+    "priceIn": null,
+    "priceOut": null,
+    "context": null,
+    "released": null,
+    "hot": -1,
+    "cheapest": {
+      "station": "Token-AI",
+      "in": 30,
+      "out": 30,
+      "url": "https://tken.lol/sign-up"
+    }
+  },
+  {
+    "slug": "gemini-3-flash-agent",
+    "title": "Gemini 3 Flash Agent",
+    "icon": "/icons/vendor/gemini.svg",
+    "family": "Gemini",
+    "stations": 4,
+    "iq": null,
+    "mods": [],
+    "priceIn": null,
+    "priceOut": null,
+    "context": null,
+    "released": null,
+    "hot": -1,
+    "cheapest": null
+  },
+  {
+    "slug": "gpt-6",
+    "title": "GPT 6",
+    "icon": "/icons/vendor/openai.svg",
+    "family": "ChatGPT",
+    "stations": 15,
+    "iq": null,
+    "mods": [
+      "text",
+      "image",
+      "file"
+    ],
+    "priceIn": null,
+    "priceOut": null,
+    "context": 1050000,
+    "released": null,
+    "hot": -1,
+    "cheapest": {
+      "station": "SudoCode",
+      "in": 150,
+      "out": 300,
+      "url": "https://sudocode.chat/sign-up"
+    }
+  },
+  {
+    "slug": "grok",
+    "title": "Grok",
+    "icon": "/icons/vendor/grok.svg",
+    "family": "Grok",
+    "stations": 5,
+    "iq": null,
+    "mods": [
+      "text",
+      "image",
+      "file"
+    ],
+    "priceIn": null,
+    "priceOut": null,
+    "context": null,
+    "released": null,
+    "hot": -1,
+    "cheapest": null
+  },
+  {
+    "slug": "grok-4.7-build-fast",
+    "title": "Grok 4.7 Build Fast",
+    "icon": "/icons/vendor/grok.svg",
+    "family": "Grok",
+    "stations": 8,
+    "iq": null,
+    "mods": [
+      "text"
+    ],
+    "priceIn": null,
+    "priceOut": null,
+    "context": null,
+    "released": null,
+    "hot": -1,
+    "cheapest": null
+  },
+  {
+    "slug": "grok-composer",
+    "title": "Grok Composer",
+    "icon": "/icons/vendor/grok.svg",
+    "family": "Grok",
+    "stations": 5,
+    "iq": null,
+    "mods": [
+      "text",
+      "image"
+    ],
+    "priceIn": null,
+    "priceOut": null,
+    "context": 200000,
+    "released": null,
+    "hot": -1,
+    "cheapest": null
+  }
+]

@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-labelledby="title desc">
+  <title id="title">Oranexa natural mandarin mark</title>
+  <desc id="desc">A small natural mandarin silhouette with a leaf and gentle peel highlight.</desc>
+  <defs>
+    <linearGradient id="fruit" x1="34" y1="26" x2="94" y2="105" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFD078"/>
+      <stop offset=".5" stop-color="#F39232"/>
+      <stop offset="1" stop-color="#D85E1C"/>
+    </linearGradient>
+  </defs>
+  <path d="M68 29c6-9 14-12 24-11-2 8-8 14-18 17" fill="#6D8D50" transform="translate(-8 -3) scale(1.15)"/>
+  <g transform="translate(9 9) scale(.86)">
+    <path d="M58 32c5-4 11-4 17 0" fill="none" stroke="#92522A" stroke-width="3" stroke-linecap="round"/>
+    <path d="M64 30c-19-4-37 4-45 20-10 20-1 42 22 51 20 8 50 6 62-10 13-17 8-40-8-52-9-7-20-11-31-9Z" fill="url(#fruit)"/>
+    <path d="M39 48c-5 8-7 16-6 23" fill="none" stroke="#FFE3AC" stroke-width="5" stroke-linecap="round" opacity=".75"/>
+    <path d="M51 39c-2 3-3 6-3 10" fill="none" stroke="#FFD98D" stroke-width="3" stroke-linecap="round" opacity=".78"/>
+    <circle cx="85" cy="78" r="1.2" fill="#B84C18" opacity=".35"/>
+    <circle cx="72" cy="91" r="1.1" fill="#B84C18" opacity=".3"/>
+  </g>
+</svg>
