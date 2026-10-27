@@ -666,7 +666,7 @@ export function Tester({ extended = false }) {
       return;
     }
     setResult(null);
-    navigate(`/b/${started.id}`);
+    navigate(suite === "all" ? `/check/detect?run=${encodeURIComponent(started.id)}` : `/b/${started.id}`);
   }
 
   return (

@@ -245,7 +245,7 @@ export function Shell({ children }) {
                 >
                   <button className="trigger" onClick={() => navigate(item.to)}>
                     {item.label}
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                       <path d="M6 9l6 6 6-6" />
                     </svg>
                   </button>
@@ -273,7 +273,7 @@ export function Shell({ children }) {
           </nav>
           <div className="actions">
             <Link to="/points" className="pill">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <rect x="3" y="8" width="18" height="4" rx="1" />
                 <path d="M12 8v13" />
                 <path d="M19 12v7a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-7" />

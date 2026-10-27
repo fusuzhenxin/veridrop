@@ -54,7 +54,7 @@
   </script>
   <base target="_top">
   <link rel="stylesheet" href="/original-check/style.css">
-  <link rel="stylesheet" href="/original-check/embed.css">
+  <link rel="stylesheet" href="/original-check/embed.css?v=20261024c">
   <style>html.check-embed .topbar{display:none !important}</style>
 </head>
 <body class="mc-page">
@@ -241,10 +241,12 @@
       <div class="mc-hero">
         <div>
           <h1>检测结果</h1>
-          <p>这一页只汇总你已经跑过的结果：基础分、耗时、通道有没有被改，以及糖果和鹈鹕能不能判断降智。它不会自己去连中转站。检测请求从基础测试、糖果测试或鹈鹕测试发出，用的是你填写的地址和 Key，Key 不经过本站。</p>
+          <p>三项一起测的结果在这一页展开：基础测试的每一项、糖果测试的每一题、鹈鹕骑车生成的页面。单独的基础测试仍打开原来的报告。请求发到你填写的地址，Key 不经过本站，也不出现在这一页的地址里。</p>
           <i class="mc-bar"></i>
         </div>
       </div>
+      <div id="allBoard" class="ax"></div>
+      <div class="mc-legacy">
       <section class="mc-card mc-need" id="needSetup">
         <h2>还不能检测</h2>
         <p>还没填接口地址和 Key。填在基础测试页，只存在这台浏览器里。</p>
@@ -273,6 +275,7 @@
         <h2>各项测试详情</h2>
         <div id="detectRows" class="mc-detect-rows"></div>
       </section>
+      </div>
     </section>
 
     <section class="mc-view" data-view-panel="basic">
@@ -452,7 +455,7 @@
     <p class="foot-copy">© API中转站导航 · 模型检测只对照这一次调用，充值与使用风险自负</p>
   </footer>
   <script src="/original-check/check-grade.js"></script>
-  <script src="/original-check/check.js"></script>
+  <script src="/original-check/check.js?v=20261024c"></script>
   <script>
     (function () {
       var select = document.getElementById("model");

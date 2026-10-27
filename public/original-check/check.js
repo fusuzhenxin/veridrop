@@ -255,17 +255,24 @@
     const testId = card.getAttribute("data-test");
     if (testId) {
       const picked = server != null && String(server) !== "" ? String(server) : String(detail || "");
-      tell({
+      const payload = {
         type: "veridrop-basic-step",
         id: testId,
         status: status,
         summary: summary || "",
         raw: picked.length > 4000 ? picked.slice(0, 4000) + "\n…已截断" : picked,
-      });
+      };
+      if (testId === "candy") payload.rows = plainCandyRows(rows);
+      if (testId === "pelican") payload.html = String(html || "").slice(0, 1200000);
+      tell(payload);
     }
     if (card.getAttribute("data-test") === "candy") {
+      state.candyRows = plainCandyRows(rows);
       if (rows && rows.some(function (row) { return !row.missed; })) renderCandyReport(rows);
       else showCandyStart();
+    }
+    if (card.getAttribute("data-test") === "pelican") {
+      state.pelicanHtml = String(html || "").slice(0, 1200000);
     }
     paintDetectRows();
     if (detail && card.getAttribute("data-raw") === "1") {
@@ -458,8 +465,46 @@
     return body;
   }
 
-  async function readJson(res) {
-    const text = await res.text();
+  function abortError() {
+    try {
+      return new DOMException("The operation was aborted.", "AbortError");
+    } catch (err) {
+      const error = new Error("The operation was aborted.");
+      error.name = "AbortError";
+      return error;
+    }
+  }
+
+  async function raceAbort(work, signal) {
+    if (signal && signal.aborted) throw abortError();
+    let onAbort = null;
+    const aborted = new Promise(function (_resolve, reject) {
+      if (!signal) return;
+      onAbort = function () {
+        reject(abortError());
+      };
+      signal.addEventListener("abort", onAbort);
+      if (signal.aborted) {
+        signal.removeEventListener("abort", onAbort);
+        onAbort = null;
+        throw abortError();
+      }
+    });
+    try {
+      return await Promise.race([work, aborted]);
+    } finally {
+      if (signal && onAbort) signal.removeEventListener("abort", onAbort);
+    }
+  }
+
+  async function readJson(res, signal) {
+    let text = "";
+    try {
+      text = await raceAbort(res.text(), signal);
+    } catch (err) {
+      if (res.body && res.body.cancel) res.body.cancel().catch(function () {});
+      throw err;
+    }
     let json = null;
     try {
       json = JSON.parse(text);
@@ -491,7 +536,7 @@
       wrapped.curl = shellCurl(ctx.endpoints.chat, headerList(headers), body);
       throw wrapped;
     }
-    const parsed = await readJson(res);
+    const parsed = await readJson(res, signal);
     const ms = Date.now() - started;
     if (!res.ok) {
       noteCall(null, ms);
@@ -516,9 +561,29 @@
   });
 
   function tell(payload) {
-    if (leaving || window.parent === window) return;
-    window.parent.postMessage(payload, location.origin);
+    if (window.parent === window) return;
+    if (leaving && !isHiddenRunner()) return;
+    try {
+      window.parent.postMessage(payload, location.origin);
+      return;
+    } catch (err) {
+      /* a large pelican page can fail the clone; the conclusion still has to leave */
+    }
+    if (!payload || typeof payload !== "object" || !payload.html) return;
+    var slim = {};
+    Object.keys(payload).forEach(function (key) {
+      if (key !== "html") slim[key] = payload[key];
+    });
+    try {
+      window.parent.postMessage(slim, location.origin);
+    } catch (err2) {
+      /* suite-done still carries the conclusion and the candy rows */
+    }
   }
+
+  window.addEventListener("pageshow", function () {
+    leaving = false;
+  });
 
   function noteCall(reply, ms) {
     const meter = state.meter;
@@ -563,12 +628,12 @@
     let model = "";
     let chunks = 0;
     const onAbort = function () {
-      reader.cancel();
+      reader.cancel().catch(function () {});
     };
     if (signal) signal.addEventListener("abort", onAbort);
     try {
       while (true) {
-        const chunk = await reader.read();
+        const chunk = await raceAbort(reader.read(), signal);
         if (chunk.done) break;
         buffer += decoder.decode(chunk.value, { stream: true });
         const lines = buffer.split(/\r?\n/);
@@ -628,7 +693,7 @@
       throw wrapped;
     }
     if (!res.ok) {
-      const parsed = await readJson(res);
+      const parsed = await readJson(res, signal);
       noteCall(null, Date.now() - started);
       const error = new Error(G.errorText(parsed.json, parsed.text, res.status));
       error.status = res.status;
@@ -637,7 +702,7 @@
     }
     const type = String(res.headers.get("content-type") || "").toLowerCase();
     if (type.indexOf("text/event-stream") < 0) {
-      const parsed = await readJson(res);
+      const parsed = await readJson(res, signal);
       const reply = G.readReply(parsed.json);
       const ms = Date.now() - started;
       noteCall(reply, ms);
@@ -924,7 +989,7 @@
     report.appendChild(candyNode("h1", "cd-title", "糖果测试-第" + (ui.seq || 1) + "次"));
     const sub = candyNode("p", "cd-sub");
     sub.appendChild(candyNode("i", "cd-dot"));
-    sub.appendChild(document.createTextNode(" " + (chosenModel() || "未选模型") + " · 困难 · " + candyStamp(ui.at)));
+    sub.appendChild(document.createTextNode(" " + (ui.model || chosenModel() || "未选模型") + " · 困难 · " + candyStamp(ui.at)));
     report.appendChild(sub);
     const stats = candyNode("div", "cd-scorebar");
     const ringCard = candyNode("div", "cd-score");
@@ -1127,6 +1192,16 @@
         return { status: status, summary: text, detail: details.join("\n\n"), svg: "", html: "", rows: rows.slice() };
       }
 
+      function publishCandy() {
+        tell({
+          type: "veridrop-basic-step",
+          id: "candy",
+          status: "running",
+          summary: "已完成 " + rows.length + " / " + questions.length + " 题",
+          rows: plainCandyRows(rows),
+        });
+      }
+
       function summarize(lead) {
         const asked = rows.filter(function (row) {
           return !row.missed;
@@ -1165,6 +1240,7 @@
             missed: true,
           });
         }
+        publishCandy();
       }
 
       state.candyUi = { pause: false, finish: false, stop: false, seq: nextCandySeq(), at: new Date() };
@@ -1177,12 +1253,30 @@
         const question = questions[i];
         renderCandyRun(question, i, questions.length, rows);
         let out;
+        const questionGate = linkSignal(signal, 60000);
         try {
-          out = await postChat(ctx, { messages: user(candyPrompt(question)), max_tokens: question.max || 800 }, signal);
+          out = await postChat(ctx, { messages: user(candyPrompt(question)), max_tokens: question.max || 800 }, questionGate.signal);
         } catch (err) {
-          if (signal.aborted || (err && err.name === "AbortError")) {
+          if (signal.aborted) {
             markRest(i, "还没问到");
             return summarize("已中断");
+          }
+          if (err && err.name === "AbortError") {
+            rows.push({
+              title: question.title,
+              prompt: question.prompt,
+              dimension: question.dimension,
+              level: question.level,
+              options: question.options,
+              answer: question.answer,
+              picked: "这题超过 60 秒没有返回",
+              expect: question.expect,
+              ok: false,
+              missed: true,
+            });
+            details.push("【" + question.title + "】\n超过 60 秒没有返回");
+            publishCandy();
+            continue;
           }
           const hard = err && (err.network || err.status === 401 || err.status === 402 || err.status === 403 || err.status === 429);
           if (hard && !rows.length) throw err;
@@ -1200,7 +1294,10 @@
             missed: true,
           });
           details.push("【" + question.title + "】\n" + ((err && err.message) || "失败"));
+          publishCandy();
           continue;
+        } finally {
+          questionGate.finish();
         }
         const row = G.gradeCandyQuestion(question, out.reply.content);
         rows.push(row);
@@ -1211,6 +1308,7 @@
         }
         details.push("【" + question.title + "】\n" + ((out.reply && out.reply.content) || ""));
         renderCandyRun(question, i, questions.length, rows);
+        publishCandy();
       }
       if (rows.length < questions.length) markRest(rows.length, "未作答");
       return summarize(state.candyUi && (state.candyUi.stop || signal.aborted) ? "已中断" : state.candyUi && state.candyUi.finish ? "提前结束" : "");
@@ -1230,9 +1328,9 @@
   };
 
   function timeoutFor(id) {
-    if (id === "candy") return 600000;
-    if (id === "pelican") return 300000;
-    return 180000;
+    if (id === "candy") return 480000;
+    if (id === "pelican") return 180000;
+    return 90000;
   }
 
   function linkSignal(parent, ms) {
@@ -1281,7 +1379,7 @@
         return "stop";
       }
       if (err && err.name === "AbortError") {
-        const waited = id === "candy" ? "超过 10 分钟" : id === "pelican" ? "超过 5 分钟" : "超过 3 分钟";
+        const waited = id === "candy" ? "超过 8 分钟" : id === "pelican" ? "超过 3 分钟" : "超过 90 秒";
         showResult(card, "error", waited + "还没有返回。思考模型有时会更慢，可以再跑一次。", "", "");
         return "error";
       }
@@ -1338,9 +1436,14 @@
       showResult(card, outcome.status, outcome.summary, outcome.detail, outcome.svg, outcome.html, outcome.rows, outcome.server);
       return outcome.status;
     } catch (err) {
-      if (signal.aborted || (err && err.name === "AbortError")) {
+      if (signal.aborted) {
         showResult(card, "stop", "已停止", "", "");
         return "stop";
+      }
+      if (err && err.name === "AbortError") {
+        const seconds = Math.max(1, Math.round(timeout / 1000));
+        showResult(card, "error", "超过 " + seconds + " 秒还没有返回。", "", "");
+        return "error";
       }
       showResult(card, "error", httpSummary(err), (err && err.message) || "", "");
       return "error";
@@ -1383,7 +1486,7 @@
     };
 
     let first = null;
-    await go("proto", "协议识别", 180000, async function (stepSignal) {
+    await go("proto", "协议识别", 90000, async function (stepSignal) {
       first = await postChat(ctx, { messages: user("用一句话说明你收到了这条消息。"), max_tokens: 128 }, stepSignal);
       const graded = G.gradeProtocol(first.raw);
       return withServer(decorate(graded, first.ms, first.reply), first.raw);
@@ -1399,7 +1502,7 @@
     }
 
     if (!stopped) {
-      await go("consistent", "模型一致性", 180000, async function (stepSignal) {
+      await go("consistent", "模型一致性", 90000, async function (stepSignal) {
         const seen = [];
         if (first && first.reply) seen.push(String(first.reply.model || ""));
         const out = await postChat(ctx, { messages: user("只回复 OK。"), max_tokens: 16 }, stepSignal);
@@ -1409,7 +1512,7 @@
     }
 
     if (!stopped) {
-      await go("stream", "流式响应", 180000, async function (stepSignal) {
+      await go("stream", "流式响应", 90000, async function (stepSignal) {
         const out = await postChat(
           ctx,
           { messages: user("从一数到三，用顿号分开，不要解释。"), max_tokens: 128, stream: true },
@@ -1423,7 +1526,7 @@
     }
 
     if (!stopped) {
-      await go("control", "输出控制", 180000, async function (stepSignal) {
+      await go("control", "输出控制", 90000, async function (stepSignal) {
         try {
           const out = await postChat(
             ctx,
@@ -1447,7 +1550,7 @@
     }
 
     if (!stopped) {
-      await go("memory", "上下文记忆", 180000, async function (stepSignal) {
+      await go("memory", "上下文记忆", 90000, async function (stepSignal) {
         const code = randomToken("BLUE-", "0123456789", 4);
         const out = await postChat(ctx, { messages: G.historyMessages(code), max_tokens: 128 }, stepSignal);
         return withServer(decorate(G.gradeHistory(out.reply.content, code), out.ms, out.reply), out.raw);
@@ -1455,7 +1558,7 @@
     }
 
     if (!stopped) {
-      await go("system", "系统指令", 180000, async function (stepSignal) {
+      await go("system", "系统指令", 90000, async function (stepSignal) {
         const code = randomToken("PINE-", "0123456789", 4);
         const out = await postChat(
           ctx,
@@ -1473,7 +1576,7 @@
     }
 
     if (!stopped) {
-      await go("tools", "工具调用", 180000, async function (stepSignal) {
+      await go("tools", "工具调用", 90000, async function (stepSignal) {
         const account = randomToken("acct-", "0123456789", 4);
         try {
           const out = await postChat(ctx, toolDef(account), stepSignal);
@@ -1486,7 +1589,7 @@
     }
 
     if (!stopped) {
-      await go("vision", "多模态", 180000, async function (stepSignal) {
+      await go("vision", "多模态", 90000, async function (stepSignal) {
         const spec = visionSpec(ctx);
         try {
           const out = await postChat(ctx, spec, stepSignal);
@@ -1503,7 +1606,7 @@
     }
 
     if (!stopped) {
-      await go("reasoning", "推理参数", 180000, async function (stepSignal) {
+      await go("reasoning", "推理参数", 90000, async function (stepSignal) {
         if (!/gpt-5|gpt-6|o1|o3|o4|reason/i.test(ctx.model) || ctx.protocol === "claude") {
           return stepResult("skip", "当前模型不用单独测 reasoning_effort。");
         }
@@ -1522,7 +1625,7 @@
     }
 
     if (!stopped) {
-      await go("replay", "缓存与重放", 180000, async function (stepSignal) {
+      await go("replay", "缓存与重放", 120000, async function (stepSignal) {
         const spec = { messages: user("用一个词回答：企鹅生活在哪里？"), max_tokens: 64 };
         const a = await postChat(ctx, spec, stepSignal);
         const b = await postChat(ctx, spec, stepSignal);
@@ -1531,7 +1634,7 @@
     }
 
     if (!stopped) {
-      await go("context", "长上下文真实性", 180000, async function (stepSignal) {
+      await go("context", "长上下文真实性", 90000, async function (stepSignal) {
         const code = randomToken("KITE-", "ABCDEFGHJKLMNPQRSTUVWXYZ23456789", 4);
         const prompt = G.buildNeedlePrompt(code);
         const out = await postChat(ctx, { messages: user(prompt), max_tokens: 64 }, stepSignal);
@@ -1623,6 +1726,7 @@
     }
     persist();
     const ctrl = new AbortController();
+    state.suiteStarted = Date.now();
     state.jobs[suite] = ctrl;
     setBusy();
     setNote("正在直接请求 " + ctx.endpoints.chat);
@@ -1679,8 +1783,94 @@
       pelicanSummary: summaryOf("pelican"),
       candyRight: counts.right,
       candyTotal: counts.total,
+      rows: plainCandyRows(state.candyRows || []),
     });
     if (suite === "basic" || suite === "all") tell({ type: "veridrop-basic-done", scored: basicReachedApi() });
+    if ((suite === "candy" || suite === "pelican") && inParentCheck()) recordLocal(suite);
+  }
+
+  function plainCandyRows(rows) {
+    if (!Array.isArray(rows)) return [];
+    return rows.slice(0, 20).map(function (row) {
+      const options = Array.isArray(row && row.options) ? row.options.slice(0, 8).map(function (opt) {
+        return {
+          key: String(opt && opt.key || "").slice(0, 8),
+          text: String(opt && opt.text || "").slice(0, 300),
+        };
+      }) : [];
+      return {
+        title: String(row && row.title || "").slice(0, 80),
+        prompt: String(row && row.prompt || "").slice(0, 2000),
+        dimension: String(row && row.dimension || "").slice(0, 20),
+        level: String(row && row.level || "").slice(0, 20),
+        options: options,
+        answer: String(row && row.answer || "").slice(0, 8),
+        picked: String(row && row.picked || "").slice(0, 500),
+        expect: String(row && row.expect || "").slice(0, 200),
+        ok: !!(row && row.ok),
+        missed: !!(row && row.missed),
+      };
+    });
+  }
+
+  function recordLocal(suite) {
+    let base = "";
+    try {
+      base = G.normalizeBase($("base").value);
+    } catch (err) {
+      base = String($("base").value || "").trim();
+    }
+    const labelNode = $("modelPickLabel");
+    const label = labelNode && labelNode.textContent.trim();
+    const counts = candyCounts();
+    const status = cardStatus(suite);
+    const ui = state.candyUi || {};
+    tell({
+      type: "veridrop-local-record",
+      suite: suite,
+      base: base,
+      model: chosenModel(),
+      modelLabel: label || chosenModel(),
+      status: status,
+      summary: summaryOf(suite),
+      candyRight: counts.right,
+      candyTotal: counts.total,
+      candySeq: ui.seq || 1,
+      started: state.suiteStarted || Date.now(),
+      rows: suite === "candy" ? (state.candyRows || []) : [],
+      html: suite === "pelican" ? String(state.pelicanHtml || "") : "",
+      scored: status === "pass" || status === "warn" || status === "fail",
+    });
+  }
+
+  function replaySaved(data) {
+    if (isHiddenRunner() || !data || typeof data.id !== "string") return;
+    if (!/^(candy|pelican)-[a-z0-9]{4,24}$/i.test(data.id)) return;
+    let report = null;
+    try {
+      report = JSON.parse(localStorage.getItem("veridrop-basic-report:" + data.id) || "null");
+    } catch (err) {
+      report = null;
+    }
+    if (!report || report.id !== data.id) return;
+    const view = document.querySelector(".mc-view.is-on");
+    const name = view ? view.getAttribute("data-view-panel") : "";
+    if (report.suite === "candy" && name === "candy" && Array.isArray(report.candyRows) && report.candyRows.length) {
+      state.candyUi = {
+        seq: report.candySeq || 1,
+        at: report.finishedAt ? new Date(report.finishedAt) : new Date(),
+        model: report.model || "",
+      };
+      renderCandyReport(report.candyRows);
+      return;
+    }
+    if (report.suite === "pelican" && name === "pelican") {
+      const card = document.querySelector("[data-test='pelican']");
+      if (!card) return;
+      const row = Array.isArray(report.rows) ? report.rows[0] : null;
+      const status = row && row.status ? row.status : "pass";
+      showResult(card, status, (row && row.summary) || report.result || "", "", "", report.pelicanHtml || "", null);
+    }
   }
 
   function basicReachedApi() {
@@ -1864,15 +2054,782 @@
     } else {
       runs.unshift(item);
     }
+    const pelicanFrame = document.querySelector('[data-test="pelican"] iframe.lab-frame');
+    item.pelicanHtml = pelicanFrame ? String(pelicanFrame.getAttribute("srcdoc") || "").slice(0, 1200000) : "";
+    const kept = runs.slice(0, 8);
     try {
-      localStorage.setItem("veridrop.check.runs", JSON.stringify(runs.slice(0, 8)));
+      localStorage.setItem("veridrop.check.runs", JSON.stringify(kept));
     } catch (err) {
-      item.items.forEach(function (row) {
-        row.questions = [];
-      });
-      localStorage.setItem("veridrop.check.runs", JSON.stringify(runs.slice(0, 8)));
+      item.pelicanHtml = "";
+      try {
+        localStorage.setItem("veridrop.check.runs", JSON.stringify(kept));
+      } catch (err2) {
+        item.items.forEach(function (row) {
+          row.questions = [];
+        });
+        try {
+          localStorage.setItem("veridrop.check.runs", JSON.stringify(kept));
+        } catch (err3) {
+          /* the open page still has this run */
+        }
+      }
     }
     paintHistory();
+  }
+
+  var allReportCache = null;
+  var allClockTimer = 0;
+  var AX_BASIC = [
+    ["proto", "协议识别"],
+    ["structure", "响应结构"],
+    ["modelecho", "模型回显"],
+    ["consistent", "模型一致性"],
+    ["stream", "流式响应"],
+    ["control", "输出控制"],
+    ["memory", "上下文记忆"],
+    ["system", "系统指令"],
+    ["tools", "工具调用"],
+    ["vision", "多模态"],
+    ["reasoning", "推理参数"],
+    ["usage", "用量审计"],
+    ["replay", "缓存与重放"],
+    ["context", "长上下文真实性"],
+  ];
+
+  function axEl(tag, className, text) {
+    var node = document.createElement(tag);
+    if (className) node.className = className;
+    if (text != null) node.textContent = text;
+    return node;
+  }
+
+  function axEmpty(title, copy) {
+    var card = axEl("section", "ax-card");
+    card.appendChild(axEl("h2", "", title));
+    card.appendChild(axEl("p", "ax-lead", copy));
+    return card;
+  }
+
+  function axStart(card, label) {
+    if (hasSetup()) {
+      var button = axEl("button", "mc-btn mc-btn-solid", label || "开始三项检测");
+      button.type = "button";
+      button.addEventListener("click", function () {
+        var run = $("runAll");
+        if (run) run.click();
+      });
+      card.appendChild(button);
+      return;
+    }
+    var link = axEl("a", "mc-btn mc-btn-solid", label || "去基础测试页开始");
+    link.href = "/check/basic";
+    card.appendChild(link);
+  }
+
+  function axRowOf(report, id) {
+    var rows = Array.isArray(report.rows) ? report.rows : [];
+    for (var i = 0; i < rows.length; i += 1) {
+      if (rows[i] && rows[i].id === id) return rows[i];
+    }
+    return null;
+  }
+
+  function axWord(row) {
+    if (!row || row.state === "wait" || !row.state) return ["未测", "mute"];
+    if (row.state === "run") return ["进行中", "run"];
+    if (row.status === "pass") return ["通过", "ok"];
+    if (row.status === "warn") return ["留意", "warn"];
+    if (row.status === "fail") return ["未通过", "bad"];
+    if (row.status === "error") return ["没测成", "bad"];
+    if (row.status === "skip") return ["不支持", "mute"];
+    if (row.status === "stop") return ["已停止", "mute"];
+    return ["未测", "mute"];
+  }
+
+  function axBasicScore(report) {
+    var points = 0;
+    var counted = 0;
+    AX_BASIC.forEach(function (pair) {
+      var row = axRowOf(report, pair[0]);
+      if (!row || row.state === "run" || row.state === "wait" || !row.state) return;
+      if (row.status === "pass") {
+        counted += 1;
+        points += 1;
+      } else if (row.status === "warn") {
+        counted += 1;
+        points += 0.5;
+      } else if (row.status === "fail") counted += 1;
+    });
+    return { score: counted ? Math.round((points / counted) * 100) : null, counted: counted };
+  }
+
+  function axSeconds(ms) {
+    if (ms == null || !isFinite(Number(ms))) return "—";
+    return (Number(ms) / 1000).toFixed(1) + " 秒";
+  }
+
+  function axNum(value) {
+    var n = Number(value);
+    if (!isFinite(n)) return "—";
+    return Math.round(n).toLocaleString("en-US");
+  }
+
+  function axClock(ms) {
+    var n = Number(ms);
+    if (!isFinite(n) || !n) return "";
+    try {
+      return new Intl.DateTimeFormat("zh-CN", {
+        timeZone: "Asia/Shanghai",
+        month: "2-digit",
+        day: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: false,
+      }).format(new Date(n));
+    } catch (err) {
+      return "";
+    }
+  }
+
+  function axTotalMs(report) {
+    var meter = report.meter || {};
+    if (report.running) return Math.max(0, Date.now() - Number(report.started || Date.now()));
+    if (meter.totalMs != null) return meter.totalMs;
+    return Math.max(0, Number(report.finishedAt || Date.now()) - Number(report.started || Date.now()));
+  }
+
+  function axDuration(ms) {
+    var n = Number(ms);
+    if (!isFinite(n) || n < 0) return "—";
+    var sec = n / 1000;
+    if (sec < 60) return (sec < 10 ? sec.toFixed(1) : String(Math.round(sec))) + " 秒";
+    var whole = Math.round(sec);
+    return Math.floor(whole / 60) + " 分 " + (whole % 60) + " 秒";
+  }
+
+  function axNeedsCare(report) {
+    var ids = AX_BASIC.map(function (pair) { return pair[0]; }).concat(["candy", "pelican"]);
+    return ids.some(function (id) {
+      var row = axRowOf(report, id);
+      return row && (row.status === "warn" || row.status === "fail" || row.status === "error");
+    });
+  }
+
+  function axTitle(report) {
+    if (report.running) return "这一轮还在进行";
+    if (report.interrupted) return "这一轮中断了";
+    if (report.result === "已停止") return "这一轮已停止";
+    if (axNeedsCare(report)) return "有需要留意的地方";
+    return "这一轮完成了";
+  }
+
+  function axParentUrl() {
+    try {
+      if (window.parent !== window) return String(window.parent.location.href || "");
+    } catch (err) {
+      /* the report link stays on this frame */
+    }
+    return String(location.href || "");
+  }
+
+  function axDownload(report) {
+    var copy = {
+      id: report.id,
+      host: report.host || "",
+      model: report.model || "",
+      started: report.started || null,
+      finishedAt: report.finishedAt || null,
+      result: report.result || "",
+      rows: Array.isArray(report.rows) ? report.rows : [],
+      meter: report.meter || null,
+      partRight: typeof report.partRight === "number" ? report.partRight : null,
+      partTotal: typeof report.partTotal === "number" ? report.partTotal : null,
+      candyRows: Array.isArray(report.candyRows) ? report.candyRows : [],
+      pelicanHtml: typeof report.pelicanHtml === "string" ? report.pelicanHtml : "",
+    };
+    var blob = new Blob([JSON.stringify(copy, null, 2)], { type: "application/json" });
+    var url = URL.createObjectURL(blob);
+    var link = document.createElement("a");
+    var host = String(report.host || "veridrop").replace(/[^\w.\-]+/g, "-").slice(0, 40);
+    link.href = url;
+    link.download = host + "-三项检测.json";
+    link.click();
+    setTimeout(function () { URL.revokeObjectURL(url); }, 1500);
+  }
+
+  function axHead(report) {
+    var top = axEl("div", "ax-top");
+    var main = axEl("div");
+    main.appendChild(axEl("h2", "ax-title", axTitle(report)));
+    var when = report.running ? axClock(report.started) : axClock(report.finishedAt || report.started);
+    var meta = axEl("p", "ax-meta");
+    [report.host || "未记下站点", report.model || "未选模型", when].filter(Boolean).forEach(function (bit, index) {
+      if (index) meta.appendChild(document.createTextNode(" · "));
+      meta.appendChild(document.createTextNode(bit));
+    });
+    meta.appendChild(document.createTextNode(" · "));
+    var dur = axEl("span", "", axDuration(axTotalMs(report)));
+    if (report.running) dur.setAttribute("data-ax-elapsed", "1");
+    meta.appendChild(dur);
+    main.appendChild(meta);
+    if (report.running) main.appendChild(axEl("p", "ax-live", "离开这个页面后，这一轮仍会继续。检测历史里显示进行中。"));
+    top.appendChild(main);
+    var actions = axEl("div", "ax-tools");
+    var copy = axEl("button", "mc-btn", "复制报告链接");
+    copy.type = "button";
+    copy.addEventListener("click", function () {
+      var url = axParentUrl();
+      var done = function () {
+        copy.textContent = "已复制";
+        setTimeout(function () { copy.textContent = "复制报告链接"; }, 1600);
+      };
+      var fail = function () { copy.textContent = "请手动复制地址栏"; };
+      var legacy = function () {
+        var area = document.createElement("textarea");
+        area.value = url;
+        area.setAttribute("readonly", "");
+        area.style.position = "fixed";
+        area.style.left = "-9999px";
+        document.body.appendChild(area);
+        area.select();
+        var ok = false;
+        try { ok = document.execCommand("copy"); } catch (err) { ok = false; }
+        area.remove();
+        if (ok) done();
+        else fail();
+      };
+      if (!(navigator.clipboard && navigator.clipboard.writeText)) {
+        legacy();
+        return;
+      }
+      var settled = false;
+      var timer = setTimeout(function () {
+        if (!settled) legacy();
+      }, 1200);
+      navigator.clipboard.writeText(url).then(function () {
+        settled = true;
+        clearTimeout(timer);
+        done();
+      }, function () {
+        settled = true;
+        clearTimeout(timer);
+        legacy();
+      });
+    });
+    var save = axEl("button", "mc-btn", "下载 JSON");
+    save.type = "button";
+    save.addEventListener("click", function () { axDownload(report); });
+    actions.appendChild(copy);
+    actions.appendChild(save);
+    if (report.running) {
+      var stop = axEl("button", "mc-btn", "停止");
+      stop.type = "button";
+      stop.addEventListener("click", function () {
+        if (window.parent !== window) window.parent.postMessage({ type: "veridrop-all-stop" }, location.origin);
+      });
+      actions.appendChild(stop);
+    } else axStart(actions, "重新检测");
+    top.appendChild(actions);
+    return top;
+  }
+
+  function axFillMarked(node, text) {
+    var src = String(text || "");
+    var re = /(\d[\d,]*\s*ms|推理\s*\d[\d,]*)/g;
+    var last = 0;
+    var match;
+    var any = false;
+    while ((match = re.exec(src))) {
+      any = true;
+      if (match.index > last) node.appendChild(document.createTextNode(src.slice(last, match.index)));
+      node.appendChild(axEl("b", "ax-time", match[1]));
+      last = re.lastIndex;
+    }
+    if (!any) node.textContent = src;
+    else if (last < src.length) node.appendChild(document.createTextNode(src.slice(last)));
+  }
+
+  function axKpi(label, value, caption, elapsed) {
+    var cell = axEl("div", "ax-kpi");
+    cell.appendChild(axEl("span", "", label));
+    var timed = !!elapsed || label === "首次响应" || label === "总耗时";
+    var num = axEl("b", timed ? "ax-time" : "", value);
+    if (elapsed) num.setAttribute("data-ax-elapsed", "1");
+    cell.appendChild(num);
+    if (caption) cell.appendChild(axEl("small", "", caption));
+    return cell;
+  }
+
+  function axKpis(report) {
+    var meter = report.meter || {};
+    var waiting = !!(report.running && !meter.requests);
+    var scored = axBasicScore(report);
+    var candyRows = Array.isArray(report.candyRows) ? report.candyRows : [];
+    var candyRow = axRowOf(report, "candy");
+    var candyValue = "—";
+    var candyCap = "还没有结果";
+    if (candyRows.length) {
+      var right = candyRows.filter(function (item) { return item && item.ok; }).length;
+      candyValue = right + "/" + candyRows.length;
+      candyCap = "答对 / 题数";
+    } else if (typeof report.partRight === "number" && typeof report.partTotal === "number" && report.partTotal > 0) {
+      candyValue = report.partRight + "/" + report.partTotal;
+      candyCap = "只留下了对错";
+    } else if (candyRow && candyRow.state === "run") {
+      candyValue = "进行中";
+      candyCap = "题目会陆续出现";
+    }
+    var pelicanRow = axRowOf(report, "pelican");
+    var pelicanWord = axWord(pelicanRow);
+    var html = typeof report.pelicanHtml === "string" ? report.pelicanHtml : "";
+    var pelicanCap = "还没有页面";
+    if (html) pelicanCap = "已留下页面";
+    else if (pelicanRow && pelicanRow.state === "done") pelicanCap = "没有留下页面";
+    else if (pelicanRow && pelicanRow.state === "run") pelicanCap = "页面跑完后出现";
+    var strip = axEl("div", "ax-kpis");
+    strip.appendChild(axKpi("基础分", scored.score == null ? "—" : String(scored.score), scored.counted ? "计入 " + scored.counted + " 项" : "还没有计入的项"));
+    strip.appendChild(axKpi("糖果", candyValue, candyCap));
+    strip.appendChild(axKpi("鹈鹕", pelicanWord[0], pelicanCap));
+    strip.appendChild(axKpi("首次响应", waiting ? "—" : axDuration(meter.ttftMs), "第一次请求用时"));
+    strip.appendChild(axKpi("总耗时", axDuration(axTotalMs(report)), "整轮用时", true));
+    return strip;
+  }
+
+  function axBasic(report) {
+    var card = axEl("section", "ax-card");
+    var scored = axBasicScore(report);
+    var head = axEl("div", "ax-sec-h");
+    head.appendChild(axEl("h2", "", "基础测试"));
+    var mark = axEl("div", "ax-mark");
+    mark.appendChild(axEl("b", "", scored.score == null ? "—" : String(scored.score)));
+    mark.appendChild(axEl("span", "", scored.counted ? "计入 " + scored.counted + " 项" : "还没有计入的项"));
+    head.appendChild(mark);
+    card.appendChild(head);
+    card.appendChild(axEl("p", "ax-lead", "不支持的不扣分，没测成的不补成 0 分。"));
+    var columns = axEl("div", "ax-row ax-row-h");
+    columns.appendChild(axEl("span", "", "项目"));
+    columns.appendChild(axEl("span", "", "结果"));
+    columns.appendChild(axEl("span", "", "结论"));
+    card.appendChild(columns);
+    AX_BASIC.forEach(function (pair) {
+      var row = axRowOf(report, pair[0]);
+      var word = axWord(row);
+      var line = axEl("div", "ax-row");
+      line.appendChild(axEl("strong", "", pair[1]));
+      line.appendChild(axEl("em", "ax-pill is-" + word[1], word[0]));
+      var body = axEl("div");
+      if (row && row.summary) {
+        var summary = axEl("p");
+        axFillMarked(summary, row.summary);
+        body.appendChild(summary);
+      }
+      if (row && row.raw && row.state === "done") {
+        var box = axEl("details", "ax-raw");
+        box.appendChild(axEl("summary", "", "原始回复"));
+        box.appendChild(axEl("pre", "", row.raw));
+        body.appendChild(box);
+      }
+      line.appendChild(body);
+      card.appendChild(line);
+    });
+    return card;
+  }
+
+  function axCandy(report) {
+    var card = axEl("section", "ax-card");
+    var row = axRowOf(report, "candy");
+    var word = axWord(row);
+    var rows = Array.isArray(report.candyRows) ? report.candyRows : [];
+    var right = rows.filter(function (item) { return item && item.ok; }).length;
+    var head = axEl("div", "ax-sec-h");
+    head.appendChild(axEl("h2", "", "糖果测试"));
+    var mark = axEl("div", "ax-mark");
+    if (rows.length) {
+      mark.appendChild(axEl("b", "", right + " / " + rows.length));
+      mark.appendChild(axEl("span", "", "答对"));
+    } else mark.appendChild(axEl("em", "ax-pill is-" + word[1], word[0]));
+    head.appendChild(mark);
+    card.appendChild(head);
+    if (row && row.summary) {
+      var lead = axEl("p", "ax-lead");
+      axFillMarked(lead, row.summary);
+      card.appendChild(lead);
+    }
+    if (rows.length && typeof report.partTotal === "number" && report.partTotal > rows.length) {
+      card.appendChild(axEl("p", "ax-miss", "记录里找到了 " + rows.length + " 题，结论写的是共 " + report.partTotal + " 题。"));
+    }
+    if (!rows.length) {
+      var pending = !row || row.state === "wait" || !row.state || row.state === "run";
+      card.appendChild(axEl("p", "ax-miss", pending ? "题目会在答完后出现在这里。" : "这一轮只留下了结论，没有留下每一题。"));
+      if (row && row.raw && row.state === "done") {
+        var box = axEl("details", "ax-raw");
+        box.open = true;
+        box.appendChild(axEl("summary", "", "查看留下的回复"));
+        box.appendChild(axEl("pre", "", row.raw));
+        card.appendChild(box);
+      }
+      return card;
+    }
+    var dims = axEl("div", "ax-dims");
+    ["迷惑辨析", "数量关系", "约束求解", "演绎"].forEach(function (name) {
+      var group = rows.filter(function (item) { return item && item.dimension === name && !item.missed; });
+      var got = group.filter(function (item) { return item.ok; }).length;
+      var score = group.length ? Math.round((got / group.length) * 100) : 0;
+      var line = axEl("div", "ax-dim");
+      line.appendChild(axEl("span", "", name));
+      var track = axEl("b");
+      var inner = axEl("i");
+      inner.style.width = (group.length ? score : 0) + "%";
+      track.appendChild(inner);
+      line.appendChild(track);
+      line.appendChild(axEl("em", "", group.length ? String(score) : "—"));
+      dims.appendChild(line);
+    });
+    card.appendChild(dims);
+    var list = axEl("div", "ax-qs");
+    rows.forEach(function (item, index) {
+      var block = axEl("article", "ax-q");
+      var qh = axEl("div", "ax-qhead");
+      var title = (index + 1) + ". " + (item.title || "题目");
+      if (item.dimension) title += " · " + item.dimension;
+      qh.appendChild(axEl("strong", "", title));
+      var verdict = item.missed ? "未完成" : item.ok ? "答对" : "答错";
+      var tone = item.missed ? "mute" : item.ok ? "ok" : "bad";
+      qh.appendChild(axEl("em", "ax-pill is-" + tone, verdict));
+      block.appendChild(qh);
+      if (item.prompt) block.appendChild(axEl("p", "ax-prompt", item.prompt));
+      if (item.options && item.options.length) {
+        block.appendChild(axEl("p", "ax-ans", "选项：" + item.options.map(function (opt) {
+          return (opt.key ? opt.key + ". " : "") + (opt.text || "");
+        }).join("    ")));
+      }
+      block.appendChild(axEl("p", "ax-ans", "模型答案：" + (item.picked || "没有回答")));
+      block.appendChild(axEl("p", "ax-ans", "对照：" + (item.expect || item.answer || "")));
+      list.appendChild(block);
+    });
+    card.appendChild(list);
+    return card;
+  }
+
+  function axPelican(report) {
+    var card = axEl("section", "ax-card");
+    var row = axRowOf(report, "pelican");
+    var word = axWord(row);
+    var head = axEl("div", "ax-sec-h");
+    head.appendChild(axEl("h2", "", "鹈鹕骑车"));
+    head.appendChild(axEl("em", "ax-pill is-" + word[1], word[0]));
+    card.appendChild(head);
+    if (row && row.summary) {
+      var lead = axEl("p", "ax-lead");
+      axFillMarked(lead, row.summary);
+      card.appendChild(lead);
+    }
+    var html = typeof report.pelicanHtml === "string" ? report.pelicanHtml : "";
+    if (!html) {
+      var pending = !row || row.state === "wait" || !row.state || row.state === "run";
+      card.appendChild(axEl("p", "ax-miss", pending ? "生成的页面会在这一项跑完后出现在这里。" : "这一轮只留下了结论，没有留下生成的页面。"));
+      if (row && row.raw && row.state === "done") {
+        var box = axEl("details", "ax-raw");
+        box.open = true;
+        box.appendChild(axEl("summary", "", "查看留下的回复"));
+        box.appendChild(axEl("pre", "", row.raw));
+        card.appendChild(box);
+      }
+      return card;
+    }
+    if (report.pelicanNote) card.appendChild(axEl("p", "ax-miss", report.pelicanNote));
+    var page = preparePlayableHtml(html);
+    if (!page) {
+      card.appendChild(axEl("p", "ax-miss", "页面没有通过安全渲染。"));
+      return card;
+    }
+    var stage = axEl("div", "ax-stage");
+    var peek = axEl("div", "ax-peek");
+    peek.setAttribute("role", "button");
+    peek.tabIndex = 0;
+    peek.setAttribute("aria-label", "在新标签打开鹈鹕页面");
+    var frame = axEl("iframe", "ax-frame");
+    frame.setAttribute("sandbox", "allow-scripts allow-forms");
+    frame.setAttribute("referrerpolicy", "no-referrer");
+    frame.setAttribute("scrolling", "no");
+    frame.title = "鹈鹕骑车预览";
+    frame.srcdoc = page;
+    peek.appendChild(frame);
+    var bar = axEl("div", "ax-actions");
+    var openBtn = axEl("button", "mc-btn mc-btn-solid", "在新标签打开");
+    openBtn.type = "button";
+    openBtn.addEventListener("click", function () { openHtmlPage(page, bar); });
+    var downBtn = axEl("button", "mc-btn", "下载 HTML");
+    downBtn.type = "button";
+    downBtn.addEventListener("click", function () { downloadHtml(page, "pelican-bicycle.html"); });
+    function openPeek(event) {
+      if (event.type === "keydown" && event.key !== "Enter" && event.key !== " ") return;
+      if (event.type === "keydown") event.preventDefault();
+      openHtmlPage(page, bar);
+    }
+    peek.addEventListener("click", openPeek);
+    peek.addEventListener("keydown", openPeek);
+    bar.appendChild(openBtn);
+    bar.appendChild(downBtn);
+    stage.appendChild(peek);
+    stage.appendChild(bar);
+    card.appendChild(stage);
+    return card;
+  }
+
+  var axRecoverPosted = {};
+
+  function axSameSummary(left, right) {
+    var a = String(left || "").replace(/\s+/g, "");
+    var b = String(right || "").replace(/\s+/g, "");
+    if (!a || !b) return false;
+    if (a === b) return true;
+    var mark = a.match(/(\d+)ms/);
+    return !!(mark && b.indexOf(mark[1] + "ms") >= 0);
+  }
+
+  function axQuestionBank() {
+    return (G && Array.isArray(G.CANDY_QUESTIONS)) ? G.CANDY_QUESTIONS : [];
+  }
+
+  function axKnownQuestion(title, prompt) {
+    var bank = axQuestionBank();
+    for (var i = 0; i < bank.length; i += 1) {
+      if (bank[i] && (bank[i].title === title || (prompt && bank[i].prompt === prompt))) return bank[i];
+    }
+    return null;
+  }
+
+  function axParseQuestion(text) {
+    var lines = String(text || "").split("\n");
+    var title = (lines[0] || "").replace(/^\d+\.\s*/, "").trim();
+    var verdict = (lines[1] || "").trim();
+    var promptLines = [];
+    var picked = "";
+    var expect = "";
+    for (var i = 2; i < lines.length; i += 1) {
+      if (lines[i].indexOf("模型答案：") === 0) picked = lines[i].slice("模型答案：".length).trim();
+      else if (lines[i].indexOf("对照：") === 0) expect = lines[i].slice("对照：".length).trim();
+      else promptLines.push(lines[i]);
+    }
+    var prompt = promptLines.join("\n").trim();
+    var known = axKnownQuestion(title, prompt);
+    return {
+      title: known && known.title ? known.title : title,
+      prompt: known && known.prompt ? known.prompt : prompt,
+      dimension: known && known.dimension ? known.dimension : "",
+      level: known && known.level ? known.level : "",
+      options: known && Array.isArray(known.options) ? known.options : [],
+      answer: known && known.answer ? known.answer : "",
+      picked: picked === "没有回答" ? "" : picked,
+      expect: expect || (known && known.expect ? known.expect : ""),
+      ok: verdict === "对",
+      missed: verdict === "未完成",
+    };
+  }
+
+  function axCandyFromRuns(report) {
+    var row = axRowOf(report, "candy");
+    var summary = row && row.summary || "";
+    if (!summary) return [];
+    var runs = [];
+    try {
+      runs = JSON.parse(localStorage.getItem("veridrop.check.runs") || "[]");
+    } catch (err) {
+      runs = [];
+    }
+    if (!Array.isArray(runs)) return [];
+    var finished = Number(report.finishedAt || report.started || 0);
+    var best = null;
+    var bestGap = Infinity;
+    runs.forEach(function (run) {
+      if (!run || !Array.isArray(run.items)) return;
+      var item = null;
+      for (var i = 0; i < run.items.length; i += 1) {
+        if (run.items[i] && run.items[i].name === "糖果") item = run.items[i];
+      }
+      if (!item || !item.questions || !item.questions.length || !axSameSummary(summary, item.summary)) return;
+      var at = Date.parse(run.at || "");
+      var gap = finished && at ? Math.abs(finished - at) : 0;
+      if (gap < bestGap) {
+        best = item;
+        bestGap = gap;
+      }
+    });
+    if (!best) return [];
+    return best.questions.map(axParseQuestion).filter(function (item) {
+      return item && (item.title || item.prompt);
+    });
+  }
+
+  function axCandyFromRaw(row) {
+    var raw = row && row.raw ? String(row.raw) : "";
+    if (raw.indexOf("【") < 0 || !G || typeof G.gradeCandyQuestion !== "function") return [];
+    var truncated = raw.indexOf("…已截断") >= 0;
+    var bits = raw.replace(/\n?…已截断$/, "").split("【").slice(1);
+    var rows = [];
+    bits.forEach(function (bit) {
+      var cut = bit.indexOf("】");
+      if (cut < 0) return;
+      var known = axKnownQuestion(bit.slice(0, cut).trim(), "");
+      var content = bit.slice(cut + 1).trim();
+      if (!known || !content) return;
+      var graded = G.gradeCandyQuestion(known, content);
+      if (graded) rows.push(graded);
+    });
+    if (truncated && rows.length) rows.pop();
+    return rows;
+  }
+
+  function axPelicanFromRaw(row) {
+    var raw = row && row.raw ? String(row.raw) : "";
+    if (!/<(svg|html)\b/i.test(raw) || raw.length < 40) return { html: "", note: "" };
+    var truncated = raw.indexOf("…已截断") >= 0 || !/<\/(html|svg)>/i.test(raw);
+    return {
+      html: raw.replace(/\n?…已截断$/, ""),
+      note: truncated ? "完整页面没有留在这台浏览器里，下面是当时记下的开头。" : "",
+    };
+  }
+
+  function axPelicanFromRuns(report) {
+    var row = axRowOf(report, "pelican");
+    var summary = row && row.summary || "";
+    if (!summary) return "";
+    var runs = [];
+    try {
+      runs = JSON.parse(localStorage.getItem("veridrop.check.runs") || "[]");
+    } catch (err) {
+      runs = [];
+    }
+    if (!Array.isArray(runs)) return "";
+    var found = "";
+    runs.forEach(function (run) {
+      if (!run || !Array.isArray(run.items) || !run.pelicanHtml) return;
+      var item = null;
+      for (var i = 0; i < run.items.length; i += 1) {
+        if (run.items[i] && run.items[i].name === "鹈鹕骑车") item = run.items[i];
+      }
+      if (item && axSameSummary(summary, item.summary)) found = String(run.pelicanHtml);
+    });
+    return found;
+  }
+
+  function axFillReport(report) {
+    var copy = {};
+    Object.keys(report).forEach(function (key) { copy[key] = report[key]; });
+    var hadRows = Array.isArray(report.candyRows) && report.candyRows.length > 0;
+    var rows = [];
+    if (!hadRows) {
+      rows = axCandyFromRuns(report);
+      if (!rows.length) rows = axCandyFromRaw(axRowOf(report, "candy"));
+      if (rows.length) copy.candyRows = rows;
+    }
+    var savedPage = "";
+    if (!copy.pelicanHtml) {
+      savedPage = axPelicanFromRuns(report);
+      if (savedPage) copy.pelicanHtml = savedPage;
+      else {
+        var found = axPelicanFromRaw(axRowOf(report, "pelican"));
+        if (found.html) {
+          copy.pelicanHtml = found.html;
+          copy.pelicanNote = found.note;
+        }
+      }
+    }
+    if (report.id && !axRecoverPosted[report.id] && window.parent !== window && (rows.length || savedPage)) {
+      axRecoverPosted[report.id] = true;
+      window.parent.postMessage({
+        type: "veridrop-all-recovered",
+        id: report.id,
+        rows: rows,
+        html: savedPage,
+      }, location.origin);
+    }
+    return copy;
+  }
+
+  function paintAllBoard(report, missing) {
+    var board = $("allBoard");
+    if (!board) return;
+    if (allClockTimer) {
+      clearInterval(allClockTimer);
+      allClockTimer = 0;
+    }
+    allReportCache = report && report.suite === "all" ? axFillReport(report) : null;
+    board.replaceChildren();
+    if (missing) {
+      board.appendChild(axEmpty("这台浏览器里没有这份三项结果", "三项结果只留在当时检测的那台浏览器里。链接本身不带记录，也不带 Key。"));
+      return;
+    }
+    if (!allReportCache) {
+      var empty = axEmpty("还没有三项一起测的结果", "到基础测试页填写地址和 Key，点「三项一起测」。基础每一项、糖果每一题、鹈鹕生成的页面会列在这里。单独的基础测试仍打开原来的报告。");
+      axStart(empty);
+      board.appendChild(empty);
+      return;
+    }
+    board.appendChild(axHead(allReportCache));
+    board.appendChild(axKpis(allReportCache));
+    var split = axEl("div", "ax-split");
+    split.appendChild(axCandy(allReportCache));
+    split.appendChild(axPelican(allReportCache));
+    board.appendChild(split);
+    board.appendChild(axBasic(allReportCache));
+    board.appendChild(axEl("p", "ax-foot", "密钥只发给你填写的接口。这一页的地址、检测历史和下载的 JSON 里都没有密钥。分数只来自这一轮实际返回，没有测成的项不补成分数。"));
+    axFitSplit();
+    if (allReportCache.running) {
+      allClockTimer = setInterval(function () {
+        if (!allReportCache || !allReportCache.running) return;
+        var text = axDuration(Date.now() - Number(allReportCache.started || Date.now()));
+        document.querySelectorAll("[data-ax-elapsed]").forEach(function (node) {
+          node.textContent = text;
+        });
+      }, 1000);
+    }
+    setTimeout(function () {
+      axFitSplit();
+      if (window.parent !== window) window.parent.postMessage({ type: "veridrop-frame-fit" }, location.origin);
+    }, 0);
+  }
+
+  function axFitSplit() {
+    var split = document.querySelector("#allBoard .ax-split");
+    if (!split) return;
+    var candy = split.querySelector(".ax-card");
+    var pelican = candy ? candy.nextElementSibling : null;
+    if (!candy || !pelican || !pelican.classList.contains("ax-card")) return;
+    var wide = window.matchMedia("(min-width: 901px)").matches && !!pelican.querySelector(".ax-stage");
+    if (!wide) {
+      if (candy.style.height) candy.style.height = "";
+      return;
+    }
+    if (candy.style.height) {
+      var qs = candy.querySelector(".ax-qs");
+      var want = Math.round(pelican.getBoundingClientRect().height);
+      if (qs && qs.scrollHeight > qs.clientHeight + 1 && want >= 80) {
+        if (candy.style.height !== want + "px") candy.style.height = want + "px";
+        return;
+      }
+    }
+    candy.style.height = "";
+    var height = Math.round(pelican.getBoundingClientRect().height);
+    var candyH = Math.round(candy.getBoundingClientRect().height);
+    var next = height >= 80 && candyH > height + 1 ? height + "px" : "";
+    if (candy.style.height !== next) candy.style.height = next;
+  }
+
+  if (!window.__axSplitFit) {
+    window.__axSplitFit = true;
+    window.addEventListener("resize", function () {
+      if (allReportCache) axFitSplit();
+    });
+    if (typeof ResizeObserver === "function") {
+      new ResizeObserver(function () {
+        if (allReportCache) axFitSplit();
+      }).observe(document.documentElement);
+    }
+    window.matchMedia("(max-width: 900px)").addEventListener("change", function () {
+      if (allReportCache) axFitSplit();
+    });
   }
 
   function paintDetectRows() {
@@ -2073,7 +3030,11 @@
     const slot = document.getElementById("setup-" + name);
     if (setup && slot) slot.appendChild(setup);
     if (!inParentCheck()) {
-      const path = pathForView(name);
+      let path = pathForView(name);
+      if (isHiddenRunner()) {
+        const run = new URLSearchParams(location.search).get("run");
+        if (run) path += "&run=" + encodeURIComponent(run);
+      }
       if (location.pathname.replace(/\/$/, "") + location.search !== path) {
         const method = push ? "pushState" : "replaceState";
         history[method]({ view: name }, "", path);
@@ -2567,6 +3528,10 @@
     }
     function onSuiteClick(suite) {
       return function () {
+        if (suite === "candy" || suite === "pelican") {
+          runLocal(suite);
+          return;
+        }
         if (requestParentJob(suite)) return;
         runLocal(suite);
       };
@@ -2613,16 +3578,49 @@
     });
     paintHistory();
     applyHomeRun();
+    paintAllBoard(null);
     window.addEventListener("message", function (event) {
       if (event.origin !== location.origin) return;
       const data = event.data;
       if (!data || !data.type) return;
+      if (data.type === "veridrop-all-report") {
+        if (isHiddenRunner()) return;
+        paintAllBoard(data.report, !!data.missing);
+        return;
+      }
+      if (data.type === "veridrop-all-html") {
+        if (isHiddenRunner() || !allReportCache || allReportCache.id !== data.id) return;
+        if (typeof data.html !== "string" || !data.html) return;
+        if (allReportCache.pelicanHtml && allReportCache.pelicanHtml.length >= data.html.length) return;
+        paintAllBoard(Object.assign({}, allReportCache, { pelicanHtml: data.html }), false);
+        return;
+      }
+      if (data.type === "veridrop-all-dump-request") {
+        if (!isHiddenRunner()) return;
+        var runId = "";
+        try {
+          runId = new URLSearchParams(location.search).get("run") || "";
+        } catch (err) {
+          runId = "";
+        }
+        tell({
+          type: "veridrop-all-dump",
+          id: runId,
+          rows: plainCandyRows(state.candyRows || []),
+          html: String(state.pelicanHtml || "").slice(0, 1200000),
+        });
+        return;
+      }
       if (data.type === "veridrop-check-show") {
         if (isHiddenRunner()) return;
         const next = ["home", "detect", "basic", "candy", "pelican"].indexOf(data.view) >= 0 ? data.view : "home";
         const on = document.querySelector(".mc-view.is-on");
         if (on && on.getAttribute("data-view-panel") === next) return;
         showMcView(next, false);
+        return;
+      }
+      if (data.type === "veridrop-replay") {
+        replaySaved(data);
         return;
       }
       if (data.type === "veridrop-job-reply") {
@@ -2639,6 +3637,7 @@
       }
       if (data.type === "veridrop-basic-start") startFromParent(data);
     });
+    if (inParentCheck() && viewFromLocation() === "detect") tell({ type: "veridrop-all-ready" });
     $("copyReport").addEventListener("click", function () {
       const text = reportText();
       if (navigator.clipboard && navigator.clipboard.writeText) {

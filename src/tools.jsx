@@ -891,6 +891,9 @@ function historyApi(item) {
 }
 
 function historyHref(item) {
+  if (item.kind === "check" && item.replay === "candy") return `/check/candy?replay=${encodeURIComponent(item.id)}`;
+  if (item.kind === "check" && item.replay === "pelican") return `/check/pelican?replay=${encodeURIComponent(item.id)}`;
+  if (item.kind === "check" && item.suite === "all") return `/check/detect?run=${encodeURIComponent(item.id)}`;
   if (item.kind === "check") return `/b/${item.id}`;
   if (item.kind === "detect") return `/r/${item.id}`;
   return `/tools/api-speed?job=${item.id}`;

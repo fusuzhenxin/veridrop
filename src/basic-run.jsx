@@ -8,6 +8,12 @@ const ACTIVE_KEY = "veridrop-basic-active";
 const REPORT_PREFIX = "veridrop-basic-report:";
 const HISTORY_KEY = "veridrop-basic-history";
 const ACTIVE_MS = 3 * 60 * 60 * 1000;
+const SUITE_LIMIT_MS = {
+  basic: 20 * 60 * 1000,
+  candy: 8 * 60 * 1000 + 25 * 1000,
+  pelican: 3 * 60 * 1000 + 25 * 1000,
+  all: 32 * 60 * 1000,
+};
 const SUITES = new Set(["basic", "candy", "pelican", "all"]);
 export const JOB_EVENT = "veridrop-job";
 const BASIC_ITEMS = [
@@ -244,6 +250,10 @@ function storedReport(run) {
     partTotal: typeof run.partTotal === "number" ? run.partTotal : null,
     rows: run.rows,
     meter: run.meter,
+    replay: run.replay === "candy" || run.replay === "pelican" ? run.replay : "",
+    candySeq: typeof run.candySeq === "number" ? run.candySeq : null,
+    candyRows: Array.isArray(run.candyRows) ? run.candyRows : [],
+    pelicanHtml: typeof run.pelicanHtml === "string" ? run.pelicanHtml : "",
   };
 }
 
@@ -283,6 +293,7 @@ function historyEntry(report) {
     running,
     interrupted,
     result: running ? "进行中" : interrupted ? "已中断" : String(report.result || "").slice(0, 40),
+    replay: report.replay === "candy" || report.replay === "pelican" ? report.replay : "",
   };
 }
 
@@ -487,11 +498,16 @@ export function BasicRunPage() {
     return () => clearInterval(timer);
   }, [run?.running]);
 
-  useEffect(() => subscribeCheckJob(() => {
-    const next = readRun(routeId.current);
-    setRun(next);
-    setMissing(!next);
-  }), []);
+  useEffect(() => {
+    const pull = () => {
+      const next = readRun(routeId.current);
+      setRun(next);
+      setMissing(!next);
+    };
+    const stop = subscribeCheckJob(pull);
+    pull();
+    return stop;
+  }, []);
 
   useEffect(() => {
     if (routeId.current === id) return;
@@ -701,7 +717,7 @@ export function BasicRunPage() {
           </ol>
         </div>
       )}
-      <p className="report-note">密钥只发给你填写的接口，链接和海报里没有密钥。通过、留意、未通过按这一轮的实际返回计算，不打真伪分。离开这一页后，这一轮仍会继续，检测历史里显示进行中。</p>
+      <p className="report-note">密钥只发给你填写的接口，链接和海报里没有密钥。通过、留意、未通过按这一轮的实际返回计算，不打真伪分。离开这一页后，这一轮仍会继续，检测历史里显示进行中。对方一直不返回时，基础题大约 90 秒停下，鹈鹕骑车大约 3 分钟，糖果每题大约 60 秒、整组大约 8 分钟。</p>
       {poster ? (
         <div className="th-overlay" onClick={() => setPoster(false)}>
           <div className="bposter-dialog" onClick={(event) => event.stopPropagation()}>
@@ -724,6 +740,7 @@ let bootId = "";
 let handedId = "";
 let cancelId = "";
 let navigateJob = null;
+let watchTimer = 0;
 const jobListeners = new Set();
 
 function emitJob() {
@@ -756,7 +773,19 @@ function candyCountOf(value) {
 
 function writeReport(run) {
   const stored = storedReport(run);
-  localStorage.setItem(reportKey(run.id), JSON.stringify(stored));
+  const attempts = [
+    stored,
+    { ...stored, pelicanHtml: "" },
+    { ...stored, candyRows: [], pelicanHtml: "" },
+  ];
+  for (let i = 0; i < attempts.length; i += 1) {
+    try {
+      localStorage.setItem(reportKey(run.id), JSON.stringify(attempts[i]));
+      return attempts[i];
+    } catch {
+      /* a large pelican page must not erase the candy questions */
+    }
+  }
   return stored;
 }
 
@@ -800,6 +829,52 @@ function settleOrphans() {
   if (!fresh && readSessionRaw()) sessionStorage.removeItem(ACTIVE_KEY);
 }
 
+function limitFor(job) {
+  const suite = suiteOf(job.id, job.suite);
+  return SUITE_LIMIT_MS[suite] || SUITE_LIMIT_MS.basic;
+}
+
+function clearWatch() {
+  if (!watchTimer) return;
+  clearTimeout(watchTimer);
+  watchTimer = 0;
+}
+
+function armWatch(job) {
+  clearWatch();
+  if (!job) return;
+  const wait = Math.max(0, job.at + limitFor(job) - Date.now());
+  watchTimer = setTimeout(() => expireJob(job.id), wait);
+}
+
+function expireJob(id) {
+  if (!liveRun || liveRun.id !== id || !liveRun.running || cancelId === id) return;
+  try {
+    runnerFrame?.contentWindow?.postMessage({ type: "veridrop-basic-stop" }, window.location.origin);
+  } catch {
+    /* the runner is not ready */
+  }
+  const rows = liveRun.rows.map((row) => {
+    if (row.state === "done") return row;
+    if (row.state === "run") return { ...row, state: "done", status: "error", summary: "等太久，没有返回。" };
+    return { ...row, state: "done", status: "skip", summary: "前面超时，这项没有再测。" };
+  });
+  const next = {
+    ...liveRun,
+    rows,
+    running: false,
+    interrupted: false,
+    finishedAt: Date.now(),
+  };
+  next.result = resultOf(next);
+  next.score = suiteScore(next).score;
+  sessionStorage.removeItem(ACTIVE_KEY);
+  bootId = "";
+  handedId = "";
+  cancelId = id;
+  publish(next);
+}
+
 function resumeActive() {
   const job = readActiveJob();
   if (!job) return;
@@ -808,17 +883,25 @@ function resumeActive() {
     sessionStorage.removeItem(ACTIVE_KEY);
     return;
   }
+  if (Date.now() - job.at > limitFor(job)) {
+    sessionStorage.removeItem(ACTIVE_KEY);
+    liveRun = liveFromJob(job);
+    expireJob(job.id);
+    return;
+  }
   publish(liveFromJob(job));
+  armWatch(job);
   scheduleHandoff();
 }
 
 function scheduleHandoff() {
   const job = readActiveJob();
   if (!job || !liveRun || liveRun.id !== job.id || !liveRun.running) return;
+  if (Date.now() - job.at > limitFor(job)) return;
   if (cancelId === job.id || bootId === job.id || handedId === job.id) return;
   bootId = job.id;
   const frame = ensureFrame();
-  frame.src = `/original-check/check.html?view=basic&run=${encodeURIComponent(job.id)}`;
+  frame.src = `/original-check/check.html?view=basic&rev=20261024c&run=${encodeURIComponent(job.id)}`;
 }
 
 function ensureFrame() {
@@ -838,13 +921,17 @@ function onRunnerLoad() {
   const frame = runnerFrame;
   const job = readActiveJob();
   if (!frame?.contentWindow || !job || job.id !== bootId) return;
+  const src = frame.getAttribute("src") || "";
+  if (!src.includes("original-check") || !src.includes(job.id)) return;
   let href = "";
   try {
     href = frame.contentWindow.location.href || "";
   } catch {
     return;
   }
-  if (!href.includes("original-check") || !href.includes(job.id)) return;
+  // The runner rewrites its address to ?view=basic and drops &run=, so the live
+  // location cannot be used to recognize this job.
+  if (!href.includes("original-check")) return;
   if (!liveRun || liveRun.id !== job.id || !liveRun.running || cancelId === job.id || handedId === job.id) return;
   handedId = job.id;
   frame.contentWindow.postMessage({
@@ -876,10 +963,43 @@ function stepRow(row, data) {
   };
 }
 
+function takeCandyRows(rows) {
+  if (!Array.isArray(rows)) return [];
+  return rows.slice(0, 20).map((row) => ({
+    title: String(row?.title || "").slice(0, 80),
+    prompt: String(row?.prompt || "").slice(0, 2000),
+    dimension: String(row?.dimension || "").slice(0, 20),
+    level: String(row?.level || "").slice(0, 20),
+    options: Array.isArray(row?.options) ? row.options.slice(0, 8).map((opt) => ({
+      key: String(opt?.key || "").slice(0, 8),
+      text: String(opt?.text || "").slice(0, 300),
+    })) : [],
+    answer: String(row?.answer || "").slice(0, 8),
+    picked: String(row?.picked || "").slice(0, 500),
+    expect: String(row?.expect || "").slice(0, 200),
+    ok: !!row?.ok,
+    missed: !!row?.missed,
+  }));
+}
+
 function applyLiveStep(data) {
   if (!liveRun?.running || cancelId === liveRun.id || typeof data?.id !== "string") return;
   if (!liveRun.rows.some((row) => row.id === data.id)) return;
-  publish({ ...liveRun, rows: liveRun.rows.map((row) => (row.id === data.id ? stepRow(row, data) : row)) });
+  const next = { ...liveRun, rows: liveRun.rows.map((row) => (row.id === data.id ? stepRow(row, data) : row)) };
+  if (data.id === "candy" && Array.isArray(data.rows)) {
+    const candyRows = takeCandyRows(data.rows);
+    next.candyRows = candyRows;
+    if (candyRows.length) {
+      const right = candyRows.filter((row) => row.ok).length;
+      next.partRight = right;
+      next.partTotal = candyRows.length;
+      next.partScore = Math.round((right / candyRows.length) * 100);
+    }
+  }
+  if (data.id === "pelican" && typeof data.html === "string") {
+    next.pelicanHtml = data.html.slice(0, 1_200_000);
+  }
+  publish(next);
 }
 
 function applyLiveMeter(data) {
@@ -932,6 +1052,7 @@ function resultOf(run) {
 
 function finishLive(data) {
   if (!liveRun?.running || cancelId === liveRun.id) return;
+  clearWatch();
   let next = { ...liveRun, rows: liveRun.rows.map((row) => ({ ...row })) };
   if (data?.candy && data.candy !== "idle") next = mergePart(next, "candy", "糖果测试", data.candy, data.candySummary);
   if (data?.pelican && data.pelican !== "idle") next = mergePart(next, "pelican", "鹈鹕骑车", data.pelican, data.pelicanSummary);
@@ -939,6 +1060,11 @@ function finishLive(data) {
     next.partRight = data.candyRight;
     next.partTotal = data.candyTotal;
     next.partScore = Math.round((data.candyRight / data.candyTotal) * 100);
+  }
+  if (Array.isArray(data?.rows) && data.rows.length) {
+    const candyRows = takeCandyRows(data.rows);
+    const have = Array.isArray(next.candyRows) ? next.candyRows.length : 0;
+    if (candyRows.length >= have) next.candyRows = candyRows;
   }
   next.running = false;
   next.interrupted = false;
@@ -956,6 +1082,7 @@ function finishLive(data) {
 }
 
 function finishStopped(run) {
+  clearWatch();
   const next = {
     ...run,
     running: false,
@@ -971,10 +1098,217 @@ function finishStopped(run) {
   publish(next);
 }
 
+function localResult(data) {
+  if (data.status === "stop") return "已停止";
+  if (data.suite === "candy") {
+    if (typeof data.candyRight === "number" && typeof data.candyTotal === "number" && data.candyTotal > 0) {
+      return `${data.candyRight}/${data.candyTotal}`;
+    }
+    return "没测成";
+  }
+  if (data.status === "pass") return "通过";
+  if (data.status === "warn") return "留意";
+  if (data.status === "fail") return "未通过";
+  return "没测成";
+}
+
+function recordLocalSuite(data) {
+  const suite = data?.suite === "candy" || data?.suite === "pelican" ? data.suite : "";
+  const base = String(data?.base || "").trim().slice(0, 300);
+  const modelId = String(data?.model || "").trim().slice(0, 120);
+  if (!suite || !base || !modelId) return;
+  const started = Number(data.started);
+  const at = Number.isFinite(started) ? started : Date.now();
+  const id = `${suite}-${at.toString(36)}`;
+  const status = ["pass", "warn", "fail", "error", "stop", "skip"].includes(data.status) ? data.status : "error";
+  const right = typeof data.candyRight === "number" ? data.candyRight : null;
+  const total = typeof data.candyTotal === "number" ? data.candyTotal : null;
+  const run = {
+    id,
+    suite,
+    host: hostOf(base) || safeHost(base),
+    base,
+    model: String(data.modelLabel || modelId).slice(0, 80),
+    modelId,
+    keyMask: "",
+    started: at,
+    finishedAt: Date.now(),
+    running: false,
+    interrupted: false,
+    result: localResult({ ...data, suite, status }),
+    partScore: suite === "candy" && total > 0 && right != null ? Math.round((right / total) * 100) : null,
+    partRight: suite === "candy" ? right : null,
+    partTotal: suite === "candy" ? total : null,
+    rows: [{
+      id: suite,
+      label: suite === "candy" ? "糖果测试" : "鹈鹕骑车",
+      status,
+      summary: String(data.summary || "").slice(0, 500),
+      raw: "",
+      state: "done",
+    }],
+    meter: null,
+    replay: suite,
+    candySeq: typeof data.candySeq === "number" ? data.candySeq : 1,
+    candyRows: suite === "candy" && Array.isArray(data.rows) ? data.rows.slice(0, 20) : [],
+    pelicanHtml: suite === "pelican" ? String(data.html || "").slice(0, 1200000) : "",
+  };
+  const stored = storedReport(run);
+  const write = (report) => {
+    localStorage.setItem(reportKey(report.id), JSON.stringify(report));
+    rememberBasicHistory(report);
+  };
+  const attempts = [
+    stored,
+    { ...stored, pelicanHtml: "" },
+    { ...stored, candyRows: [], pelicanHtml: "" },
+  ];
+  let saved = false;
+  for (let i = 0; i < attempts.length; i += 1) {
+    try {
+      write(attempts[i]);
+      saved = true;
+      break;
+    } catch {
+      /* keep the candy questions when the pelican page does not fit */
+    }
+  }
+  if (!saved) return;
+  emitJob();
+  if (data.scored === true) {
+    grant("detect", 3, "每日检测", "day");
+    grant("first-detect", 5, "完成首次检测", "once");
+  }
+}
+
+const dumpSeen = new Set();
+
+function runnerRunId(frame) {
+  let live = "";
+  try {
+    live = new URL(frame.contentWindow.location.href).searchParams.get("run") || "";
+  } catch {
+    live = "";
+  }
+  if (/^all-[a-z0-9]{4,24}$/i.test(live)) return live;
+  const src = frame.getAttribute("src") || "";
+  const match = /(?:\?|&)run=(all-[a-z0-9]{4,24})/i.exec(src);
+  return match ? decodeURIComponent(match[1]) : "";
+}
+
+function scrapeRunnerDetail(frame) {
+  let doc;
+  let win;
+  try {
+    win = frame.contentWindow;
+    doc = frame.contentDocument;
+  } catch {
+    return null;
+  }
+  if (!doc || !win) return null;
+  const id = runnerRunId(frame);
+  if (!id) return null;
+  const bank = Array.isArray(win.CheckGrade?.CANDY_QUESTIONS) ? win.CheckGrade.CANDY_QUESTIONS : [];
+  const nodes = [...doc.querySelectorAll('[data-test="candy"] .mc-qitem')];
+  const rows = nodes.map((node) => {
+    const titleText = node.querySelector("strong")?.textContent || "";
+    const title = titleText.replace(/^\d+\.\s*/, "").trim();
+    const prompt = node.querySelector(".mc-qprompt")?.textContent || "";
+    const lines = [...node.querySelectorAll("p")].map((item) => item.textContent || "");
+    const pickedLine = lines.find((line) => line.startsWith("模型答案：")) || "";
+    const expectLine = lines.find((line) => line.startsWith("对照：")) || "";
+    const picked = pickedLine.replace(/^模型答案：/, "");
+    const known = bank.find((item) => item && (item.prompt === prompt || item.title === title));
+    return {
+      title: known?.title || title,
+      prompt: known?.prompt || prompt,
+      dimension: known?.dimension || "",
+      level: known?.level || "",
+      options: Array.isArray(known?.options) ? known.options : [],
+      answer: known?.answer || "",
+      picked: picked === "没有回答" ? "" : picked,
+      expect: known?.expect || expectLine.replace(/^对照：/, ""),
+      ok: node.classList.contains("is-ok"),
+      missed: node.classList.contains("is-miss"),
+    };
+  });
+  const frameNode = doc.querySelector('[data-test="pelican"] iframe.lab-frame');
+  const html = frameNode?.getAttribute("srcdoc") || "";
+  if (!rows.length && !html) return null;
+  return { id, rows, html };
+}
+
+function isRunnerSource(source) {
+  if (!source) return false;
+  const frames = document.querySelectorAll("iframe.basic-runner");
+  for (let i = 0; i < frames.length; i += 1) {
+    if (frames[i].contentWindow === source) return true;
+  }
+  return false;
+}
+
+function mergeDump(data) {
+  if (!data || typeof data.id !== "string" || !/^all-[a-z0-9]{4,24}$/i.test(data.id)) return;
+  const rows = Array.isArray(data.rows) ? takeCandyRows(data.rows) : [];
+  const html = typeof data.html === "string" ? data.html.slice(0, 1_200_000) : "";
+  if (!rows.length && !html) return;
+  const key = `${data.id}:${rows.length}:${html.length}`;
+  if (dumpSeen.has(key)) return;
+  const current = liveRun && liveRun.id === data.id ? liveRun : readSaved(data.id);
+  if (!current || suiteOf(current.id, current.suite) !== "all") return;
+  const haveRows = Array.isArray(current.candyRows) ? current.candyRows.length : 0;
+  const haveHtml = typeof current.pelicanHtml === "string" ? current.pelicanHtml.length : 0;
+  if (rows.length <= haveRows && html.length <= haveHtml) return;
+  dumpSeen.add(key);
+  const next = {
+    ...current,
+    candyRows: rows.length > haveRows ? rows : (current.candyRows || []),
+    pelicanHtml: html.length > haveHtml ? html : (current.pelicanHtml || ""),
+  };
+  const stored = writeReport(next);
+  if (liveRun && liveRun.id === data.id) liveRun = next;
+  rememberBasicHistory(stored);
+  emitJob();
+}
+
+let recovering = false;
+
+export function keepRecoveredDetail(data) {
+  if (!data || !Array.isArray(data.rows)) return;
+  mergeDump({ id: data.id, rows: data.rows, html: typeof data.html === "string" ? data.html : "" });
+}
+
+export function recoverAllDetail() {
+  if (recovering) return;
+  recovering = true;
+  try {
+    document.querySelectorAll("iframe.basic-runner").forEach((frame) => {
+      try {
+        frame.contentWindow?.postMessage({ type: "veridrop-all-dump-request" }, window.location.origin);
+      } catch {
+        /* a blank runner has nothing to send */
+      }
+      mergeDump(scrapeRunnerDetail(frame));
+    });
+  } finally {
+    recovering = false;
+  }
+}
+
 function onWindowMessage(event) {
   if (event.origin !== window.location.origin) return;
   const data = event.data;
   if (!data || typeof data.type !== "string") return;
+  if (data.type === "veridrop-local-record") {
+    if (!childFrame(event.source) || event.source === runnerFrame?.contentWindow) return;
+    recordLocalSuite(data);
+    return;
+  }
+  if (data.type === "veridrop-all-dump") {
+    if (!isRunnerSource(event.source)) return;
+    mergeDump(data);
+    return;
+  }
   if (data.type === "veridrop-job-request") {
     if (!childFrame(event.source) || event.source === runnerFrame?.contentWindow) return;
     const suite = SUITES.has(data.suite) ? data.suite : "";
@@ -1043,13 +1377,15 @@ export function startCheckJob(input) {
   cancelId = "";
   sessionStorage.setItem(ACTIVE_KEY, JSON.stringify(job));
   publish(liveFromJob(job));
+  armWatch(job);
   scheduleHandoff();
   return { ok: true, id: job.id };
 }
 
-export function stopCheckJob() {
+export function stopCheckJob(onlySuite) {
   const run = liveRun;
   if (!run?.running) return;
+  if (onlySuite && suiteOf(run.id, run.suite) !== onlySuite) return;
   cancelId = run.id;
   try {
     runnerFrame?.contentWindow?.postMessage({ type: "veridrop-basic-stop" }, window.location.origin);
@@ -1060,6 +1396,7 @@ export function stopCheckJob() {
 }
 
 export function abandonCheckJob() {
+  clearWatch();
   if (liveRun?.id) cancelId = liveRun.id;
   try {
     runnerFrame?.contentWindow?.postMessage({ type: "veridrop-basic-stop" }, window.location.origin);
@@ -1072,11 +1409,55 @@ export function abandonCheckJob() {
   sessionStorage.removeItem(ACTIVE_KEY);
 }
 
+function reportFor(id) {
+  if (liveRun && liveRun.id === id) return liveRun;
+  return readSaved(id);
+}
+
+function publicAllReport(run) {
+  const stored = storedReport(run);
+  return {
+    id: stored.id,
+    suite: "all",
+    host: stored.host,
+    model: stored.model,
+    started: stored.started,
+    finishedAt: stored.finishedAt,
+    running: stored.running,
+    interrupted: stored.interrupted,
+    result: stored.result,
+    partScore: stored.partScore,
+    partRight: stored.partRight,
+    partTotal: stored.partTotal,
+    rows: stored.rows,
+    meter: stored.meter,
+    candyRows: stored.candyRows,
+    pelicanHtml: stored.pelicanHtml,
+  };
+}
+
+export function allReportFor(id) {
+  if (!acceptedId(id) || suiteOf(id) !== "all") return null;
+  const run = reportFor(id);
+  if (!run || suiteOf(run.id, run.suite) !== "all") return null;
+  return publicAllReport(run);
+}
+
+export function latestAllReport() {
+  const item = readBasicHistory().find((row) => row.suite === "all");
+  return item ? allReportFor(item.id) : null;
+}
+
 export function RunKeeper() {
   const navigate = useNavigate();
   useEffect(() => {
     installRunKeeper();
     return bindJobNavigate((id) => {
+      if (String(id).startsWith("all-")) {
+        const next = `/check/detect?run=${encodeURIComponent(id)}`;
+        if (`${window.location.pathname}${window.location.search}` !== next) navigate(next);
+        return;
+      }
       if (window.location.pathname !== `/b/${id}`) navigate(`/b/${id}`);
     });
   }, [navigate]);

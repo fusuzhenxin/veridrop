@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { useOfficialStatus } from "./official-store.js";
+import { allReportFor, keepRecoveredDetail, latestAllReport, recoverAllDetail, stopCheckJob, subscribeCheckJob } from "./basic-run.jsx";
 import { Tester } from "./pages.jsx";
 import { useTitle } from "./ui.jsx";
 import { CHECK_PAGES, OFFICIAL_SEO } from "./verd-meta.js";
@@ -183,19 +184,37 @@ export function OfficialPage() {
 
 export function CheckPage() {
   const { kind = "" } = useParams();
+  const [search] = useSearchParams();
   const navigate = useNavigate();
   const safe = CHECK_KINDS.has(kind) ? kind : "";
+  const replay = search.get("replay") || "";
+  const replayId = (safe === "candy" || safe === "pelican") && new RegExp(`^${safe}-[a-z0-9]{4,24}$`, "i").test(replay) ? replay : "";
+  const runQuery = search.get("run") || "";
+  const runId = safe === "detect" && /^all-[a-z0-9]{4,24}$/i.test(runQuery) ? runQuery : "";
   const page = CHECK_PAGES[safe] || CHECK_PAGES[""];
   const frame = useRef(null);
   const frameSrc = useRef(null);
+  const frameRev = "20261024c";
   if (safe === "basic") frameSrc.current = null;
-  else if (!frameSrc.current) frameSrc.current = `/original-check/check.html?view=${safe || "home"}`;
+  else if (!frameSrc.current || !String(frameSrc.current).includes(`rev=${frameRev}`)) {
+    frameSrc.current = `/original-check/check.html?view=${safe || "home"}&rev=${frameRev}`;
+  }
   useTitle(page.title, { exact: true });
   useEffect(() => {
     function onMessage(event) {
       if (event.origin !== window.location.origin) return;
       const data = event.data;
       if (!data || !data.type) return;
+      if (data.type === "veridrop-all-stop") {
+        if (!frame.current || event.source !== frame.current.contentWindow) return;
+        stopCheckJob("all");
+        return;
+      }
+      if (data.type === "veridrop-all-recovered") {
+        if (!frame.current || event.source !== frame.current.contentWindow) return;
+        keepRecoveredDetail(data);
+        return;
+      }
       if (data.type === "veridrop-check-view") {
         if (!frame.current || event.source !== frame.current.contentWindow) return;
         const view = data.view === "home" ? "" : String(data.view || "");
@@ -210,10 +229,83 @@ export function CheckPage() {
   useEffect(() => {
     if (safe === "basic") return undefined;
     const node = frame.current;
-    if (!node?.contentWindow) return undefined;
-    node.contentWindow.postMessage({ type: "veridrop-check-show", view: safe || "home" }, window.location.origin);
-    return undefined;
-  }, [safe]);
+    if (!node) return undefined;
+    function send() {
+      const win = node.contentWindow;
+      if (!win) return;
+      win.postMessage({ type: "veridrop-check-show", view: safe || "home" }, window.location.origin);
+      if (replayId) win.postMessage({ type: "veridrop-replay", id: replayId }, window.location.origin);
+    }
+    node.addEventListener("load", send);
+    if (node.contentDocument?.readyState === "complete") send();
+    return () => node.removeEventListener("load", send);
+  }, [safe, replayId]);
+  useEffect(() => {
+    if (safe !== "detect") return undefined;
+    const node = frame.current;
+    if (!node) return undefined;
+    function postReport(win, report, missing) {
+      try {
+        win.postMessage({
+          type: "veridrop-all-report",
+          report: report || null,
+          missing,
+        }, window.location.origin);
+        return;
+      } catch {
+        /* the pelican page can be too large for one message */
+      }
+      if (!report) return;
+      try {
+        win.postMessage({
+          type: "veridrop-all-report",
+          report: { ...report, pelicanHtml: "" },
+          missing,
+        }, window.location.origin);
+      } catch {
+        return;
+      }
+      if (!report.pelicanHtml) return;
+      try {
+        win.postMessage({
+          type: "veridrop-all-html",
+          id: report.id,
+          html: report.pelicanHtml,
+        }, window.location.origin);
+      } catch {
+        /* the questions still paint */
+      }
+    }
+    function push() {
+      const win = node.contentWindow;
+      if (!win) return;
+      let href = "";
+      try {
+        href = String(win.location.href || "");
+      } catch {
+        return;
+      }
+      if (!href.includes("original-check")) return;
+      recoverAllDetail();
+      const report = runId ? allReportFor(runId) : latestAllReport();
+      postReport(win, report, Boolean(runId && !report));
+    }
+    function onReady(event) {
+      if (event.origin !== window.location.origin) return;
+      if (!event.data || event.data.type !== "veridrop-all-ready") return;
+      if (event.source !== node.contentWindow) return;
+      push();
+    }
+    const stop = subscribeCheckJob(push);
+    window.addEventListener("message", onReady);
+    node.addEventListener("load", push);
+    push();
+    return () => {
+      stop();
+      window.removeEventListener("message", onReady);
+      node.removeEventListener("load", push);
+    };
+  }, [safe, runId]);
   useEffect(() => {
     if (safe === "basic") return undefined;
     const node = frame.current;
@@ -233,10 +325,18 @@ export function CheckPage() {
       observer = new ResizeObserver(fit);
       observer.observe(root);
     }
+    function onFit(event) {
+      if (event.origin !== window.location.origin) return;
+      if (!event.data || event.data.type !== "veridrop-frame-fit") return;
+      if (event.source !== node.contentWindow) return;
+      fit();
+    }
     node.addEventListener("load", watch);
+    window.addEventListener("message", onFit);
     const timer = window.setInterval(fit, 1000);
     return () => {
       node.removeEventListener("load", watch);
+      window.removeEventListener("message", onFit);
       observer?.disconnect();
       window.clearInterval(timer);
     };
