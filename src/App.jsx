@@ -1,4 +1,4 @@
-import { Route, Routes } from "react-router-dom";
+import { Navigate, Route, Routes } from "react-router-dom";
 import { Shell } from "./ui.jsx";
 import {
   AboutPage,
@@ -11,17 +11,18 @@ import {
   ListPage,
   ModelListPage,
   ModelPage,
+  AccountPage,
   PointsPage,
   PrivacyPage,
   ReputationPage,
   ReportPage,
   StationPage,
-  SubmitPage,
+  SubmissionsPage,
   TermsPage,
 } from "./pages.jsx";
 import { BasicRunPage, RunKeeper } from "./basic-run.jsx";
 import { DetectRunPage } from "./detect-page.jsx";
-import { CodexPage, HistoryPage, IqPage, SkinPage, SkinsPage, SpeedPage } from "./tools.jsx";
+import { CodexPage, HistoryPage, IqPage, SpeedPage } from "./tools.jsx";
 import { ApplyPage, CheckPage, OfficialPage } from "./verd-pages.jsx";
 
 export default function App() {
@@ -42,8 +43,6 @@ export default function App() {
         <Route path="/b/:id" element={<BasicRunPage />} />
         <Route path="/tools/iq" element={<IqPage />} />
         <Route path="/tools/codex-resets" element={<CodexPage />} />
-        <Route path="/tools/skins" element={<SkinsPage />} />
-        <Route path="/tools/skins/:id" element={<SkinPage />} />
         <Route path="/tools/api-speed" element={<SpeedPage />} />
         <Route path="/reputation" element={<ReputationPage />} />
         <Route path="/activity" element={<ActivityPage />} />
@@ -56,7 +55,9 @@ export default function App() {
         <Route path="/privacy" element={<PrivacyPage />} />
         <Route path="/terms" element={<TermsPage />} />
         <Route path="/points" element={<PointsPage />} />
-        <Route path="/submit" element={<SubmitPage />} />
+        <Route path="/account" element={<AccountPage />} />
+        <Route path="/submit" element={<Navigate to="/apply" replace />} />
+        <Route path="/submissions" element={<SubmissionsPage />} />
         <Route path="/history" element={<HistoryPage />} />
         <Route path="/agents" element={<AgentsPage />} />
         <Route path="*" element={<HomePage />} />

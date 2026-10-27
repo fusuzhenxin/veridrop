@@ -255,7 +255,7 @@ export function ModelBoard({ slug }) {
   const row = modelRows.find((item) => item.slug === slug);
   const known = models.find((item) => item.slug === slug);
   const name = row?.title || known?.name || slug;
-  useTitle(name);
+  useTitle(`${name} 中转站排行和推荐｜输入、输出、缓存价格、在线率与延迟`);
   const [board, setBoard] = useState(undefined);
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState("avail");

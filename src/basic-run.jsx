@@ -490,7 +490,7 @@ export function BasicRunPage() {
   const [run, setRun] = useState(() => readRun(id));
   const [missing, setMissing] = useState(() => !readRun(id));
   const suiteName = SUITE_NAME[run?.suite] || "基础测试";
-  useTitle(run ? `${run.host || suiteName} ${suiteName}` : "报告未找到");
+  useTitle(run ? `${run.host || suiteName} ${suiteName} 报告｜密钥不在链接里` : "检测报告未找到｜记录只在这台浏览器");
 
   useEffect(() => {
     if (!run?.running) return undefined;
@@ -901,7 +901,7 @@ function scheduleHandoff() {
   if (cancelId === job.id || bootId === job.id || handedId === job.id) return;
   bootId = job.id;
   const frame = ensureFrame();
-  frame.src = `/original-check/check.html?view=basic&rev=20261024c&run=${encodeURIComponent(job.id)}`;
+  frame.src = `/original-check/check.html?view=basic&rev=20261027y&run=${encodeURIComponent(job.id)}`;
 }
 
 function ensureFrame() {

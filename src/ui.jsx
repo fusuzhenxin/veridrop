@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, NavLink, useLocation, useNavigate } from "react-router-dom";
 import { activities, findStation, logoUrl, models, perks, reviews, stations } from "./data.js";
+import { clearSession, readAccounts, readAvatar, readSession, writeAccounts, writeAvatar, writeSession } from "./account.js";
 import { saveNick } from "./points.js";
 
 const VENDOR_COLOR = {
@@ -126,8 +127,13 @@ export function useTitle(title, options) {
   const exact = options?.exact === true;
   useEffect(() => {
     if (exact && title) document.title = title;
-    else document.title = title ? `${title} | 维渡 AI` : "维渡 AI — 发现好用的 AI 中转站:纯度、可用性、价格实测";
+    else document.title = title ? `维渡 AI - ${title}` : "维渡 AI - AI 中转站排行与推荐｜收录 4427+ 家中转站实测与价格对比";
   }, [title, exact]);
+}
+
+function purityOf(station) {
+  const value = station.radar ? Number(station.radar["纯度"]) : NaN;
+  return Number.isFinite(value) ? Math.round(value) : "—";
 }
 
 function IconSearch() {
@@ -167,7 +173,8 @@ const NAV = [
       { to: "/check/pelican", label: "鹈鹕骑车" },
     ],
   },
-  { to: "/activity", label: "活动" },
+  { to: "/activity", label: "福利羊毛" },
+  { to: "/points", label: "赚积分", badge: "兑额度" },
 ];
 
 export function Shell({ children }) {
@@ -178,10 +185,15 @@ export function Shell({ children }) {
   const [mobile, setMobile] = useState(false);
   const [search, setSearch] = useState(false);
   const [login, setLogin] = useState(false);
+  const [accountOpen, setAccountOpen] = useState(false);
+  const accountRef = useRef(null);
   const [query, setQuery] = useState("");
+  const [pick, setPick] = useState(0);
   const [cookie, setCookie] = useState(() => localStorage.getItem("okk-cookie") !== "1");
   const [theme, setTheme] = useState(() => localStorage.getItem("okk-theme") || "light");
-  const [user, setUser] = useState(() => localStorage.getItem("okk-user") || "");
+  const [user, setUser] = useState(() => readSession().name);
+  const [email, setEmail] = useState(() => readSession().email);
+  const [avatar, setAvatar] = useState(() => readAvatar());
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
@@ -190,7 +202,12 @@ export function Shell({ children }) {
 
   useEffect(() => {
     const openAuth = () => setLogin(true);
-    const syncAuth = () => setUser(localStorage.getItem("okk-user") || "");
+    const syncAuth = () => {
+      const session = readSession();
+      setUser(session.name);
+      setEmail(session.email);
+      setAvatar(readAvatar());
+    };
     window.addEventListener("okk-open-auth", openAuth);
     window.addEventListener("okk-auth", syncAuth);
     return () => {
@@ -203,8 +220,12 @@ export function Shell({ children }) {
     setOpen("");
     setMobile(false);
     setSearch(false);
-    window.scrollTo(0, 0);
-  }, [location.pathname]);
+    setAccountOpen(false);
+    const id = location.hash.replace("#", "");
+    const node = id ? document.getElementById(id) : null;
+    if (node) node.scrollIntoView({ block: "start" });
+    else window.scrollTo(0, 0);
+  }, [location.pathname, location.hash]);
 
   useEffect(() => () => window.clearTimeout(hideMenu.current), []);
 
@@ -220,12 +241,43 @@ export function Shell({ children }) {
 
   const hits = useMemo(() => {
     const q = query.trim().toLowerCase();
-    if (!q) return { stations: stations.slice(0, 6), models: models.slice(0, 4) };
-    return {
-      stations: stations.filter((item) => `${item.name} ${item.slug} ${item.host || ""}`.toLowerCase().includes(q)).slice(0, 8),
-      models: models.filter((item) => item.name.toLowerCase().includes(q)).slice(0, 6),
-    };
+    const modelHits = (q ? models.filter((item) => `${item.name} ${item.slug}`.toLowerCase().includes(q)) : models).slice(0, 6);
+    const stationHits = (q ? stations.filter((item) => `${item.name} ${item.slug} ${item.host || ""}`.toLowerCase().includes(q)) : stations).slice(0, 8);
+    return [
+      ...modelHits.map((item) => ({ kind: "model", key: `m:${item.slug}`, item, to: `/model/${item.slug}` })),
+      ...stationHits.map((item) => ({ kind: "station", key: `s:${item.slug}`, item, to: item.path || `/station/${item.slug}` })),
+    ];
   }, [query]);
+
+  useEffect(() => setPick(0), [query, search]);
+
+  useEffect(() => {
+    if (!search) return undefined;
+    function onKey(event) {
+      if (event.key === "Escape") setSearch(false);
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [search]);
+
+  useEffect(() => {
+    if (!search) return;
+    document.querySelector(".cmd-hit.on")?.scrollIntoView({ block: "nearest" });
+  }, [search, pick]);
+
+  function movePick(event) {
+    if (event.key === "ArrowDown") {
+      event.preventDefault();
+      setPick((index) => (hits.length ? Math.min(hits.length - 1, index + 1) : 0));
+    } else if (event.key === "ArrowUp") {
+      event.preventDefault();
+      setPick((index) => Math.max(0, index - 1));
+    } else if (event.key === "Enter" && hits[pick]) {
+      event.preventDefault();
+      navigate(hits[pick].to);
+      setSearch(false);
+    }
+  }
 
   return (
     <>
@@ -267,20 +319,21 @@ export function Shell({ children }) {
               ) : (
                 <NavLink key={item.to} to={item.to} end={item.end} className={({ isActive }) => (isActive ? "active" : "")}>
                   {item.label}
+                  {item.badge ? <em className="nav-badge">{item.badge}</em> : null}
                 </NavLink>
               ),
             )}
           </nav>
           <div className="actions">
-            <Link to="/points" className="pill">
-              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <rect x="3" y="8" width="18" height="4" rx="1" />
-                <path d="M12 8v13" />
-                <path d="M19 12v7a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-7" />
-                <path d="M7.5 8a2.5 2.5 0 0 1 0-5C11 3 12 8 12 8s1-5 4.5-5a2.5 2.5 0 0 1 0 5" />
+            <a className="tool-go" href="https://www.modeltool.cn" target="_blank" rel="noreferrer">
+              <svg className="pulse" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M3 12h4l2.2-6 4.2 12 2.2-6H21" />
               </svg>
-              <span>赚积分</span>
-            </Link>
+              <span>降智检测</span>
+              <svg className="out" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M7 17 17 7M8 7h9v9" />
+              </svg>
+            </a>
             <button className="search-btn" onClick={() => setSearch(true)}>
               <IconSearch /> 搜索站点 / 模型
             </button>
@@ -288,16 +341,22 @@ export function Shell({ children }) {
               {theme === "light" ? "☀" : "☾"}
             </button>
             {user ? (
-              <button
-                className="login"
-                onClick={() => {
-                  localStorage.removeItem("okk-user");
+              <AccountMenu
+                open={accountOpen}
+                setOpen={setAccountOpen}
+                boxRef={accountRef}
+                name={user}
+                email={email}
+                avatar={avatar}
+                onLogout={() => {
+                  clearSession();
                   setUser("");
+                  setEmail("");
+                  setAvatar("");
+                  setAccountOpen(false);
                   window.dispatchEvent(new Event("okk-auth"));
                 }}
-              >
-                {user.slice(0, 1).toUpperCase()}
-              </button>
+              />
             ) : (
               <button className="login" onClick={() => setLogin(true)}>
                 登录
@@ -314,6 +373,7 @@ export function Shell({ children }) {
               {item.label}
             </Link>
           ))}
+          <a href="https://www.modeltool.cn" target="_blank" rel="noreferrer">降智检测</a>
         </div>
       </header>
       <main>{children}</main>
@@ -342,7 +402,7 @@ export function Shell({ children }) {
             <Link to="/tools/iq">模型智商</Link>
             <Link to="/tools/codex-resets">Codex 额度重置</Link>
             <Link to="/tools/api-speed">AI API 测试工具</Link>
-            <Link to="/activity">活动</Link>
+            <Link to="/activity">福利羊毛</Link>
           </div>
           <div>
             <h4>热门模型</h4>
@@ -354,7 +414,6 @@ export function Shell({ children }) {
           </div>
           <div>
             <h4>参与</h4>
-            <Link to="/submit">提交收录</Link>
             <Link to="/history">检测历史</Link>
             <Link to="/points">赚积分</Link>
             <Link to="/about">联系我们</Link>
@@ -395,26 +454,36 @@ export function Shell({ children }) {
         </div>
       ) : null}
       {search ? (
-        <div className="mask" onClick={() => setSearch(false)}>
-          <div className="dialog wide" onClick={(event) => event.stopPropagation()}>
-            <h3>搜索站点 / 模型</h3>
-            <div className="field">
-              <input autoFocus placeholder="输入名称" value={query} onChange={(event) => setQuery(event.target.value)} />
+        <div className="mask cmd-mask" onClick={() => setSearch(false)}>
+          <div className="cmd" role="dialog" aria-label="搜索" onClick={(event) => event.stopPropagation()}>
+            <div className="cmd-bar">
+              <IconSearch />
+              <input autoFocus placeholder="输入站点或模型名称..." value={query} onChange={(event) => setQuery(event.target.value)} onKeyDown={movePick} />
+              <kbd>esc</kbd>
             </div>
-            <div>
-              {hits.stations.map((item) => (
-                <Link key={item.slug} to={item.path || `/station/${item.slug}`} className="hit" onClick={() => setSearch(false)}>
-                  {item.name}
-                  <small>站点 · 在线率 {item.uptime}%</small>
+            <div className="cmd-list">
+              {hits.some((row) => row.kind === "model") ? <h4>模型</h4> : null}
+              {hits.map((row, index) => row.kind === "model" ? (
+                <Link key={row.key} to={row.to} className={index === pick ? "cmd-hit on" : "cmd-hit"} onMouseEnter={() => setPick(index)} onClick={() => setSearch(false)}>
+                  <span className="cmd-ico"><VendorIcon name={row.item.vendor} size={20} /></span>
+                  <span className="cmd-main"><b>{row.item.name}</b><small>{row.item.slug}</small></span>
+                  <span className="cmd-meta"><span>智商 <b>{row.item.score}</b></span></span>
                 </Link>
-              ))}
-              {hits.models.map((item) => (
-                <Link key={item.slug} to={`/model/${item.slug}`} className="hit" onClick={() => setSearch(false)}>
-                  {item.name}
-                  <small>模型 · 智商 {item.score}</small>
+              ) : null)}
+              {hits.some((row) => row.kind === "station") ? <h4>站点</h4> : null}
+              {hits.map((row, index) => row.kind === "station" ? (
+                <Link key={row.key} to={row.to} className={index === pick ? "cmd-hit on" : "cmd-hit"} onMouseEnter={() => setPick(index)} onClick={() => setSearch(false)}>
+                  <span className="cmd-ico"><Logo station={row.item} className="cmd-logo" /></span>
+                  <span className="cmd-main"><b>{row.item.name}</b><small>{row.item.host || row.item.slug}</small></span>
+                  <span className="cmd-meta"><span>模型 <b>{row.item.cover ?? row.item.modelsHome ?? "—"}</b></span><span>纯度 <b>{purityOf(row.item)}</b></span></span>
                 </Link>
-              ))}
-              {hits.stations.length + hits.models.length === 0 ? <div className="empty">没有匹配结果</div> : null}
+              ) : null)}
+              {hits.length === 0 ? <div className="empty">没有匹配结果</div> : null}
+            </div>
+            <div className="cmd-foot">
+              <span><kbd>↑</kbd><kbd>↓</kbd> 选择</span>
+              <span><kbd>↵</kbd> 打开</span>
+              <span><kbd>esc</kbd> 关闭</span>
             </div>
           </div>
         </div>
@@ -422,9 +491,13 @@ export function Shell({ children }) {
       {login ? (
         <Login
           onClose={() => setLogin(false)}
-          onOk={(name) => {
-            localStorage.setItem("okk-user", name);
+          onOk={(name, mail) => {
+            writeSession(name, mail);
+            const found = mail ? readAccounts().find((item) => item.email === mail) : null;
+            writeAvatar(found?.avatar || "");
             setUser(name);
+            setEmail(mail || "");
+            setAvatar(found?.avatar || "");
             setLogin(false);
             window.dispatchEvent(new Event("okk-auth"));
           }}
@@ -434,19 +507,89 @@ export function Shell({ children }) {
   );
 }
 
-const ACCOUNTS = "okk-accounts";
-
-function readAccounts() {
-  try {
-    const raw = JSON.parse(localStorage.getItem(ACCOUNTS) || "[]");
-    return Array.isArray(raw) ? raw : [];
-  } catch {
-    return [];
-  }
+function initial(name) {
+  const text = String(name || "").trim();
+  if (!text) return "?";
+  const ch = [...text][0];
+  return /[a-z]/i.test(ch) ? ch.toUpperCase() : ch;
 }
 
-function writeAccounts(list) {
-  localStorage.setItem(ACCOUNTS, JSON.stringify(list));
+function MenuIcon({ name }) {
+  const common = { width: 18, height: 18, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: 1.7, strokeLinecap: "round", strokeLinejoin: "round", "aria-hidden": true };
+  if (name === "gear") return <svg {...common}><path d="M12.2 2h-.4a2 2 0 0 0-2 2v.2a2 2 0 0 1-1 1.7l-.4.3a2 2 0 0 1-2 0l-.2-.1a2 2 0 0 0-2.7.7l-.2.4a2 2 0 0 0 .7 2.7l.2.1a2 2 0 0 1 1 1.7v.5a2 2 0 0 1-1 1.7l-.2.1a2 2 0 0 0-.7 2.7l.2.4a2 2 0 0 0 2.7.7l.2-.1a2 2 0 0 1 2 0l.4.3a2 2 0 0 1 1 1.7V20a2 2 0 0 0 2 2h.4a2 2 0 0 0 2-2v-.2a2 2 0 0 1 1-1.7l.4-.3a2 2 0 0 1 2 0l.2.1a2 2 0 0 0 2.7-.7l.2-.4a2 2 0 0 0-.7-2.7l-.2-.1a2 2 0 0 1-1-1.7v-.5a2 2 0 0 1 1-1.7l.2-.1a2 2 0 0 0 .7-2.7l-.2-.4a2 2 0 0 0-2.7-.7l-.2.1a2 2 0 0 1-2 0l-.4-.3a2 2 0 0 1-1-1.7V4a2 2 0 0 0-2-2z" /><circle cx="12" cy="12" r="3" /></svg>;
+  if (name === "user") return <svg {...common}><circle cx="12" cy="8" r="3.2" /><path d="M5.5 19.2c1.2-2.6 3.4-3.9 6.5-3.9s5.3 1.3 6.5 3.9" /></svg>;
+  if (name === "gift") return <svg {...common}><rect x="3" y="8" width="18" height="4" rx="1" /><path d="M12 8v12" /><path d="M5 12v7h14v-7" /><path d="M12 8c-2.5 0-4-1.4-4-3.1S10.2 3 12 5.2C13.8 3 16 3.6 16 4.9S14.5 8 12 8z" /></svg>;
+  if (name === "star") return <svg {...common}><path d="m12 3.6 2.2 4.6 5 .7-3.6 3.5.9 5.1L12 15.2 7.5 17.5l.9-5.1L4.8 8.9l5-.7z" /></svg>;
+  if (name === "plus") return <svg {...common}><circle cx="12" cy="12" r="8" /><path d="M12 8.5v7M8.5 12h7" /></svg>;
+  if (name === "mail") return <svg {...common}><rect x="3.5" y="5.5" width="17" height="13" rx="2" /><path d="m4 7 8 6 8-6" /></svg>;
+  return <svg {...common}><path d="M9 7V5H5v14h4v-2" /><path d="M10 12h9" /><path d="m16 9 3 3-3 3" /></svg>;
+}
+
+const ACCOUNT_LINKS = [
+  { to: "/account", label: "账户设置", icon: "gear" },
+  { to: "/points", label: "我的积分", icon: "user" },
+  { to: "/points#invite", label: "邀请好友", icon: "gift", badge: "送积分" },
+  { to: "/cat/fav", label: "我的收藏", icon: "star" },
+  { to: "/apply", label: "申请收录", icon: "plus" },
+  { to: "/submissions", label: "我的提交", icon: "mail" },
+];
+
+function AccountMenu({ open, setOpen, boxRef, name, email, avatar, onLogout }) {
+  useEffect(() => {
+    if (!open) return undefined;
+    function onDoc(event) {
+      if (!boxRef.current?.contains(event.target)) setOpen(false);
+    }
+    function onKey(event) {
+      if (event.key === "Escape") setOpen(false);
+    }
+    document.addEventListener("mousedown", onDoc);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onDoc);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [open, setOpen, boxRef]);
+
+  return (
+    <div className={`acct${open ? " open" : ""}`} ref={boxRef}>
+      <button
+        type="button"
+        className="acct-btn"
+        aria-haspopup="menu"
+        aria-expanded={open}
+        onClick={() => setOpen((value) => !value)}
+      >
+        <span className="acct-av" aria-hidden="true">{avatar ? <img src={avatar} alt="" /> : initial(name)}</span>
+        <span className="acct-name">{name}</span>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+          <path d="M6 9l6 6 6-6" />
+        </svg>
+      </button>
+      {open ? (
+        <div className="acct-pop" role="menu">
+          <div className="acct-who">
+            <span className="acct-av lg" aria-hidden="true">{avatar ? <img src={avatar} alt="" /> : initial(name)}</span>
+            <div>
+              <b>{name}</b>
+              {email ? <small>{email}</small> : null}
+            </div>
+          </div>
+          {ACCOUNT_LINKS.map((item) => (
+            <Link key={item.label} to={item.to} role="menuitem" onClick={() => setOpen(false)}>
+              <MenuIcon name={item.icon} />
+              <span>{item.label}</span>
+              {item.badge ? <em>{item.badge}</em> : null}
+            </Link>
+          ))}
+          <button type="button" className="acct-out" role="menuitem" onClick={onLogout}>
+            <MenuIcon name="out" />
+            <span>退出登录</span>
+          </button>
+        </div>
+      ) : null}
+    </div>
+  );
 }
 
 function GoogleMark() {
@@ -496,9 +639,9 @@ function Login({ onClose, onOk }) {
         ? "登录后可打分、评论、避雷,全程免费"
         : "输入注册邮箱,我们给你发送重置链接";
 
-  function finish(name, nextNick) {
+  function finish(name, nextNick, mail) {
     if (nextNick) saveNick(nextNick);
-    onOk(name);
+    onOk(name, mail);
   }
 
   function submit(event) {
@@ -523,7 +666,7 @@ function Login({ onClose, onOk }) {
       }
       const nextNick = nick.trim();
       writeAccounts([...accounts, { email: mail, password, nick: nextNick }]);
-      finish(nextNick || mail.split("@")[0], nextNick);
+      finish(nextNick || mail.split("@")[0], nextNick, mail);
       return;
     }
     if (mode === "forgot") {
@@ -551,7 +694,7 @@ function Login({ onClose, onOk }) {
       setError("邮箱或密码不正确");
       return;
     }
-    finish(found.nick || mail.split("@")[0], found.nick);
+    finish(found.nick || mail.split("@")[0], found.nick, mail);
   }
 
   return (

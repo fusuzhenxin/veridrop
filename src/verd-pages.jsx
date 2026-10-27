@@ -3,8 +3,9 @@ import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom"
 import { useOfficialStatus } from "./official-store.js";
 import { allReportFor, keepRecoveredDetail, latestAllReport, recoverAllDetail, stopCheckJob, subscribeCheckJob } from "./basic-run.jsx";
 import { Tester } from "./pages.jsx";
+import { addSubmission } from "./account.js";
 import { useTitle } from "./ui.jsx";
-import { CHECK_PAGES, OFFICIAL_SEO } from "./verd-meta.js";
+import { CATS, CHECK_PAGES, OFFICIAL_SEO } from "./verd-meta.js";
 
 const OFFICIAL_ORDER = ["openai", "anthropic", "gemini", "deepseek", "moonshot", "xai"];
 const MODEL_HINT = {
@@ -86,12 +87,12 @@ export function OfficialPage() {
   const snap = useOfficialStatus();
   const meta = OFFICIAL_SEO[provider] || {
     h1: "官方状态",
-    title: "官方状态",
-    desc: "上游官方状态对照。本站不跳转官方后台。",
+    title: "上游官方状态对照｜模型是否降级或中断",
+    desc: "上游官方状态对照。本站不跳转官方后台，也不代表第三方中转站本身可用。",
   };
   const board = snap.boards.find((item) => item.provider === provider) || null;
   const boards = OFFICIAL_ORDER.map((id) => snap.boards.find((item) => item.provider === id)).filter(Boolean);
-  useTitle(meta.h1);
+  useTitle(meta.title);
   if (!board) {
     return (
       <div className="wrap off-page">
@@ -194,7 +195,7 @@ export function CheckPage() {
   const page = CHECK_PAGES[safe] || CHECK_PAGES[""];
   const frame = useRef(null);
   const frameSrc = useRef(null);
-  const frameRev = "20261024c";
+  const frameRev = "20261027y";
   if (safe === "basic") frameSrc.current = null;
   else if (!frameSrc.current || !String(frameSrc.current).includes(`rev=${frameRev}`)) {
     frameSrc.current = `/original-check/check.html?view=${safe || "home"}&rev=${frameRev}`;
@@ -346,7 +347,7 @@ export function CheckPage() {
       <div className="wrap check-basic">
         <CheckNav current="basic" />
         <h1>基础测试</h1>
-        <p className="sub">检测 OpenAI 兼容和 Claude Messages 是否按协议返回。不支持的项会跳过，不直接当成 GPT 降智。</p>
+        <p className="sub">做 API中转检测，看 OpenAI兼容、Claude中转、GPT中转和 DeepSeek API 是否按协议返回。不支持就跳过，不直接当成 GPT 降智或中转站降智。</p>
         <Tester extended />
       </div>
     );
@@ -361,51 +362,193 @@ export function CheckPage() {
   );
 }
 
+const APPLY_CATS = CATS.filter(([id]) => !["owner", "online", "fast", "highup"].includes(id)).map(([, label]) => label);
+const APPLY_PAYS = ["支付宝", "微信", "USDT", "银行卡", "对公转账", "PayPal"];
+const SOCIALS = ["Twitter", "Telegram", "GitHub", "Discord", "QQ", "微博", "其他"];
+
+function makeProbePass() {
+  const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789";
+  const bytes = new Uint32Array(12);
+  crypto.getRandomValues(bytes);
+  return [...bytes].map((n) => alphabet[n % alphabet.length]).join("");
+}
+
 export function ApplyPage() {
-  useTitle("申请收录");
+  useTitle("申请收录｜提交中转站公开信息，不要填写 API Key");
   const [sent, setSent] = useState(false);
+  const [error, setError] = useState("");
+  const [links, setLinks] = useState([{ kind: "Twitter", url: "" }]);
+  const [socialOpen, setSocialOpen] = useState(-1);
+  const [probePass, setProbePass] = useState("");
   function submit(event) {
     event.preventDefault();
     const form = new FormData(event.currentTarget);
+    const name = String(form.get("name") || "").trim();
+    const url = String(form.get("url") || "").trim();
+    const cats = form.getAll("cat").map(String);
+    const pays = form.getAll("pay").map(String);
+    if (!cats.length || !pays.length) {
+      setError("请至少选一个分类和一种支付方式");
+      setSent(false);
+      return;
+    }
+    const socials = links
+      .map((item) => ({ kind: item.kind, url: item.url.trim() }))
+      .filter((item) => item.url);
+    const probeUser = String(form.get("probeUser") || "").trim();
     const lines = [
       "申请收录",
-      `站点名称：${form.get("name") || ""}`,
-      `称呼：${form.get("applicant") || ""}`,
-      `网站地址：${form.get("url") || ""}`,
-      `接口地址：${form.get("api") || ""}`,
-      `类型：${form.get("kind") || ""}`,
-      `模型：${form.getAll("models").join("、")}`,
-      `简介：${form.get("about") || ""}`,
+      `站点名称：${name}`,
+      `站点 URL：${url}`,
+      `分类：${cats.join("、")}`,
+      `网站介绍：${form.get("about") || ""}`,
+      `社交链接：${socials.map((item) => `${item.kind} ${item.url}`).join("；")}`,
+      `支付方式：${pays.join("、")}`,
+      `发票：${form.get("invoice") || ""}`,
+      `退款政策：${form.get("refund") || ""}`,
+      `优惠码：${form.get("coupon") || ""}`,
+      `探测账户：${probeUser}`,
+      `探测账户密码：${probePass}`,
+      `备注：${form.get("remark") || ""}`,
+      `联系方式：${form.get("contact") || ""}`,
     ];
+    addSubmission({
+      name,
+      url,
+      note: [cats.join("、"), pays.join("、"), `发票${form.get("invoice") || ""}`, `退款${form.get("refund") || ""}`, String(form.get("contact") || "").trim()].filter(Boolean).join(" · "),
+    });
     const mail = `mailto:2201219073@qq.com?subject=${encodeURIComponent("申请收录")}&body=${encodeURIComponent(lines.join("\n"))}`;
     window.location.href = mail;
+    setError("");
     setSent(true);
   }
   return (
-    <form className="wrap form-page" onSubmit={submit}>
-      <h1>申请收录</h1>
-      <p className="sub">填写站点的公开信息。收录前会打开你填的网址核对。本站只做导航，不代收充值，也不保证一定收录。不要填写 API Key 或密码。</p>
-      <div className="field"><label>站点名称</label><input required name="name" maxLength={40} /></div>
-      <div className="field"><label>你的称呼</label><input name="applicant" maxLength={40} /></div>
-      <div className="field"><label>网站地址</label><input required type="url" name="url" placeholder="https://" /></div>
-      <div className="field"><label>接口地址，没有就留空</label><input type="url" name="api" placeholder="https://" /></div>
-      <div className="field">
-        <label>站点类型</label>
-        <label><input type="radio" name="kind" value="付费中转" defaultChecked /> 付费中转</label>
-        {" "}
-        <label><input type="radio" name="kind" value="公益站" /> 公益站</label>
-      </div>
-      <div className="field">
-        <label>支持的模型</label>
-        {["GPT", "Claude", "Gemini", "Grok", "DeepSeek", "Kimi", "Qwen", "GLM", "生图", "视频"].map((label) => (
-          <label key={label} style={{ marginRight: 12 }}>
-            <input type="checkbox" name="models" value={label} /> {label}
-          </label>
-        ))}
-      </div>
-      <div className="field"><label>简介</label><textarea name="about" rows={4} placeholder="门槛、价格、支付方式。不要写 Key。" /></div>
-      <button className="go" type="submit">发到站长邮箱</button>
-      {sent ? <div className="toast">已打开邮件。如果没有弹出，请直接发到 2201219073@qq.com，QQ 2201219073。</div> : null}
-    </form>
+    <div className="wrap apply-page">
+      <aside className="apply-side">
+        <h1>申请<em>收录</em></h1>
+        <p>填写站点的公开信息。收录前会打开你填的网址核对。本站只做导航，不代收充值，也不保证一定收录。</p>
+        <p>不要填写 API Key。探测账户可以留空；如果填了，密码只写进这封邮件，不会记在这台浏览器的提交列表里。</p>
+      </aside>
+      <form className="apply-form" onSubmit={submit}>
+        <h2>站点信息</h2>
+        <div className="apply-grid">
+          <div className="field">
+            <label>站点名称 <i className="req">*</i></label>
+            <input required name="name" maxLength={40} placeholder="例:OpenRouter" />
+          </div>
+          <div className="field">
+            <label>站点 URL <i className="req">*</i></label>
+            <input required type="url" name="url" placeholder="https://example.com" />
+          </div>
+          <div className="field apply-span">
+            <label>分类 <i className="req">*</i></label>
+            <div className="choice-row">
+              {APPLY_CATS.map((label) => (
+                <label key={label}><input type="checkbox" name="cat" value={label} /> {label}</label>
+              ))}
+            </div>
+          </div>
+          <div className="field apply-span">
+            <label>网站介绍 <span className="opt">选填</span></label>
+            <textarea name="about" rows={4} placeholder="请介绍站点定位、主要优势、服务特点、价格/稳定性/售后等信息。" />
+          </div>
+          <div className="field apply-span">
+            <label>社交链接 <span className="opt">选填</span></label>
+            {links.map((item, index) => (
+              <div className="social-row" key={index}>
+                <div className={`soc-pick${socialOpen === index ? " open" : ""}`}>
+                  <button type="button" className="soc-btn" aria-expanded={socialOpen === index} onClick={() => setSocialOpen(socialOpen === index ? -1 : index)}>
+                    <span>{item.kind}</span>
+                    <svg className={socialOpen === index ? "open" : ""} width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" aria-hidden="true">
+                      <polyline points="6 9 12 15 18 9" />
+                    </svg>
+                  </button>
+                  {socialOpen === index ? (
+                    <>
+                      <div className="fback" onClick={() => setSocialOpen(-1)} />
+                      <div className="fpop soc-pop" role="listbox">
+                        {SOCIALS.map((kind) => (
+                          <button
+                            type="button"
+                            key={kind}
+                            role="option"
+                            aria-selected={kind === item.kind}
+                            className={kind === item.kind ? "on" : ""}
+                            onClick={() => {
+                              setLinks((rows) => rows.map((row, i) => (i === index ? { ...row, kind } : row)));
+                              setSocialOpen(-1);
+                            }}
+                          >
+                            {kind}
+                          </button>
+                        ))}
+                      </div>
+                    </>
+                  ) : null}
+                </div>
+                <input value={item.url} placeholder="https://" onChange={(event) => setLinks((rows) => rows.map((row, i) => (i === index ? { ...row, url: event.target.value } : row)))} />
+              </div>
+            ))}
+            <button className="apply-add" type="button" onClick={() => setLinks((rows) => [...rows, { kind: "Twitter", url: "" }])}>+ 添加一条</button>
+          </div>
+        </div>
+
+        <h2>支付与政策</h2>
+        <div className="field">
+          <label>支付方式 <i className="req">*</i></label>
+          <div className="choice-row">
+            {APPLY_PAYS.map((label) => (
+              <label key={label}><input type="checkbox" name="pay" value={label} /> {label}</label>
+            ))}
+          </div>
+        </div>
+        <div className="apply-split">
+          <div className="field">
+            <label>发票 <i className="req">*</i></label>
+            <div className="choice-row">
+              {["支持", "不支持", "其他"].map((label) => (
+                <label key={label}><input type="radio" name="invoice" value={label} required /> {label}</label>
+              ))}
+            </div>
+          </div>
+          <div className="field">
+            <label>退款政策 <i className="req">*</i></label>
+            <div className="choice-row">
+              {["支持", "不支持", "其他"].map((label) => (
+                <label key={label}><input type="radio" name="refund" value={label} required /> {label}</label>
+              ))}
+            </div>
+          </div>
+        </div>
+        <div className="field">
+          <label>专属优惠码 <span className="opt">选填</span></label>
+          <input name="coupon" placeholder="例:VERIDROP，新用户注册 9 折" />
+        </div>
+
+        <h2>探测账户 <span className="opt">选填</span></h2>
+        <p className="apply-note">这个账户用来代为调用你填写的模型，核对接口是否在线、能否正常返回。建议余额留 100 元以上，并保证这个账户可以登录。</p>
+        <div className="apply-grid">
+          <div className="field">
+            <label>探测账户</label>
+            <input name="probeUser" autoComplete="off" placeholder="账户名" />
+          </div>
+          <div className="field">
+            <div className="pass-line"><label>探测账户密码</label><button type="button" onClick={() => setProbePass(makeProbePass())}>生成密码</button></div>
+            <input name="probePass" type="text" autoComplete="off" value={probePass} onChange={(event) => setProbePass(event.target.value)} placeholder="探测账户密码" />
+          </div>
+        </div>
+        <div className="field">
+          <label>备注 <span className="opt">选填</span></label>
+          <textarea name="remark" rows={3} placeholder="补充审核需要知道的信息，可留空。" />
+        </div>
+        <div className="field">
+          <label>联系方式 <i className="req">*</i></label>
+          <input required name="contact" placeholder="微信 / QQ号 / 手机号 / Telegram 等" />
+        </div>
+        {error ? <div className="toast" style={{ color: "var(--red)" }}>{error}</div> : null}
+        {sent ? <div className="toast">已打开邮件，这台浏览器也记下了这条。如果没有弹出，请直接发到 2201219073@qq.com，QQ 2201219073。</div> : null}
+        <div className="apply-submit"><button className="go" type="submit">提交申请</button></div>
+      </form>
+    </div>
   );
 }

@@ -170,10 +170,77 @@
     return Array.prototype.slice.call(document.querySelectorAll("[data-test]"));
   }
 
+  function clockLabel(ms) {
+    var total = Math.floor(Math.max(0, ms) / 1000);
+    var minutes = Math.floor(total / 60);
+    var seconds = total % 60;
+    if (!minutes) return total + " 秒";
+    return minutes + " 分 " + seconds + " 秒";
+  }
+
+  function stopRunClock(card) {
+    if (card._runClock) {
+      clearInterval(card._runClock);
+      card._runClock = 0;
+    }
+  }
+
+  function paintRunWait(card, elapsed) {
+    var out = card.querySelector("[data-out]");
+    if (!out || !card.classList.contains("lab-card")) return;
+    var wait = out.querySelector(".lab-wait");
+    if (!wait) {
+      wait = document.createElement("p");
+      wait.className = "lab-wait";
+      var text = document.createElement("span");
+      var bar = document.createElement("i");
+      bar.setAttribute("aria-hidden", "true");
+      wait.appendChild(text);
+      wait.appendChild(bar);
+      out.appendChild(wait);
+    }
+    wait.querySelector("span").textContent = "已等待 " + clockLabel(elapsed) + "，还在等这一次返回。";
+  }
+
   function badge(card, status) {
-    const el = card.querySelector("[data-badge]");
+    var el = card.querySelector("[data-badge]");
+    if (!el) return;
     el.className = "lab-badge " + status;
-    el.textContent = STATUS_TEXT[status] || status;
+    el.dataset.state = status;
+    stopRunClock(card);
+    var oldWait = card.querySelector(".lab-wait");
+    if (oldWait) oldWait.remove();
+    if (status !== "running") {
+      el.textContent = STATUS_TEXT[status] || status;
+      return;
+    }
+    var started = Date.now();
+    var tick = function () {
+      if (!card.isConnected) {
+        stopRunClock(card);
+        return;
+      }
+      var elapsed = Date.now() - started;
+      el.textContent = "进行中 · " + clockLabel(elapsed);
+      paintRunWait(card, elapsed);
+    };
+    tick();
+    card._runClock = setInterval(tick, 1000);
+  }
+
+  function fillSummary(line, summary) {
+    var text = String(summary || "");
+    var match = text.match(/^(.*?)(\d[\d,]*\s*ms)(.*)$/);
+    if (!match) {
+      line.textContent = text;
+      return;
+    }
+    if (match[1]) line.appendChild(document.createTextNode(match[1]));
+    var mark = document.createElement("b");
+    mark.className = "lab-ms";
+    mark.textContent = match[2].replace(/\s+/g, " ");
+    line.appendChild(mark);
+    if (match[3]) line.appendChild(document.createTextNode(match[3]));
   }
 
   function renderQuestionRows(out, rows) {
@@ -214,23 +281,29 @@
     if (summary) {
       const line = document.createElement("p");
       line.className = "lab-summary";
-      line.textContent = summary;
+      fillSummary(line, summary);
       out.appendChild(line);
     }
     const page = html ? preparePlayableHtml(html) : svg ? wrapSvgPage(sanitizeSvg(svg)) : "";
     if (page) {
+      const drawing = card.getAttribute("data-test") === "pelican" ? largestSvg(page) : "";
+      const preview = drawing ? previewSvgPage(drawing) : page;
+      const stage = document.createElement("div");
+      stage.className = "lab-stage";
       const frame = document.createElement("iframe");
       frame.className = "lab-frame";
       frame.setAttribute("sandbox", "allow-scripts allow-forms");
       frame.setAttribute("referrerpolicy", "no-referrer");
       frame.setAttribute("title", "鹈鹕骑车");
-      frame.srcdoc = page;
-      out.appendChild(frame);
+      if (drawing) frame.setAttribute("scrolling", "no");
+      frame.srcdoc = preview;
+      stage.appendChild(frame);
+      out.appendChild(stage);
       const bar = document.createElement("div");
       bar.className = "lab-actions";
       const openBtn = document.createElement("button");
       openBtn.type = "button";
-      openBtn.className = "mc-btn";
+      openBtn.className = "mc-btn mc-btn-solid";
       openBtn.textContent = "在新标签打开";
       openBtn.addEventListener("click", function () {
         openHtmlPage(page, bar);
@@ -328,8 +401,70 @@
     }, 1000);
   }
 
+  function playableDocument(raw) {
+    var text = String(raw || "").replace(/\n?…已截断$/, "");
+    var sources = [];
+    var fence = /```(?:html)?\s*([\s\S]*?)```/gi;
+    var block;
+    while ((block = fence.exec(text))) sources.push(block[1]);
+    sources.push(text);
+    for (var i = 0; i < sources.length; i += 1) {
+      var body = sources[i];
+      var docStart = body.search(/<!doctype html|<html\b/i);
+      if (docStart >= 0) {
+        var end = body.toLowerCase().lastIndexOf("</html>");
+        if (end >= docStart) return body.slice(docStart, end + "</html>".length).trim();
+        return body.slice(docStart).trim();
+      }
+      var svgStart = body.search(/<svg\b/i);
+      if (svgStart >= 0) {
+        var svgEnd = body.toLowerCase().lastIndexOf("</svg>");
+        var svg = svgEnd >= svgStart ? body.slice(svgStart, svgEnd + "</svg>".length) : body.slice(svgStart);
+        return wrapSvgPage(svg);
+      }
+    }
+    return "";
+  }
+
+  function largestSvg(page) {
+    var re = /<svg\b[\s\S]*?<\/svg>/gi;
+    var best = "";
+    var match;
+    while ((match = re.exec(String(page || "")))) {
+      if (match[0].length > best.length) best = match[0];
+    }
+    return best;
+  }
+
+  function fitSvgPage(svg) {
+    var clean = sanitizeSvg(svg);
+    if (!clean) return "";
+    return "<!doctype html><html><head><meta charset=\"utf-8\"><style>html,body{margin:0;height:100%;background:#fff}body{display:flex;align-items:center;justify-content:center;height:100%}svg{width:100%;height:100%}</style></head><body>" + clean + "</body></html>";
+  }
+
+  function previewSvgPage(svg) {
+    var raw = String(svg || "");
+    var box = "";
+    var vb = raw.match(/\bviewBox\s*=\s*["']([^"']+)["']/i);
+    if (vb) box = vb[1];
+    else {
+      var w = raw.match(/\bwidth\s*=\s*["']([\d.]+)/i);
+      var h = raw.match(/\bheight\s*=\s*["']([\d.]+)/i);
+      if (w && h) box = "0 0 " + w[1] + " " + h[1];
+    }
+    var clean = sanitizeSvg(raw);
+    if (!clean) return "";
+    if (box && !/\bviewBox\s*=/i.test(clean)) {
+      clean = clean.replace(/<svg\b/i, "<svg viewBox=\"" + box.replace(/"/g, "") + "\"");
+    }
+    clean = clean.replace(/<svg\b/i, "<svg height=\"100%\" preserveAspectRatio=\"xMidYMid meet\"");
+    return "<!doctype html><html><head><meta charset=\"utf-8\"><style>html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#fff}svg{display:block;width:100%;height:100%}</style></head><body>" + clean + "</body></html>";
+  }
+
   function preparePlayableHtml(raw) {
-    return String(raw || "")
+    var page = playableDocument(raw);
+    if (!page) return "";
+    return page
       .replace(/<script\b[^>]*\bsrc\s*=[^>]*>\s*<\/script>/gi, "")
       .replace(/<iframe\b[\s\S]*?<\/iframe>/gi, "")
       .replace(/<(object|embed|base)\b[^>]*>/gi, "");
@@ -1366,9 +1501,9 @@
 
   async function runOne(id, ctx, parent) {
     const card = document.querySelector('[data-test="' + id + '"]');
+    card.querySelector("[data-out]").replaceChildren();
     badge(card, "running");
     tell({ type: "veridrop-basic-step", id: id, status: "running", summary: "" });
-    card.querySelector("[data-out]").replaceChildren();
     const gate = linkSignal(parent, timeoutFor(id));
     try {
       const outcome = await RUNNERS[id](ctx, gate.signal);
@@ -1884,7 +2019,11 @@
   function cardStatus(id) {
     const card = document.querySelector('[data-test="' + id + '"]');
     if (!card) return "idle";
-    const text = card.querySelector("[data-badge]").textContent.trim();
+    const el = card.querySelector("[data-badge]");
+    if (!el) return "idle";
+    if (el.dataset.state) return el.dataset.state;
+    const text = el.textContent.trim();
+    if (text.indexOf("进行中") === 0) return "running";
     const map = { 未测: "idle", 进行中: "running", 通过: "pass", 留意: "warn", 未通过: "fail", 不支持: "skip", 出错: "error", 没测成: "error", 已停止: "stop" };
     return map[text] || "idle";
   }
@@ -2486,29 +2625,133 @@
       dims.appendChild(line);
     });
     card.appendChild(dims);
-    var list = axEl("div", "ax-qs");
-    rows.forEach(function (item, index) {
-      var block = axEl("article", "ax-q");
-      var qh = axEl("div", "ax-qhead");
-      var title = (index + 1) + ". " + (item.title || "题目");
-      if (item.dimension) title += " · " + item.dimension;
-      qh.appendChild(axEl("strong", "", title));
-      var verdict = item.missed ? "未完成" : item.ok ? "答对" : "答错";
-      var tone = item.missed ? "mute" : item.ok ? "ok" : "bad";
-      qh.appendChild(axEl("em", "ax-pill is-" + tone, verdict));
-      block.appendChild(qh);
-      if (item.prompt) block.appendChild(axEl("p", "ax-prompt", item.prompt));
-      if (item.options && item.options.length) {
-        block.appendChild(axEl("p", "ax-ans", "选项：" + item.options.map(function (opt) {
-          return (opt.key ? opt.key + ". " : "") + (opt.text || "");
-        }).join("    ")));
-      }
-      block.appendChild(axEl("p", "ax-ans", "模型答案：" + (item.picked || "没有回答")));
-      block.appendChild(axEl("p", "ax-ans", "对照：" + (item.expect || item.answer || "")));
-      list.appendChild(block);
-    });
-    card.appendChild(list);
+    var wrong = rows.filter(function (item) { return item && !item.ok; }).length;
+    var more = axEl("button", "mc-btn ax-more", wrong ? "查看全部 " + rows.length + " 题，错了 " + wrong + " 题" : "查看全部 " + rows.length + " 题");
+    more.type = "button";
+    more.addEventListener("click", function () { axOpenCandy(rows, right); });
+    card.appendChild(more);
     return card;
+  }
+
+  function axCandyBlock(item, index) {
+    var block = axEl("article", "ax-mq" + (item.missed ? " is-miss" : item.ok ? " is-ok" : " is-bad"));
+    var qh = axEl("div", "ax-qhead");
+    var title = (index + 1) + ". " + (item.title || "题目");
+    if (item.dimension) title += " · " + item.dimension;
+    qh.appendChild(axEl("strong", "", title));
+    var verdict = item.missed ? "未完成" : item.ok ? "答对" : "答错";
+    var tone = item.missed ? "mute" : item.ok ? "ok" : "bad";
+    qh.appendChild(axEl("em", "ax-pill is-" + tone, verdict));
+    block.appendChild(qh);
+    if (item.prompt) block.appendChild(axEl("p", "ax-prompt", item.prompt));
+    if (item.options && item.options.length) {
+      var opts = axEl("div", "ax-opts");
+      item.options.forEach(function (opt) {
+        opts.appendChild(axEl("span", "", (opt.key ? opt.key + ". " : "") + (opt.text || "")));
+      });
+      block.appendChild(opts);
+    }
+    block.appendChild(axEl("p", "ax-ans", "模型答案：" + (item.picked || "没有回答")));
+    block.appendChild(axEl("p", "ax-ans", "对照：" + (item.expect || item.answer || "")));
+    return block;
+  }
+
+  function axVisibleFrame() {
+    var top = 0;
+    var height = window.innerHeight || 640;
+    try {
+      if (window.parent !== window && window.frameElement) {
+        var rect = window.frameElement.getBoundingClientRect();
+        var viewH = window.parent.innerHeight || height;
+        top = Math.max(0, -rect.top);
+        height = Math.max(320, Math.min(rect.height, viewH - rect.top) - top);
+      }
+    } catch (err) {}
+    return { top: top, height: height };
+  }
+
+  function axPlaceMask(mask, box) {
+    var view = axVisibleFrame();
+    mask.style.position = "absolute";
+    mask.style.top = view.top + "px";
+    mask.style.left = "0";
+    mask.style.right = "0";
+    mask.style.bottom = "auto";
+    mask.style.height = view.height + "px";
+    box.style.maxHeight = Math.max(240, view.height - 48) + "px";
+  }
+
+  function axOpenCandy(rows, right) {
+    var mask = axEl("div", "ax-mask");
+    var box = axEl("div", "ax-dialog");
+    box.setAttribute("role", "dialog");
+    box.setAttribute("aria-modal", "true");
+    box.setAttribute("aria-label", "糖果测试题目");
+    var top = axEl("div", "ax-dhead");
+    var titles = axEl("div");
+    titles.appendChild(axEl("h2", "", "糖果测试"));
+    titles.appendChild(axEl("p", "", "共 " + rows.length + " 题，对了 " + right + " 题，错了 " + (rows.length - right) + " 题。"));
+    top.appendChild(titles);
+    var close = axEl("button", "ax-x", "×");
+    close.type = "button";
+    close.setAttribute("aria-label", "关闭");
+    top.appendChild(close);
+    box.appendChild(top);
+    var filters = axEl("div", "ax-dfilters");
+    var list = axEl("div", "ax-dlist");
+    var mode = "all";
+    function paint() {
+      list.replaceChildren();
+      var shown = 0;
+      rows.forEach(function (item, index) {
+        if (!item) return;
+        if (mode === "ok" && !item.ok) return;
+        if (mode === "bad" && item.ok) return;
+        list.appendChild(axCandyBlock(item, index));
+        shown += 1;
+      });
+      if (!shown) list.appendChild(axEl("p", "ax-miss", mode === "ok" ? "没有答对的题。" : "没有答错的题。"));
+    }
+    [["all", "全部"], ["bad", "只看答错"], ["ok", "只看答对"]].forEach(function (pair) {
+      var button = axEl("button", pair[0] === "all" ? "ax-dfilter on" : "ax-dfilter", pair[1]);
+      button.type = "button";
+      button.addEventListener("click", function () {
+        mode = pair[0];
+        filters.querySelectorAll("button").forEach(function (item) {
+          item.classList.toggle("on", item === button);
+        });
+        paint();
+      });
+      filters.appendChild(button);
+    });
+    box.appendChild(filters);
+    paint();
+    box.appendChild(list);
+    function shut() {
+      mask.remove();
+      document.removeEventListener("keydown", onKey);
+      try {
+        window.parent.removeEventListener("scroll", place, true);
+        window.parent.removeEventListener("resize", place);
+      } catch (err) {}
+    }
+    function place() { axPlaceMask(mask, box); }
+    function onKey(event) {
+      if (event.key === "Escape") shut();
+    }
+    close.addEventListener("click", shut);
+    mask.addEventListener("click", function (event) {
+      if (event.target === mask) shut();
+    });
+    document.addEventListener("keydown", onKey);
+    mask.appendChild(box);
+    document.body.appendChild(mask);
+    place();
+    try {
+      window.parent.addEventListener("scroll", place, true);
+      window.parent.addEventListener("resize", place);
+    } catch (err) {}
+    close.focus();
   }
 
   function axPelican(report) {
@@ -2527,10 +2770,9 @@
     var html = typeof report.pelicanHtml === "string" ? report.pelicanHtml : "";
     if (!html) {
       var pending = !row || row.state === "wait" || !row.state || row.state === "run";
-      card.appendChild(axEl("p", "ax-miss", pending ? "生成的页面会在这一项跑完后出现在这里。" : "这一轮只留下了结论，没有留下生成的页面。"));
-      if (row && row.raw && row.state === "done") {
+      card.appendChild(axEl("p", "ax-miss", report.pelicanNote || (pending ? "生成的页面会在这一项跑完后出现在这里。" : "这一轮只留下了结论，没有留下生成的页面。")));
+      if (!report.pelicanNote && row && row.raw && row.state === "done") {
         var box = axEl("details", "ax-raw");
-        box.open = true;
         box.appendChild(axEl("summary", "", "查看留下的回复"));
         box.appendChild(axEl("pre", "", row.raw));
         card.appendChild(box);
@@ -2543,6 +2785,22 @@
       card.appendChild(axEl("p", "ax-miss", "页面没有通过安全渲染。"));
       return card;
     }
+    if (report.pelicanEmbed === false) {
+      var savedBar = axEl("div", "ax-actions");
+      var savedOpen = axEl("button", "mc-btn mc-btn-solid", "在新标签打开");
+      savedOpen.type = "button";
+      savedOpen.addEventListener("click", function () { openHtmlPage(page, savedBar); });
+      var savedDown = axEl("button", "mc-btn", "下载 HTML");
+      savedDown.type = "button";
+      savedDown.addEventListener("click", function () { downloadHtml(page, "pelican-bicycle.html"); });
+      savedBar.appendChild(savedOpen);
+      savedBar.appendChild(savedDown);
+      card.appendChild(savedBar);
+      return card;
+    }
+    var drawing = largestSvg(page);
+    var fitted = drawing ? fitSvgPage(drawing) : "";
+    var preview = fitted || page;
     var stage = axEl("div", "ax-stage");
     var peek = axEl("div", "ax-peek");
     peek.setAttribute("role", "button");
@@ -2551,9 +2809,8 @@
     var frame = axEl("iframe", "ax-frame");
     frame.setAttribute("sandbox", "allow-scripts allow-forms");
     frame.setAttribute("referrerpolicy", "no-referrer");
-    frame.setAttribute("scrolling", "no");
     frame.title = "鹈鹕骑车预览";
-    frame.srcdoc = page;
+    frame.srcdoc = preview;
     peek.appendChild(frame);
     var bar = axEl("div", "ax-actions");
     var openBtn = axEl("button", "mc-btn mc-btn-solid", "在新标签打开");
@@ -2683,11 +2940,19 @@
 
   function axPelicanFromRaw(row) {
     var raw = row && row.raw ? String(row.raw) : "";
-    if (!/<(svg|html)\b/i.test(raw) || raw.length < 40) return { html: "", note: "" };
-    var truncated = raw.indexOf("…已截断") >= 0 || !/<\/(html|svg)>/i.test(raw);
+    var page = playableDocument(raw);
+    if (!page || page.length < 40) return { html: "", note: "" };
+    var truncated = raw.indexOf("…已截断") >= 0 || !/<\/html>/i.test(page);
+    if (truncated && !largestSvg(page)) {
+      return {
+        html: page,
+        note: "完整页面没有留在这台浏览器里，可以在新标签页打开当时记下的开头。",
+        embed: false,
+      };
+    }
     return {
-      html: raw.replace(/\n?…已截断$/, ""),
-      note: truncated ? "完整页面没有留在这台浏览器里，下面是当时记下的开头。" : "",
+      html: page,
+      note: truncated ? "完整页面没有留在这台浏览器里，下面是当时记下的画面。" : "",
     };
   }
 
@@ -2730,10 +2995,9 @@
       if (savedPage) copy.pelicanHtml = savedPage;
       else {
         var found = axPelicanFromRaw(axRowOf(report, "pelican"));
-        if (found.html) {
-          copy.pelicanHtml = found.html;
-          copy.pelicanNote = found.note;
-        }
+        if (found.html) copy.pelicanHtml = found.html;
+        if (found.note) copy.pelicanNote = found.note;
+        if (found.embed === false) copy.pelicanEmbed = false;
       }
     }
     if (report.id && !axRecoverPosted[report.id] && window.parent !== window && (rows.length || savedPage)) {
@@ -2867,103 +3131,180 @@
     }
   }
 
-  function historyTone(text) {
-    var value = String(text || "");
-    if (/正常|通过|完成/.test(value)) return " is-ok";
-    if (/留意|轻微/.test(value)) return " is-warn";
-    if (/没测成|失败|未通过|明显/.test(value)) return " is-bad";
+  function readList(key) {
+    try {
+      const parsed = JSON.parse(localStorage.getItem(key) || "[]");
+      return Array.isArray(parsed) ? parsed : [];
+    } catch (err) {
+      return [];
+    }
+  }
+
+  function historyStamp(at) {
+    if (typeof at === "number" && Number.isFinite(at)) return at;
+    const parsed = Date.parse(at);
+    return Number.isFinite(parsed) ? parsed : 0;
+  }
+
+  function hubRows() {
+    const speed = readList("okk-speed-history").map(function (item) { return Object.assign({ kind: "speed" }, item); });
+    const detect = readList("okk-detect-history").map(function (item) { return Object.assign({ kind: "detect" }, item); });
+    const check = readList("veridrop-basic-history").map(function (item) { return Object.assign({ kind: "check" }, item); });
+    return speed.concat(detect, check).sort(function (a, b) { return historyStamp(b.at) - historyStamp(a.at); }).slice(0, 8);
+  }
+
+  function hubResult(item) {
+    if (item.kind === "check") {
+      if (item.running) return "进行中";
+      if (item.interrupted) return "已中断";
+      if (item.result) return item.result;
+      if (item.suite === "candy" || item.suite === "pelican") return "完成";
+      return item.score == null ? "没测成" : item.score + " 分";
+    }
+    if (item.fatal) return "失败";
+    if (item.ttftMs == null) return "完成";
+    return (item.ttftMs / 1000).toFixed(2) + "s";
+  }
+
+  function hubApi(item) {
+    if (item.kind === "check") {
+      if (item.suite === "candy") return "糖果测试";
+      if (item.suite === "pelican") return "鹈鹕骑车";
+      if (item.suite === "all") return "基础+糖果+骑车";
+      return "基础测试";
+    }
+    if (item.kind === "detect") return "多维检测";
+    return item.protocol === "responses" ? "Responses" : "Messages";
+  }
+
+  function hubHref(item) {
+    if (item.kind === "check" && item.replay === "candy") return "/check/candy?replay=" + encodeURIComponent(item.id);
+    if (item.kind === "check" && item.replay === "pelican") return "/check/pelican?replay=" + encodeURIComponent(item.id);
+    if (item.kind === "check" && item.suite === "all") return "/check/detect?run=" + encodeURIComponent(item.id);
+    if (item.kind === "check") return "/b/" + encodeURIComponent(item.id);
+    if (item.kind === "detect") return "/r/" + encodeURIComponent(item.id);
+    return "/tools/api-speed?job=" + encodeURIComponent(item.id);
+  }
+
+  function hubTone(text) {
+    const value = String(text || "");
+    if (value === "进行中") return "is-run";
+    if (value === "通过" || value === "完成") return "is-ok";
+    if (value === "留意") return "is-warn";
+    if (value === "未通过" || value === "失败" || value === "没测成") return "is-bad";
+    if (value === "已停止" || value === "已中断") return "is-stop";
+    const score = value.match(/^(\d+)\s*分$/);
+    if (score) {
+      const n = Number(score[1]);
+      if (n >= 85) return "is-ok";
+      if (n >= 70) return "is-warn";
+      return "is-bad";
+    }
+    const frac = value.match(/^(\d+)\s*\/\s*(\d+)$/);
+    if (frac && Number(frac[2])) {
+      const ratio = Number(frac[1]) / Number(frac[2]);
+      if (ratio >= 0.85) return "is-ok";
+      if (ratio >= 0.6) return "is-warn";
+      return "is-bad";
+    }
     return "";
+  }
+
+  function hubClock(at) {
+    const ms = historyStamp(at);
+    if (!ms) return "—";
+    const parts = {};
+    new Intl.DateTimeFormat("en-CA", {
+      timeZone: "Asia/Shanghai",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      hourCycle: "h23",
+    }).formatToParts(new Date(ms)).forEach(function (part) { parts[part.type] = part.value; });
+    return parts.month + "/" + parts.day + " " + parts.hour + ":" + parts.minute;
   }
 
   function paintHistory() {
     const box = $("mcHistory");
     if (!box) return;
-    const runs = loadRuns();
+    const rows = hubRows();
     box.replaceChildren();
-    if (!runs.length) {
+    if (!rows.length) {
       const empty = document.createElement("p");
       empty.className = "mc-meta";
-      empty.textContent = "还没有检测记录。跑完一轮后会出现在这里。";
+      empty.textContent = "暂时没有数据";
       box.appendChild(empty);
       return;
     }
-    runs.forEach(function (run) {
-      const item = document.createElement("div");
-      item.className = "mc-hitem";
-      const row = document.createElement("button");
-      row.type = "button";
-      row.className = "mc-hrow";
-      const name = document.createElement("strong");
-      name.className = "mc-htag" + historyTone(run.headline);
-      name.textContent = run.headline || "检测";
-      const meta = document.createElement("span");
-      const when = run.at ? run.at.replace("T", " ").slice(0, 16) : "";
-      meta.textContent = (run.model || "") + "  " + when;
-      row.appendChild(name);
-      row.appendChild(meta);
-      const detail = document.createElement("div");
-      detail.className = "mc-hdetail";
-      detail.hidden = true;
-      if (run.items && run.items.length) {
-        run.items.forEach(function (part) {
-          const block = document.createElement("div");
-          const title = document.createElement("strong");
-          title.textContent = part.name + " · " + (part.status || "");
-          block.appendChild(title);
-          if (part.summary) {
-            const line = document.createElement("p");
-            line.textContent = part.summary;
-            block.appendChild(line);
-          }
-          (part.questions || []).forEach(function (text) {
-            const line = document.createElement("p");
-            line.textContent = text;
-            block.appendChild(line);
-          });
-          detail.appendChild(block);
-        });
-      } else {
-        const line = document.createElement("p");
-        line.textContent = "这次只记下了结论和时间，没有留下每项内容。";
-        detail.appendChild(line);
-      }
-      row.addEventListener("click", function () {
-        const opening = detail.hidden;
-        box.querySelectorAll(".mc-hdetail").forEach(function (node) {
-          node.hidden = true;
-        });
-        detail.hidden = !opening;
-      });
-      item.appendChild(row);
-      item.appendChild(detail);
-      box.appendChild(item);
+    const table = document.createElement("table");
+    table.className = "mc-htab";
+    const head = document.createElement("thead");
+    const titles = ["站点", "结果", "模型", "接口", "时间", ""];
+    const headRow = document.createElement("tr");
+    titles.forEach(function (title) {
+      const cell = document.createElement("th");
+      cell.textContent = title;
+      headRow.appendChild(cell);
     });
+    head.appendChild(headRow);
+    table.appendChild(head);
+    const body = document.createElement("tbody");
+    rows.forEach(function (item) {
+      const row = document.createElement("tr");
+      [item.host || "—", hubResult(item), item.model || "—", hubApi(item), hubClock(item.at)].forEach(function (text, index) {
+        const cell = document.createElement("td");
+        cell.textContent = text;
+        if (index === 1) {
+          const tone = hubTone(text);
+          if (tone) cell.className = tone;
+        }
+        row.appendChild(cell);
+      });
+      const linkCell = document.createElement("td");
+      const link = document.createElement("a");
+      link.className = "mc-hgo";
+      link.href = hubHref(item);
+      link.target = "_top";
+      link.textContent = item.kind === "speed" ? "测速" : "报告";
+      linkCell.appendChild(link);
+      row.appendChild(linkCell);
+      body.appendChild(row);
+    });
+    table.appendChild(body);
+    box.appendChild(table);
+    const more = document.createElement("a");
+    more.className = "mc-hmore";
+    more.href = "/history";
+    more.target = "_top";
+    more.textContent = "全部历史";
+    box.appendChild(more);
   }
 
   var VIEW_SEO = {
     home: {
-      title: "GPT降智检测_糖果测试与鹈鹕骑车_API中转站导航",
+      title: "维渡 AI - GPT 降智检测｜糖果测试、鹈鹕骑车与基础协议自测",
       description: "在浏览器里检测 API 中转有没有降智。用你自己的地址和 Key 跑基础检测、糖果测试和鹈鹕骑车，对照 GPT、Claude、DeepSeek 这一次调用。Key 不经过本站，也不能当成官方原厂鉴定。",
       keywords: "API中转站,API中转检测,GPT降智,ChatGPT降智,GPT-6 Astra,中转站降智,模型降智测试,糖果测试,鹈鹕骑车,Claude中转,OpenAI兼容接口,DeepSeek API,GPT中转,模型自测",
     },
     detect: {
-      title: "模型检测结果_中转降智与基础分_API中转站导航",
+      title: "维渡 AI - 模型检测结果｜基础分、耗时、糖果测试与鹈鹕骑车",
       description: "汇总 API 中转基础分、耗时和降智判断。这一页不连接中转站，只展示已经跑过的基础检测、糖果测试和鹈鹕骑车。Key 不经过本站。",
       keywords: "模型检测,GPT降智,中转站降智,API中转检测,糖果测试,鹈鹕骑车,模型自测",
     },
     basic: {
-      title: "API中转基础检测_OpenAI兼容与Claude_API中转站导航",
-      description: "检测 OpenAI 兼容接口和 Claude Messages：协议、流式、上下文、工具调用和用量。GPT 中转、Claude 中转、DeepSeek API 都能填。不支持的项跳过，不直接当成降智。",
+      title: "维渡 AI - API 中转基础检测｜协议、流式、上下文与工具调用",
+      description: "检测 OpenAI 兼容接口和 Claude Messages：协议、流式、上下文、工具调用和用量。不支持的项跳过，不直接当成降智。Key 不经过本站。",
       keywords: "API中转检测,OpenAI兼容接口,Claude中转,GPT中转,DeepSeek API,中转站降智,模型自测",
     },
     candy: {
-      title: "糖果测试_GPT降智逻辑题_API中转站导航",
-      description: "糖果测试用 20 道固定选择题看这一次 API 中转调用会不会做错逻辑题。可选 5、10、15 或 20 道，做完给出正确率、对错，以及迷惑辨析、数量关系、约束求解、演绎四项得分。Key 不经过本站。",
+      title: "维渡 AI - 糖果测试｜降智逻辑题、正确率与四项得分",
+      description: "糖果测试用固定选择题看这一次 API 中转调用会不会做错逻辑题。可选 5、10、15 或 20 道，做完给出正确率，以及迷惑辨析、数量关系、约束求解、演绎四项得分。Key 不经过本站。",
       keywords: "糖果测试,GPT降智,ChatGPT降智,逻辑题,模型降智测试,中转站降智,API中转检测",
     },
     pelican: {
-      title: "鹈鹕骑车_SVG动画HTML检测_API中转站导航",
-      description: "鹈鹕骑车用固定提示词让模型交回 SVG 动画 HTML，跑完可以播放和下载。用来看 GPT、Claude 中转这一次的画功，不是问答题。Key 不经过本站。",
+      title: "维渡 AI - 鹈鹕骑车｜SVG 动画 HTML 画功检测与播放",
+      description: "鹈鹕骑车用固定提示词让模型交回 SVG 动画 HTML，跑完可以播放和下载。用来看这一次画功，不是问答题，也不能当成官方原厂鉴定。Key 不经过本站。",
       keywords: "鹈鹕骑车,鹈鹕骑自行车,GPT降智,ChatGPT降智,模型降智测试,API中转检测",
     },
   };
@@ -3057,10 +3398,20 @@
     window.parent.postMessage({ type: "veridrop-check-view", view: name }, location.origin);
   }
 
+  function filled(input) {
+    if (!input) return false;
+    if (String(input.value || "").trim()) return true;
+    try {
+      return input.matches(":-webkit-autofill");
+    } catch (err) {
+      return false;
+    }
+  }
+
   function missingSetup() {
     const missing = [];
-    if (!$("base").value.trim()) missing.push("接口地址");
-    if (!$("apiKey").value.trim()) missing.push("Key");
+    if (!filled($("base"))) missing.push("接口地址");
+    if (!filled($("apiKey"))) missing.push("Key");
     return missing;
   }
 
@@ -3295,7 +3646,7 @@
     } catch (err) {
       baseText = "已省略";
     }
-    const lines = ["API中转站导航 · 模型自测", "接口：" + baseText, "模型：" + chosenModel(), ""];
+    const lines = ["维渡 AI · 模型自测", "接口：" + baseText, "模型：" + chosenModel(), ""];
     if (!$("labScore").hidden) {
       lines.push("基础分：" + $("scoreValue").textContent + " · " + $("scoreVerdict").textContent);
       lines.push("耗时：" + $("scoreTime").textContent);
@@ -3550,6 +3901,15 @@
       });
     });
     showMcView(viewFromLocation(), false);
+    [200, 800].forEach(function (wait) { setTimeout(paintSetupGate, wait); });
+    window.addEventListener("pointerdown", function () { paintSetupGate(); }, { capture: true, once: true });
+    ["base", "apiKey"].forEach(function (id) {
+      const input = $(id);
+      if (!input) return;
+      input.addEventListener("animationstart", function (event) {
+        if (event.animationName === "vd-autofill") paintSetupGate();
+      });
+    });
     window.addEventListener("popstate", function () {
       if (inParentCheck()) return;
       showMcView(viewFromLocation(), false);
@@ -3557,7 +3917,7 @@
     document.addEventListener("click", function (event) {
       if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button) return;
       const link = event.target.closest("a");
-      if (!link || link.target === "_blank") return;
+      if (!link || link.target === "_blank" || link.classList.contains("mc-hgo")) return;
       let url;
       try {
         url = new URL(link.getAttribute("href"), location.origin);

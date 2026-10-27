@@ -1,7 +1,7 @@
 {
   "name": "维渡 AI",
   "short_name": "维渡 AI",
-  "description": "维渡 AI · 发现好用的 AI 中转站",
+  "description": "AI 中转站排行与推荐，收录中转站并展示实测。",
   "id": "https://www.veridrop.cn/",
   "start_url": "https://www.veridrop.cn/",
   "scope": "https://www.veridrop.cn/",

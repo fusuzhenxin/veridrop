@@ -102,7 +102,7 @@ export function DetectRunPage() {
   const report = run?.report || saved;
   const rows = run?.rows || saved?.rows || DETECT_ROWS.map((item) => ({ ...item, state: "wait" }));
   const running = !report;
-  useTitle(report ? `${report.host} 检测报告` : "检测中");
+  useTitle(report ? `${report.host} 模型检测报告｜基础分、耗时和本次调用` : "模型检测进行中｜等待这一次调用返回");
 
   useEffect(() => {
     if (readDetectReport(id)) return undefined;

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Link, useParams, useSearchParams } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import codexRows from "./codex.json";
 import iqRows from "./iq.json";
 import { logoUrl, stations } from "./data.js";
@@ -7,7 +7,6 @@ import { grant } from "./points.js";
 import { abandonCheckJob, clearBasicHistory, JOB_EVENT, readBasicHistory } from "./basic-run.jsx";
 import { clearDetectHistory, readDetectHistory } from "./detect.js";
 import { LIMITS, endpoint, listModels, quotaState, readHistory, runBenchmark, takeQuota, writeHistory } from "./probe.js";
-import skinRows from "./skins.json";
 import { useTitle } from "./ui.jsx";
 
 const ICONS = {
@@ -104,7 +103,7 @@ function topBy(rows, pick) {
 }
 
 export function IqPage() {
-  useTitle("模型智商榜");
+  useTitle("模型智商榜｜代码、推理和工具调用的公开分数对照");
   const [onlyReasoning, setOnlyReasoning] = useState(false);
   const rows = iqRows.filter((item) => !onlyReasoning || item.re);
   const maxScore = Math.max(...rows.map((item) => item.cur));
@@ -308,7 +307,7 @@ function ResetCalendar({ rows }) {
 }
 
 export function CodexPage() {
-  useTitle("Codex 额度重置");
+  useTitle("Codex 额度重置记录｜已公布的重置时间与间隔");
   const rows = useMemo(() => [...codexRows].sort((a, b) => stamp(b.announcedAt) - stamp(a.announcedAt)), []);
   const latest = rows[0];
   const times = [...rows].map((item) => stamp(item.announcedAt)).sort((a, b) => a - b);
@@ -383,184 +382,6 @@ export function CodexPage() {
   );
 }
 
-const SKIN_COLORS = ["红", "橙", "黄", "绿", "青", "蓝", "紫", "粉", "黑", "白", "灰"];
-
-function skinFavs() {
-  try {
-    const parsed = JSON.parse(localStorage.getItem("okk-skin-favs") || "{}");
-    return parsed && typeof parsed === "object" ? parsed : {};
-  } catch {
-    return {};
-  }
-}
-
-export function SkinsPage() {
-  useTitle("Codex 换肤大师");
-  const [query, setQuery] = useSearchParams();
-  const q = query.get("q") || "";
-  const category = query.get("cat") || "全部";
-  const color = query.get("color") || "全部";
-  const sort = query.get("sort") || "hot";
-  const page = Number(query.get("p") || 1);
-  const favs = skinFavs();
-  const categories = ["全部", ...new Set(skinRows.map((item) => item.category))];
-  const set = (patch) => {
-    const next = new URLSearchParams(query);
-    for (const [key, value] of Object.entries(patch)) {
-      if (!value || value === "全部" || value === "hot" || value === 1 || value === "1") next.delete(key);
-      else next.set(key, String(value));
-    }
-    if (!("p" in patch)) next.delete("p");
-    setQuery(next);
-  };
-  const filtered = skinRows.filter((item) => {
-    if (q && !item.name.toLowerCase().includes(q.toLowerCase())) return false;
-    if (category !== "全部" && item.category !== category) return false;
-    if (color !== "全部" && item.colorFamily !== color) return false;
-    return true;
-  });
-  const ordered = [...filtered].sort((a, b) => {
-    if (sort === "new") return Date.parse(b.createdAt) - Date.parse(a.createdAt);
-    if (sort === "pick") return Number(b.featured) - Number(a.featured) || a.sort - b.sort;
-    return 0;
-  });
-  const pages = Math.max(1, Math.ceil(ordered.length / 12));
-  const visible = ordered.slice((page - 1) * 12, page * 12);
-  return (
-    <div className="wrap tool-page">
-      <div className="tool-hd">
-        <div>
-          <h1>Codex 皮肤</h1>
-          <p>给 Codex 桌面端换一套皮肤 —— 整套界面配色 + 壁纸。</p>
-        </div>
-      </div>
-      <div className="skin-tools">
-        <input value={q} placeholder="搜索主题" onChange={(event) => set({ q: event.target.value })} />
-        <label>分类
-          <select value={category} onChange={(event) => set({ cat: event.target.value })}>
-            {categories.map((item) => <option key={item}>{item}</option>)}
-          </select>
-        </label>
-        <label>色系
-          <select value={color} onChange={(event) => set({ color: event.target.value })}>
-            {["全部", ...SKIN_COLORS].map((item) => <option key={item}>{item}</option>)}
-          </select>
-        </label>
-        <label>排序
-          <select value={sort} onChange={(event) => set({ sort: event.target.value })}>
-            <option value="hot">最热</option>
-            <option value="new">最新</option>
-            <option value="pick">推荐</option>
-          </select>
-        </label>
-      </div>
-      {visible.length ? (
-        <div className="skin-grid">
-          {visible.map((item) => (
-            <Link key={item.id} to={`/tools/skins/${item.id}`} className="skin-card">
-              <img src={`/skins/${item.id}/preview.${item.previewExt || "jpg"}`} alt={item.name} />
-              <span className="tag">{item.category}</span>
-              <span className="cap"><b>{item.name}</b><em>♡ {item.favCount + (favs[item.id] ? 1 : 0)}</em></span>
-            </Link>
-          ))}
-        </div>
-      ) : <p className="mini">该筛选下暂无主题</p>}
-      <div className="pager">
-        {Array.from({ length: pages }, (_, index) => (
-          <button key={index} type="button" className={page === index + 1 ? "on" : ""} onClick={() => set({ p: index + 1 })}>{index + 1}</button>
-        ))}
-      </div>
-
-    </div>
-  );
-}
-
-export function SkinPage() {
-  const { id } = useParams();
-  const skin = skinRows.find((item) => item.id === id);
-  useTitle(skin ? skin.name : "Codex 皮肤");
-  const [tab, setTab] = useState("");
-  const [copied, setCopied] = useState(false);
-  const [favs, setFavs] = useState(skinFavs);
-  if (!skin) return <div className="wrap tool-page"><h1>页面不存在</h1><Link to="/tools/skins">返回皮肤库</Link></div>;
-  const manifest = `https://www.okkmax.com/skins/${skin.id}/manifest.json`;
-  const commands = {
-    enable: `npx okkskin@0.3.0 enable ${manifest}`,
-    apply: `npx okkskin@0.3.0 apply ${manifest}`,
-    restore: "npx okkskin@0.3.0 disable",
-  };
-  const hints = {
-    enable: "先退出 Codex，运行 npx okkskin@0.3.0 launch 启动，再运行本命令。以后用 launch 启动都会自动应用。",
-    apply: "只对当前这次会话生效，退出 Codex 即失效。启动方式同样是 npx okkskin@0.3.0 launch。",
-    restore: "停用常驻换肤并还原。不带 launch 直接重启 Codex，也会回到原版。",
-  };
-  const colors = skin.colors || {};
-  const swatches = [["背景", colors.background], ["面板", colors.panel], ["强调", colors.accent], ["文字", colors.text], ["次要", colors.muted], ["描边", colors.line]];
-  const favCount = skin.favCount + (favs[skin.id] ? 1 : 0);
-  return (
-    <div className="wrap tool-page">
-      <div className="skin-head">
-        <div>
-          <div className="crumb"><Link to="/tools/skins">Codex 皮肤</Link> › {skin.name}</div>
-          <h1>{skin.name}</h1>
-          <div className="skin-pills">
-            <span>{skin.category}</span>
-            <span><i />{skin.colorFamily}色系</span>
-            <em>{String(skin.createdAt).slice(0, 10)}</em>
-          </div>
-        </div>
-        <div className="skin-actions">
-          <button type="button" className="ghost-btn" onClick={() => {
-            const next = { ...favs, [skin.id]: !favs[skin.id] };
-            if (!next[skin.id]) delete next[skin.id];
-            localStorage.setItem("okk-skin-favs", JSON.stringify(next));
-            setFavs(next);
-          }}>♡ 收藏 {favCount}</button>
-          <button type="button" className="ghost-btn" onClick={() => navigator.clipboard.writeText(location.href)}>分享</button>
-          <button type="button" className="go" onClick={() => setTab("enable")}>获取命令</button>
-        </div>
-      </div>
-      <div className="skin-rail">
-        {skinRows.map((item) => (
-          <Link key={item.id} to={`/tools/skins/${item.id}`} className={item.id === skin.id ? "on" : ""}>
-            <img src={`/skins/${item.id}/preview.${item.previewExt || "jpg"}`} alt="" />
-            <span>{item.name}</span>
-          </Link>
-        ))}
-      </div>
-      <img className="skin-hero" src={`/skins/${skin.id}/preview.${skin.previewExt || "jpg"}`} alt={skin.name} />
-      <h2>配色</h2>
-      <div className="swatches">
-        {swatches.map(([label, value]) => (
-          <div key={label}><i style={{ background: value || "#ddd" }} /><span>{label}</span><b>{value || "—"}</b></div>
-        ))}
-      </div>
-      {tab ? (
-        <div className="modal-back" onClick={() => setTab("")}>
-          <div className="skin-modal" onClick={(event) => event.stopPropagation()}>
-            <div className="sec-h"><h2>套用「{skin.name}」</h2><button type="button" onClick={() => setTab("")}>✕</button></div>
-            <div className="ab-seg">
-              <button type="button" className={tab === "enable" ? "on" : ""} onClick={() => setTab("enable")}>持久 · 推荐</button>
-              <button type="button" className={tab === "apply" ? "on" : ""} onClick={() => setTab("apply")}>单次预览</button>
-              <button type="button" className={tab === "restore" ? "on" : ""} onClick={() => setTab("restore")}>恢复原版</button>
-            </div>
-            <pre>{commands[tab]}</pre>
-            <p>{hints[tab]}</p>
-            <button type="button" className="go" onClick={() => { navigator.clipboard.writeText(commands[tab]); setCopied(true); }}>复制</button>
-            {copied ? <p className="mini">已复制。先退出 Codex，用 okkskin launch 启动后再执行。</p> : null}
-            <ol>
-              <li>复制上方命令</li>
-              <li>打开「终端」</li>
-              <li>将命令粘贴进去，按回车执行</li>
-              <li>按照提示确认，等待命令运行完成</li>
-            </ol>
-          </div>
-        </div>
-      ) : null}
-    </div>
-  );
-}
-
 const SPEED_FAQ = [
   ["什么是 AI API 测试工具？", "AI API 测试工具会向目标接口发起真实请求，检测首字延迟（TTFT）、生成速度、请求成功率、并发处理能力和缓存命中情况。它既可以测试模型厂商的官方 API，也可以测试兼容相应协议的中转站接口。"],
   ["支持哪些大模型 API 和接口协议？", "目前支持 Anthropic Messages API 和 OpenAI Responses API。工具不限制模型厂商，只要目标服务支持对应协议，就可以测试 Claude、GPT、DeepSeek、Qwen、GLM 等模型或模型别名。"],
@@ -608,7 +429,7 @@ const EMPTY_FORM = {
 };
 
 export function SpeedPage() {
-  useTitle("AI API 测试工具");
+  useTitle("AI API 测速工具｜延迟、并发和缓存只发给你填写的接口");
   const [params] = useSearchParams();
   const [form, setForm] = useState(EMPTY_FORM);
   const [showKey, setShowKey] = useState(false);
@@ -899,6 +720,30 @@ function historyHref(item) {
   return `/tools/api-speed?job=${item.id}`;
 }
 
+function historyTone(text) {
+  const value = String(text || "");
+  if (value === "进行中") return "is-run";
+  if (value === "通过" || value === "完成") return "is-ok";
+  if (value === "留意") return "is-warn";
+  if (value === "未通过" || value === "失败" || value === "没测成") return "is-bad";
+  if (value === "已停止" || value === "已中断") return "is-stop";
+  const score = value.match(/^(\d+)\s*分$/);
+  if (score) {
+    const n = Number(score[1]);
+    if (n >= 85) return "is-ok";
+    if (n >= 70) return "is-warn";
+    return "is-bad";
+  }
+  const frac = value.match(/^(\d+)\s*\/\s*(\d+)$/);
+  if (frac && Number(frac[2])) {
+    const ratio = Number(frac[1]) / Number(frac[2]);
+    if (ratio >= 0.85) return "is-ok";
+    if (ratio >= 0.6) return "is-warn";
+    return "is-bad";
+  }
+  return "";
+}
+
 function historyClock(at) {
   const ms = historyStamp(at);
   if (!ms) return "—";
@@ -913,7 +758,7 @@ function historyClock(at) {
 }
 
 export function HistoryPage() {
-  useTitle("检测历史");
+  useTitle("检测历史｜这台浏览器的基础测试、糖果测试和鹈鹕骑车");
   const [items, setItems] = useState(historyRows);
   useEffect(() => {
     let timer = 0;
@@ -957,7 +802,7 @@ export function HistoryPage() {
             {items.length ? items.map((item) => (
               <tr key={`${item.kind}-${item.id}`}>
                 <td>{item.host}</td>
-                <td>{historyResult(item)}</td>
+                <td className={historyTone(historyResult(item))}>{historyResult(item)}</td>
                 <td>{item.model}</td>
                 <td>{historyApi(item)}</td>
                 <td>{historyClock(item.at)}</td>

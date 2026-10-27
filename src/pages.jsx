@@ -1,5 +1,5 @@
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
-import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
+import { Link, useLocation, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import activityData from "./activity.json";
 import availabilityData from "./availability.json";
 import modelRows from "./model-rows.json";
@@ -31,6 +31,7 @@ import {
 } from "./verd-meta.js";
 import { ModelBoard, ModIcon } from "./model-board.jsx";
 
+import { fitAvatar, readAccounts, readAvatar, readSession, readSubmissions, writeAccounts, writeAvatar, writeSession } from "./account.js";
 import { grant, isDone, readPoints, saveNick } from "./points.js";
 import {
   Logo,
@@ -764,6 +765,24 @@ export function Tester({ extended = false }) {
   );
 }
 
+function stationSite(item) {
+  const url = String(item?.site || "").trim();
+  return /^https?:\/\//i.test(url) ? url : "";
+}
+
+function StationJump({ item }) {
+  const href = stationSite(item);
+  if (!href) return <div className="site-name">{item.name}</div>;
+  return (
+    <a className="rank-jump" href={href} target="_blank" rel="noreferrer" onClick={(event) => event.stopPropagation()}>
+      <span>{item.name}</span>
+      <svg className="st-arrow" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <path d="M7 17 17 7M8 7h9v9" />
+      </svg>
+    </a>
+  );
+}
+
 function RankTable({ rows, mode }) {
   const navigate = useNavigate();
   const [favs, setFavs] = useState(readFavs);
@@ -812,21 +831,12 @@ function RankTable({ rows, mode }) {
         <tbody>
           {rows.map((item) => (
             <tr key={item.slug} className="click" onClick={() => navigate(stationPath(item))}>
-              <td>{list ? <StarButton on={Boolean(favs[item.slug])} onToggle={() => setFavs(toggleFav(item.slug))} /> : "☆"}</td>
+              <td><StarButton on={Boolean(favs[item.slug])} onToggle={() => setFavs(toggleFav(item.slug))} /></td>
               <td>
                 <div className={list ? "slb-st" : "site-cell"}>
                   <Logo station={item} />
                   <div className={list ? "slb-stn" : ""}>
-                    {list ? (
-                      <Link className="st-out" to={stationPath(item)} onClick={(event) => event.stopPropagation()}>
-                        <div className="slb-nm">{item.name}</div>
-                        <svg className="st-arrow" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                          <path d="M7 17L17 7M8 7h9v9" />
-                        </svg>
-                      </Link>
-                    ) : (
-                      <div className="site-name">{item.name}</div>
-                    )}
+                    <StationJump item={item} />
                     {mode === "home" ? (
                       <div className="site-meta">
                         {item.listed ? <>收录于 {item.listed}</> : null}
@@ -1020,10 +1030,12 @@ const HOME_CAT_ROWS = [
     label: "类型",
     items: [
       ["all", "全部", "#65A30D"],
-      ["charity", "公益", "#1f9d57"],
+      ["charity", "公益站", "#1f9d57"],
       ["stable", "企业", "#3b82f6"],
       ["owner", "站长在用", "#8b5cf6"],
       ["gift", "赠额", "#e39b12"],
+      ["new", "新站上榜", "#2563eb"],
+      ["online", "当前在线", "#16a34a"],
     ],
   },
   {
@@ -1032,14 +1044,15 @@ const HOME_CAT_ROWS = [
       ["cheaprate", "低倍率", "#8b919a"],
       ["fast", "低延迟", "#f0a202"],
       ["invoice", "发票", "#0f9f90"],
-      ["pay", "国内支付", "#1f9d57"],
       ["highup", "高可用", "#14b8a6"],
+      ["pay", "国内支付", "#1f9d57"],
     ],
   },
 ];
 
 function homeCatHit(station, id) {
   if (id === "all") return true;
+  if (id === "online") return station.online === true;
   const cats = station.categories || [];
   if (id === "owner") return Boolean(station.ownerPick) || cats.includes("owner");
   return cats.includes(id);
@@ -1051,19 +1064,22 @@ const HOME_CAT_COUNTS = {
   stable: 0,
   owner: 0,
   gift: 0,
+  new: 0,
+  online: 0,
   cheaprate: 0,
   fast: 0,
   invoice: 0,
-  pay: 0,
   highup: 0,
+  pay: 0,
 };
 for (const station of stations) {
   const cats = new Set(station.categories || []);
   for (const id of Object.keys(HOME_CAT_COUNTS)) {
-    if (id === "all" || id === "owner") continue;
+    if (id === "all" || id === "owner" || id === "online") continue;
     if (cats.has(id)) HOME_CAT_COUNTS[id] += 1;
   }
   if (station.ownerPick || cats.has("owner")) HOME_CAT_COUNTS.owner += 1;
+  if (station.online === true) HOME_CAT_COUNTS.online += 1;
 }
 
 function CatGlyph({ id }) {
@@ -1102,6 +1118,23 @@ function CatGlyph({ id }) {
       <>
         <rect x="4.5" y="4.5" width="15" height="15" rx="3.5" />
         <path className="f" d="m12 7.5 1.05 2.15 2.35.32-1.7 1.62.42 2.35L12 12.8l-2.12 1.14.42-2.35-1.7-1.62 2.35-.32L12 7.5z" />
+      </>
+    );
+  }
+  if (id === "new") {
+    return (
+      <>
+        <circle cx="12" cy="12" r="8.2" />
+        <path d="M12 8.2v7.6M8.2 12h7.6" />
+      </>
+    );
+  }
+  if (id === "online") {
+    return (
+      <>
+        <path d="M5 12a7 7 0 0 1 14 0" />
+        <path d="M8.2 12a3.8 3.8 0 0 1 7.6 0" />
+        <circle className="f" cx="12" cy="16.4" r="1.3" />
       </>
     );
   }
@@ -1163,7 +1196,7 @@ function CatGlyph({ id }) {
 
 function RankCats({ current, onPick }) {
   return (
-    <div className="rank-cats">
+    <div className="rank-cats" id="rank-cats">
       {HOME_CAT_ROWS.map((row) => (
         <div className="rc-line" key={row.label}>
           <span className="rc-lab">{row.label}</span>
@@ -1194,6 +1227,53 @@ function RankCats({ current, onPick }) {
   );
 }
 
+const STAR_D = "M0-12C1.15-3.2 3.2-1.15 12 0 3.2 1.15 1.15 3.2 0 12-1.15 3.2-3.2 1.15-12 0-3.2-1.15-1.15-3.2 0-12Z";
+const CORE_D = "M0-4.2C.45-1.15 1.15-.45 4.2 0 1.15.45.45 1.15 0 4.2-.45 1.15-1.15.45-4.2 0-1.15-.45-.45-1.15 0-4.2Z";
+
+// Centers are relative to the title block. Negative left sits in the left gutter.
+const HERO_STARS = [
+  ["-40px", "18px", 22, 0.9],
+  ["-120px", "-48px", 12, 0.46, "star-far"],
+  ["-86px", "86px", 8, 0.34, "star-far"],
+  ["-200px", "-8px", 14, 0.42, "star-far"],
+  ["-260px", "48px", 9, 0.3, "star-far"],
+  ["-168px", "-78px", 10, 0.32, "star-far"],
+  ["-156px", "138px", 11, 0.38, "star-far"],
+  ["-64px", "176px", 15, 0.48],
+  ["-230px", "188px", 17, 0.44, "star-far"],
+  ["-24px", "220px", 7, 0.28],
+  ["-128px", "236px", 8, 0.26, "star-far"],
+  ["-300px", "16px", 7, 0.24, "star-far"],
+  ["-320px", "112px", 6, 0.22, "star-far"],
+  ["14%", "-84px", 9, 0.38],
+  ["32%", "-86px", 15, 0.46],
+  ["56%", "-74px", 7, 0.28],
+  ["76%", "-80px", 12, 0.38],
+  ["46%", "-40px", 5, 0.22],
+  ["8%", "-28px", 5, 0.22],
+  ["470px", "-18px", 12, 0.4, "star-wide"],
+  ["560px", "-62px", 8, 0.3, "star-wide"],
+  ["650px", "24px", 6, 0.24, "star-wide"],
+  ["530px", "112px", 11, 0.34, "star-wide"],
+  ["660px", "164px", 14, 0.38, "star-wide"],
+  ["590px", "214px", 7, 0.24, "star-wide"],
+  ["500px", "148px", 10, 0.32, "star-wide"],
+  ["430px", "210px", 8, 0.28, "star-wide"],
+];
+
+function HeroStars() {
+  return (
+    <div className="hero-stars" aria-hidden="true">
+      {HERO_STARS.map(([left, top, size, opacity, kind]) => (
+        <svg key={`${left}-${top}`} className={kind || undefined} viewBox="-16 -16 32 32" style={{ left, top, width: size, height: size, opacity }}>
+          <path d={STAR_D} />
+          <path className="core" d={CORE_D} />
+        </svg>
+      ))}
+    </div>
+  );
+}
+
 export function HomePage() {
   useTitle("");
   const [page, setPage] = useState(1);
@@ -1216,21 +1296,54 @@ export function HomePage() {
     <div className="wrap">
       <header className="hero">
         <div className="hero-top">
-          <div>
+          <div className="hero-copy">
+            <HeroStars />
             <h1>
               发现<span className="g">好用</span>的 AI 中转站
             </h1>
-            <Link to="/list" className="hero-cta">
-              <i />
-              <span>
+            <div className="hero-actions">
+              <Link to="/list" className="hero-cta">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+                  <path d="M5 7h14M5 12h14M5 17h14" />
+                </svg>
                 查看站点排行
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
                   <path d="M5 12h14M13 6l6 6-6 6" />
                 </svg>
+              </Link>
+              <Link to="/check" className="hero-cta hero-cta-line">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
+                  <path d="M12 3.2 13.4 8.4 18.8 10 13.4 11.6 12 16.8 10.6 11.6 5.2 10 10.6 8.4 12 3.2Z" />
+                </svg>
+                开始检测
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+                  <path d="M5 12h14M13 6l6 6-6 6" />
+                </svg>
+              </Link>
+            </div>
+            <div className="hero-notes">
+              <a href="#rank-cats">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
+                  <path d="M4 7h16M4 12h16M4 17h16" />
+                  <circle cx="9" cy="7" r="1.7" fill="currentColor" stroke="none" />
+                  <circle cx="15" cy="12" r="1.7" fill="currentColor" stroke="none" />
+                  <circle cx="8" cy="17" r="1.7" fill="currentColor" stroke="none" />
+                </svg>
+                按分类看
+              </a>
+              <span>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
+                  <circle cx="8" cy="15" r="3.2" />
+                  <path d="M10.8 12.4 19 5.2M15.4 7.4l2.4 2.4M13.4 9.4l2 2" />
+                </svg>
+                Key 留在浏览器
               </span>
-            </Link>
-            <div className="hero-tag">
-              <b>///</b>逐项实测,公开可复现
+              <Link to="/reputation">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
+                  <path d="M6 19V11M12 19V6M18 19v-6" />
+                </svg>
+                投票可对照
+              </Link>
             </div>
           </div>
           <RecommendCard />
@@ -1294,7 +1407,7 @@ export function HomePage() {
 
       <section className="section">
         <div className="section-hd">
-          <h2>口碑精选</h2>
+          <h2>投票精选</h2>
           <Link className="more" to="/reputation">查看更多 ›</Link>
         </div>
         <div className="review-grid">
@@ -1306,10 +1419,10 @@ export function HomePage() {
 
       <section className="section">
         <div className="section-hd">
-          <h2>福利活动</h2>
+          <h2>福利羊毛</h2>
           <Link className="more" to="/activity">查看更多 ›</Link>
         </div>
-        <div className="perk-grid">
+        <SlideRow className="perk-grid">
           {perks.map((item) => (
             <article key={item.name} className="perk">
               <span className={`kind ${item.kind === "中转站福利" ? "warn" : ""}`}>{item.kind}</span>
@@ -1324,7 +1437,7 @@ export function HomePage() {
               <a className="go-line" href={item.href} target="_blank" rel="noreferrer">立即前往</a>
             </article>
           ))}
-        </div>
+        </SlideRow>
       </section>
       <SponsorStrip items={homeSponsors} />
     </div>
@@ -1334,6 +1447,47 @@ export function HomePage() {
 
 const CAT_FILTERS = [["all", "全部"], ...CATS, ["fav", "我的收藏"]];
 const MODEL_FILTERS = [["all", "全部"], ...VERD_MODELS];
+
+function SlideRow({ className, children }) {
+  const ref = useRef(null);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return undefined;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return undefined;
+    let frame = 0;
+    let paused = false;
+    let last = 0;
+    const tick = (now) => {
+      frame = window.requestAnimationFrame(tick);
+      if (paused || document.hidden) {
+        last = now;
+        return;
+      }
+      if (el.scrollWidth <= el.clientWidth + 1) return;
+      const half = el.scrollWidth / 2;
+      const step = last ? Math.min(48, now - last) : 16;
+      last = now;
+      el.scrollLeft += step * 0.045;
+      if (el.scrollLeft >= half) el.scrollLeft -= half;
+    };
+    const pause = () => { paused = true; };
+    const play = () => { paused = false; last = 0; };
+    el.addEventListener("pointerenter", pause);
+    el.addEventListener("pointerleave", play);
+    frame = window.requestAnimationFrame(tick);
+    return () => {
+      window.cancelAnimationFrame(frame);
+      el.removeEventListener("pointerenter", pause);
+      el.removeEventListener("pointerleave", play);
+    };
+  }, []);
+  return (
+    <div ref={ref} className={className}>
+      <div className="slide-set">{children}</div>
+      <div className="slide-set" aria-hidden="true">{children}</div>
+    </div>
+  );
+}
 
 function Pager({ page, pages, onPage }) {
   if (pages <= 1) return null;
@@ -1366,7 +1520,7 @@ export function ListPage({ modelId = "" }) {
   const catMeta = CAT_SEO[cat];
   const modelMeta = MODEL_SEO[model];
   const heading = modelMeta?.h1 || catMeta?.h1 || "AI 中转站排行榜";
-  useTitle(heading);
+  useTitle(modelMeta?.title || catMeta?.title || "AI 中转站排行榜｜在线率、延迟、最低充值、支付和发票");
   const [q, setQ] = useState("");
   const [pay, setPay] = useState("all");
   const [min, setMin] = useState("all");
@@ -1426,7 +1580,7 @@ export function ListPage({ modelId = "" }) {
 
   return (
     <div className="wrap">
-      <div className="page-hd">
+      <div className={cat === "charity" ? "page-hd charity-hd" : "page-hd"}>
         <div>
           <h1>{heading}</h1>
           <p className="sub">
@@ -1437,16 +1591,18 @@ export function ListPage({ modelId = "" }) {
         <Link to="/apply" className="outline">申请收录</Link>
       </div>
       {cat === "charity" ? (
-        <section className="section">
+        <section className="charity-notes">
           {CHARITY_SECTIONS.map((section) => (
-            <article key={section.h} className="card" style={{ marginBottom: 12 }}>
+            <article key={section.h}>
               <h2>{section.h}</h2>
-              <p className="sub">{section.p}</p>
+              <p>{section.p}</p>
             </article>
           ))}
-          {CHARITY_FAQ.map((item) => (
-            <p key={item[0]} className="sub"><b>{item[0]}</b> {item[1]}</p>
-          ))}
+          <div className="charity-faq">
+            {CHARITY_FAQ.map((item) => (
+              <p key={item[0]}><b>{item[0]}</b> {item[1]}</p>
+            ))}
+          </div>
         </section>
       ) : null}
       <SponsorStrip items={listSponsors} columns="four" />
@@ -1812,7 +1968,7 @@ export function StationPage() {
   const routeParams = useParams();
   const slug = routeParams.slug || routeParams.token || "";
   const station = findStation(slug);
-  useTitle(station ? `${station.name} 测评` : "站点");
+  useTitle(station ? `${station.name} 中转站详情与测评｜纯度、在线率、延迟、价格和评价` : "没有找到这个中转站｜回到排行榜按名称搜索");
   const [part, setPart] = useState("score");
   const [modelOpen, setModelOpen] = useState(false);
   const [summaryOpen, setSummaryOpen] = useState(true);
@@ -2626,7 +2782,7 @@ function ReviewDialog({ onClose, onSaved, initialSlug = "" }) {
 }
 
 export function ReputationPage() {
-  useTitle("投票");
+  useTitle("中转站投票排行｜赞成、反对与净票");
   const [q, setQ] = useState("");
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState("net");
@@ -2677,7 +2833,14 @@ export function ReputationPage() {
       localStorage.setItem(VOTE_KEY, JSON.stringify(next));
       return next;
     });
-    setNote(votes[slug] === side ? "已取消" : side === "up" ? "已投赞成" : "已投反对");
+    const cancelling = votes[slug] === side;
+    if (cancelling) {
+      setNote("已取消");
+      return;
+    }
+    const result = grant("like", 2, "投票", "day");
+    const base = side === "up" ? "已投赞成" : "已投反对";
+    setNote(result.added ? `${base}，+${result.added}` : base);
   };
   const remark = (slug, key, label) => {
     const id = `${slug}|${key}|${label}`;
@@ -2804,6 +2967,30 @@ function contextRank(text) {
   return value;
 }
 
+const ACT_MODS = {
+  文本: { className: "t", path: "M4 7V5h16v2M12 5v14M9 19h6" },
+  图像: { className: "g", path: "M3 5h18v14H3zM8.5 10.2a1.4 1.4 0 1 0 0-2.8 1.4 1.4 0 0 0 0 2.8M21 16l-5-5-8 8" },
+  视频: { className: "v", path: "M4 6h11v12H4zM15 10l5-3v10l-5-3z" },
+  pdf: { className: "f", path: "M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8zM14 3v5h5" },
+  推理: { className: "r", path: "M9 18h6M10 21h4M8.2 14.2A5 5 0 1 1 15.8 14L14 16H10z" },
+  代码: { className: "c", path: "M8 8 4 12l4 4M16 8l4 4-4 4" },
+};
+
+function ActMod({ name }) {
+  const mod = ACT_MODS[name];
+  if (!mod) return <span>{name}</span>;
+  return (
+    <span className="ract-w">
+      <em className={mod.className} aria-label={name}>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d={mod.path} />
+        </svg>
+      </em>
+      <span className="ract-tip">{name}</span>
+    </span>
+  );
+}
+
 function untilLabel(item) {
   if (item.dead) return "已失效";
   if (!item.endsAt) return "长期";
@@ -2811,7 +2998,7 @@ function untilLabel(item) {
 }
 
 export function ActivityPage() {
-  useTitle("福利活动");
+  useTitle("福利羊毛｜中转站优惠活动和官方免费 API");
   const free = activityData.free;
   const promos = activityData.promos;
   const providers = useMemo(() => [...new Set(free.map((item) => item.provider))], [free]);
@@ -2823,6 +3010,7 @@ export function ActivityPage() {
   const [gate, setGate] = useState("all");
   const [mode, setMode] = useState("all");
   const [sort, setSort] = useState("context");
+  const [menu, setMenu] = useState("");
   const query = q.trim().toLowerCase();
   const freeList = free.filter((item) => {
     const blob = `${item.model} ${item.provider}`.toLowerCase();
@@ -2850,13 +3038,13 @@ export function ActivityPage() {
     <div className="wrap" style={{ paddingBottom: 40 }}>
       <div className="page-hd">
         <div>
-          <h1>福利活动</h1>
+          <h1>福利羊毛</h1>
           <p className="sub">中转站限时福利，加上各家官方免费 API 资源，汇总一处。人工核实，失效即下。</p>
         </div>
       </div>
-      <div className="tabs">
-        <button className={tab === "free" ? "on" : ""} type="button" onClick={() => setTab("free")}>免费 API {free.length}</button>
-        <button className={tab === "perk" ? "on" : ""} type="button" onClick={() => setTab("perk")}>优惠活动 {promos.length}</button>
+      <div className="act-tabs">
+        <button className={tab === "free" ? "on" : ""} type="button" onClick={() => { setTab("free"); setMenu(""); }}>免费 API <em>{free.length}</em></button>
+        <button className={tab === "perk" ? "on" : ""} type="button" onClick={() => { setTab("perk"); setMenu(""); }}>优惠活动 <em>{promos.length}</em></button>
       </div>
       <div className="filters">
         <label className="filter-search">
@@ -2865,31 +3053,11 @@ export function ActivityPage() {
         </label>
         {tab === "free" ? (
           <>
-            <select value={provider} onChange={(event) => setProvider(event.target.value)}>
-              <option value="all">服务 全部</option>
-              {providers.map((name) => <option key={name} value={name}>{name}</option>)}
-            </select>
-            <select value={status} onChange={(event) => setStatus(event.target.value)}>
-              <option value="all">状态 全部</option>
-              <option value="live">状态 有效</option>
-              <option value="dead">状态 已失效</option>
-            </select>
-            <select value={gate} onChange={(event) => setGate(event.target.value)}>
-              <option value="all">门槛 全部</option>
-              <option value="card-free">门槛 免绑卡</option>
-              <option value="card">门槛 需绑卡</option>
-              <option value="oversea">门槛 需海外网络</option>
-              <option value="cn">门槛 国内直连</option>
-            </select>
-            <select value={mode} onChange={(event) => setMode(event.target.value)}>
-              <option value="all">模态 全部</option>
-              {modes.map((name) => <option key={name} value={name}>{name}</option>)}
-            </select>
-            <select value={sort} onChange={(event) => setSort(event.target.value)}>
-              <option value="context">排序 语境最大</option>
-              <option value="context-asc">排序 语境最小</option>
-              <option value="name">排序 名称</option>
-            </select>
+            <FilterPill label="服务" options={[["all", "全部"], ...providers.map((name) => [name, name])]} current={provider} open={menu} onOpen={setMenu} onPick={setProvider} />
+            <FilterPill label="状态" options={[["all", "全部"], ["live", "有效"], ["dead", "已失效"]]} current={status} open={menu} onOpen={setMenu} onPick={setStatus} />
+            <FilterPill label="门槛" options={[["all", "全部"], ["card-free", "免绑卡"], ["card", "需绑卡"], ["oversea", "需海外网络"], ["cn", "国内直连"]]} current={gate} open={menu} onOpen={setMenu} onPick={setGate} />
+            <FilterPill label="模态" options={[["all", "全部"], ...modes.map((name) => [name, name])]} current={mode} open={menu} onOpen={setMenu} onPick={setMode} />
+            <FilterPill label="排序" options={[["context", "语境最大"], ["context-asc", "语境最小"], ["name", "名称"]]} current={sort} open={menu} onOpen={setMenu} onPick={setSort} />
           </>
         ) : null}
       </div>
@@ -2917,7 +3085,7 @@ export function ActivityPage() {
             </div>
             <div className="act-foot">
               <span className="mini">{item.quota}</span>
-              <div className="modes">{(item.modality || []).map((name) => <span key={name}>{name}</span>)}</div>
+              <div className="modes">{(item.modality || []).map((name) => <ActMod key={name} name={name} />)}</div>
               <span className="mini">截止 {untilLabel(item)}</span>
             </div>
           </article>
@@ -2970,7 +3138,7 @@ function Chevron({ up }) {
 }
 
 export function AvailabilityPage() {
-  useTitle("全站可用性");
+  useTitle("全站可用性监测｜Codex、Claude、Gemini 分组在线状态");
   const [params, setParams] = useSearchParams();
   const period = params.get("p") === "7d" || params.get("p") === "30d" ? params.get("p") : "24h";
   const board = availabilityData[period];
@@ -3171,7 +3339,7 @@ function cleanHref(url) {
 }
 
 export function ModelListPage() {
-  useTitle("AI模型中转站排行榜");
+  useTitle("AI 模型中转站排行｜价格、上下文和智商");
   const [family, setFamily] = useState("全部");
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState("hot");
@@ -3202,7 +3370,7 @@ export function ModelListPage() {
       <div className="page-hd">
         <div>
           <h1>AI模型中转站排行榜</h1>
-          <p className="sub">对比主流 AI 模型中转服务价格、稳定性和响应速度。查看 GPT、Claude、Gemini、DeepSeek 等模型的官方价格与中转站实测表现。</p>
+          <p className="sub">对照主流模型的最低中转价、上下文、提供站点数和智商分。价格来自各站公开分组，会变动；智商分来自同步的公开评测，不代表官方渠道。</p>
         </div>
       </div>
       <div className="model-tools">
@@ -3277,7 +3445,7 @@ export function ModelPage() {
 }
 
 export function HelpPage() {
-  useTitle("评测方法");
+  useTitle("评测方法｜纯度分档、在线率、延迟和综合分说明");
   return (
     <div className="wrap help">
       <aside className="side">
@@ -3317,7 +3485,7 @@ export function HelpPage() {
 }
 
 export function AboutPage() {
-  useTitle("商务合作");
+  useTitle("商务合作｜广告投放、站点收录与内容引用");
   const [copied, setCopied] = useState("");
   return (
     <div className="wrap" style={{ paddingBottom: 48 }}>
@@ -3369,8 +3537,8 @@ export function AboutPage() {
   );
 }
 
-function Article({ title, children }) {
-  useTitle(title);
+function Article({ title, seoTitle, children }) {
+  useTitle(seoTitle || title);
   return (
     <div className="wrap help">
       <aside className="side">
@@ -3389,7 +3557,7 @@ function Article({ title, children }) {
 
 export function DisclaimerPage() {
   return (
-    <Article title="免责声明">
+    <Article title="免责声明" seoTitle="免责声明｜检测数据仅供参考，不构成充值建议">
       <p>最后更新：2026 年 7 月 3 日</p>
       <p>维渡 AI（下称「本站」）是一个独立的第三方 AI 中转站测评平台。为帮助你理解本站信息的性质与边界，请阅读以下声明。</p>
       <h2>一、检测结果仅供参考</h2>
@@ -3408,7 +3576,7 @@ export function DisclaimerPage() {
 
 export function PrivacyPage() {
   return (
-    <Article title="隐私政策">
+    <Article title="隐私政策" seoTitle="隐私政策｜Cookie、检测 Key 和评价内容如何留存">
       <p>本站只使用维持登录和语言偏好所必需的 cookie，以及匿名的访问量统计，不用于广告追踪。</p>
       <p>你在检测框里填写的 API Key 留在浏览器里，这份本地复刻不会把它发往任何服务器。</p>
       <p>公开评价和商务联系方式由用户主动提交。不要在评价里写下密钥或订单号。</p>
@@ -3418,7 +3586,7 @@ export function PrivacyPage() {
 
 export function TermsPage() {
   return (
-    <Article title="服务条款">
+    <Article title="服务条款" seoTitle="服务条款｜榜单边界、充值退款和禁止行为">
       <p>使用本站即表示你理解榜单是第三方实测的展示，不是购买建议。你和中转站之间的充值、退款、发票，以该站自己的规则为准。</p>
       <p>禁止利用本站页面批量撞库、盗用他人密钥，或把探测结果包装成官方担保。</p>
     </Article>
@@ -3426,28 +3594,37 @@ export function TermsPage() {
 }
 
 const DAILY = [
-  ["checkin", "每日签到", "UTC+8 每天可签到一次，每次随机获得 3~5 分", "3~5", "去签到"],
-  ["detect", "每日检测", "在首页发起一次基础测试，看协议、流式、工具和用量，每天首次得分", "3", "去检测"],
-  ["like", "点赞优质评价", "给一条对你有用的评价点赞，帮好评价浮上来，每天首次得分", "2", "去点赞"],
+  ["checkin", "每日签到", "UTC+8 每天可签到一次", "3~5", "去完成"],
+  ["detect", "每日检测", "在首页发起一次基础测试", "3", "去完成"],
 ];
 const ADVANCED = [
-  ["review", "发表点评", "对用过的中转站写真实点评，每天首条点评得分", "8", "去评价"],
-  ["fix", "反馈纠错", "指出站点价格/模型/信息有误，每天首条提交得分", "5", "去纠错"],
-  ["invite", "邀请好友", "分享你的专属邀请链接，好友注册成功后双方得分", "20", "去邀请"],
+  ["like", "投票", "在投票页给一家中转站投赞成或反对", "2", "去完成"],
+  ["review", "发表点评", "对用过的中转站写一条真实点评", "8", "去完成"],
+  ["invite", "邀请好友", "复制邀请链接。注册后的积分还没接上", "20", "去完成"],
 ];
 const BASIC = [
-  ["community", "加入官方社群", "加入官方 Telegram / 微信群，第一手掌握跑路预警与新站动态", "5", "敬请期待"],
-  ["profile", "完善资料", "设置头像和昵称，让你的点评更有辨识度", "5", "去完善"],
-  ["first-detect", "完成首次检测", "第一次从首页跑基础测试", "5", "去检测"],
-  ["favorite", "首次收藏", "收藏第一个中转站，方便随时回看对比", "3", "去收藏"],
+  ["community", "加入官方社群", "加入官方 Telegram / 微信群", "5", "敬请期待"],
+  ["profile", "完善资料", "设置头像和昵称", "5", "去完成"],
+  ["first-detect", "完成首次检测", "第一次从首页跑基础测试", "5", "去完成"],
+  ["favorite", "首次收藏", "收藏第一个中转站", "3", "去完成"],
+];
+const TRACKED = [
+  ["checkin", "day"],
+  ["detect", "day"],
+  ["like", "day"],
+  ["review", "day"],
+  ["profile", "once"],
+  ["first-detect", "once"],
+  ["favorite", "once"],
 ];
 
 function Coin({ children }) {
   return (
     <span className="pt-pts">
       <span className="pt-gem" aria-hidden="true">
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor">
-          <path d="M8 4.5h8l3.6 4.6L12 20.5 4.4 9.1z" opacity=".96" />
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round">
+          <circle cx="12" cy="12" r="8" />
+          <path d="M12 8v8M9.6 9.6c.5-.8 1.3-1.2 2.4-1.2 1.3 0 2.2.6 2.2 1.6S13.2 11.6 12 11.6 9.8 12.2 9.8 13.4 11 15.2 12.4 15.2c1 0 1.8-.4 2.3-1.1" />
         </svg>
       </span>
       {children}
@@ -3455,18 +3632,184 @@ function Coin({ children }) {
   );
 }
 
+function TaskIcon({ id }) {
+  const props = {
+    width: 20,
+    height: 20,
+    viewBox: "0 0 24 24",
+    fill: "none",
+    stroke: "currentColor",
+    strokeWidth: "1.8",
+    strokeLinecap: "round",
+    strokeLinejoin: "round",
+    "aria-hidden": "true",
+  };
+  if (id === "checkin") {
+    return (
+      <svg {...props}>
+        <rect x="4" y="5" width="16" height="15" rx="2" />
+        <path d="M8 3.5v3M16 3.5v3M4 10h16" />
+      </svg>
+    );
+  }
+  if (id === "detect" || id === "first-detect") {
+    return (
+      <svg {...props}>
+        <rect x="3" y="4" width="18" height="12" rx="2" />
+        <path d="M8 20h8M12 16v4" />
+      </svg>
+    );
+  }
+  if (id === "like") {
+    return (
+      <svg {...props}>
+        <path d="M8 11.2V19h7.6a1.8 1.8 0 0 0 1.8-1.5l.9-3.8a1.8 1.8 0 0 0-1.8-2.2H13l.5-2.4a1.7 1.7 0 0 0-3.2-1L8 11.2z" />
+        <path d="M8 11.2H5.6a1 1 0 0 0-1 1V18a1 1 0 0 0 1 1H8" />
+      </svg>
+    );
+  }
+  if (id === "review") {
+    return (
+      <svg {...props}>
+        <path d="M5 6.5h14v8.5H8.5L5 18z" />
+      </svg>
+    );
+  }
+  if (id === "invite") {
+    return (
+      <svg {...props}>
+        <path d="M10 13a5 5 0 0 0 7.1.4l2-2a5 5 0 0 0-7.1-7.1l-1.1 1.1" />
+        <path d="M14 11a5 5 0 0 0-7.1-.4l-2 2a5 5 0 0 0 7.1 7.1l1.1-1.1" />
+      </svg>
+    );
+  }
+  if (id === "community") {
+    return (
+      <svg {...props}>
+        <circle cx="12" cy="8" r="3" />
+        <path d="M5.5 19.2c.8-3 3.2-4.7 6.5-4.7s5.7 1.7 6.5 4.7" />
+      </svg>
+    );
+  }
+  if (id === "favorite") {
+    return (
+      <svg {...props}>
+        <path d="M7 4.5h10a1 1 0 0 1 1 1V20l-6-3.2L6 20V5.5a1 1 0 0 1 1-1z" />
+      </svg>
+    );
+  }
+  return (
+    <svg {...props}>
+      <path d="M7 3.5h7l4 4V20a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V4.5a1 1 0 0 1 1-1z" />
+      <path d="M14 3.5V8h4.5M8 13h8M8 17h5" />
+    </svg>
+  );
+}
+
+function faceLetter(name) {
+  const text = String(name || "").trim();
+  if (!text) return "?";
+  const ch = [...text][0];
+  return /[a-z]/i.test(ch) ? ch.toUpperCase() : ch;
+}
+
+function AvatarField({ name, value, onChange, onError }) {
+  const inputRef = useRef(null);
+  return (
+    <div className="av-field">
+      <span className="k">头像</span>
+      <button type="button" className="av-pick" aria-label="更换头像" onClick={() => inputRef.current?.click()}>
+        <span className="av-face">
+          {value ? <img src={value} alt="" /> : faceLetter(name)}
+        </span>
+        <span className="av-cam" aria-hidden="true">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M4 8.5h3l1.5-2h7L17 8.5h3v9.5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1z" />
+            <circle cx="12" cy="13.2" r="3.2" />
+          </svg>
+        </span>
+      </button>
+      <input
+        ref={inputRef}
+        className="av-file"
+        type="file"
+        accept="image/png,image/jpeg,image/webp,image/gif"
+        onChange={(event) => {
+          const file = event.target.files?.[0];
+          event.target.value = "";
+          if (!file) return;
+          fitAvatar(file).then(onChange).catch((error) => onError(error.message || "这张图片打不开"));
+        }}
+      />
+      {value ? <button type="button" className="av-clear" onClick={() => onChange("")}>去掉头像</button> : null}
+    </div>
+  );
+}
+
+function inviteCode(name) {
+  const saved = localStorage.getItem("okk-invite-code");
+  if (saved && /^[A-Z0-9]{6}$/.test(saved)) return saved;
+  const seed = [...String(name || "VD")].map((ch) => ch.codePointAt(0).toString(36)).join("").toUpperCase().replace(/[^A-Z0-9]/g, "");
+  const extra = Math.random().toString(36).slice(2, 8).toUpperCase().replace(/[^A-Z0-9]/g, "");
+  const code = `${seed}${extra}`.slice(0, 6).padEnd(6, "X");
+  localStorage.setItem("okk-invite-code", code);
+  return code;
+}
+
+function InviteDialog({ name, copied, onCopy, onClose }) {
+  const code = inviteCode(name);
+  const link = `${window.location.origin}/?invite=${code}`;
+  return (
+    <div className="invite-mask" onClick={onClose}>
+      <div className="invite-box" role="dialog" aria-labelledby="invite-title" onClick={(event) => event.stopPropagation()}>
+        <button className="invite-x" type="button" aria-label="关闭" onClick={onClose}>×</button>
+        <div className="invite-hero" aria-hidden="true">
+          <svg width="78" height="64" viewBox="0 0 78 64" fill="none">
+            <path d="M18 28h42v22a4 4 0 0 1-4 4H22a4 4 0 0 1-4-4V28z" fill="#65A30D" />
+            <path d="M16 20h46v10H16z" fill="#4d7c0f" />
+            <path d="M36 20h6v34h-6z" fill="#f7fee7" />
+            <path d="M28 20c0-6 4-10 11-10s11 4 11 10" stroke="#d97706" strokeWidth="3" />
+            <circle cx="16" cy="18" r="7" fill="#f59e0b" />
+            <circle cx="62" cy="16" r="6" fill="#fbbf24" />
+          </svg>
+        </div>
+        <h2 id="invite-title">邀请好友</h2>
+        <p className="invite-lead">分享你的邀请链接。好友用这个链接打开本站即可。注册后的积分还没接上，现在复制不会加分。</p>
+        <div className="invite-k">邀请码</div>
+        <div className="invite-code">
+          <b>{code}</b>
+          <button type="button" aria-label="复制邀请码" onClick={() => onCopy(code, "code")}>{copied === "code" ? "已复制" : "复制"}</button>
+        </div>
+        <div className="invite-k">邀请链接</div>
+        <div className="invite-link">
+          <input readOnly value={link} />
+          <button type="button" onClick={() => onCopy(link, "link")}>{copied === "link" ? "已复制" : "复制"}</button>
+        </div>
+        <div className="invite-k">邀请历史</div>
+        <div className="invite-stats">
+          <div><b>0</b><span>已邀请(人)</span></div>
+          <div><b>0</b><span>累计积分</span></div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function PointsPage() {
-  useTitle("赚积分");
+  useTitle("赚积分｜签到、检测、投票和点评记在这台浏览器");
   const navigate = useNavigate();
+  const location = useLocation();
   const [state, setState] = useState(() => readPoints());
   const [tab, setTab] = useState("tasks");
   const [redeem, setRedeem] = useState("open");
   const [ledgerTab, setLedgerTab] = useState("flow");
   const [name, setName] = useState(() => localStorage.getItem("okk-user") || "");
   const [nickDraft, setNickDraft] = useState("");
+  const [avatarDraft, setAvatarDraft] = useState("");
   const [editing, setEditing] = useState(false);
   const [note, setNote] = useState("");
-  const [spin, setSpin] = useState(false);
+  const [inviteOpen, setInviteOpen] = useState(false);
+  const [copied, setCopied] = useState("");
 
   useEffect(() => {
     const sync = () => {
@@ -3481,7 +3824,28 @@ export function PointsPage() {
     };
   }, []);
 
-  const display = state.nick || name || "访客";
+  useEffect(() => {
+    if (location.hash === "#invite") setInviteOpen(true);
+  }, [location.hash]);
+
+  useEffect(() => {
+    if (!inviteOpen) return undefined;
+    const onKey = (event) => {
+      if (event.key === "Escape") setInviteOpen(false);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [inviteOpen]);
+
+  useEffect(() => {
+    if (!editing) return undefined;
+    const node = document.getElementById("profile");
+    node?.scrollIntoView({ block: "center" });
+    node?.querySelector("input")?.focus();
+    return undefined;
+  }, [editing]);
+
+  const doneCount = TRACKED.filter(([id, scope]) => isDone(id, scope)).length;
 
   function go(id) {
     if (id === "checkin") {
@@ -3495,27 +3859,29 @@ export function PointsPage() {
       return;
     }
     if (id === "like" || id === "review") {
-      if (id === "like") grant("like", 2, "点赞优质评价", "day");
       navigate("/reputation");
       return;
     }
-    if (id === "fix") {
-      navigate("/submit");
-      return;
-    }
     if (id === "invite") {
-      const link = `${location.origin}/?invite=${name || "guest"}`;
-      navigator.clipboard?.writeText(link);
-      setNote(`邀请链接已复制：${link}`);
+      setCopied("");
+      setInviteOpen(true);
       return;
     }
     if (id === "profile") {
       if (!name) {
+        setNote("先登录，再设置头像和昵称");
         window.dispatchEvent(new Event("okk-open-auth"));
         return;
       }
+      if (editing) {
+        setEditing(false);
+        return;
+      }
       setNickDraft(state.nick || name);
+      setAvatarDraft(readAvatar());
       setEditing(true);
+      setNote("");
+      return;
     }
     if (id === "favorite") {
       grant("favorite", 3, "首次收藏", "once");
@@ -3527,19 +3893,71 @@ export function PointsPage() {
     return (
       <div className="pgrid">
         {items.map(([id, title, desc, pts, action]) => {
-          const daily = id === "checkin" || id === "detect" || id === "like" || id === "review" || id === "fix";
+          const daily = id === "checkin" || id === "detect" || id === "like" || id === "review";
           const finished = id !== "community" && id !== "invite" && id !== "profile" && isDone(id, daily ? "day" : "once");
           const quiet = id === "community" || finished;
+          const open = id === "profile" && editing;
           return (
-            <article key={id} className="ptask">
-              <div className="pt-t">{title}</div>
-              <div className="pt-d">{desc}</div>
-              <div className="pt-foot">
-                <Coin>{pts}</Coin>
-                <button className={`pt-go${quiet ? " done" : ""}`} disabled={quiet} onClick={() => go(id)}>
-                  {id === "community" ? "敬请期待" : finished ? "已完成" : action}
-                </button>
+            <article key={id} id={id === "invite" || id === "profile" ? id : undefined} className={open ? "ptask open" : "ptask"}>
+              <div className={quiet ? "pt-row" : "pt-row live"} onClick={() => { if (!quiet) go(id); }}>
+                <span className="pt-ico"><TaskIcon id={id} /></span>
+                <div className="pt-main">
+                  <div className="pt-t">{title}</div>
+                  <div className="pt-d">{desc}</div>
+                </div>
+                <div className="pt-side">
+                  <Coin>+{pts}</Coin>
+                  <button
+                    className={`pt-go${quiet ? " done" : ""}`}
+                    type="button"
+                    disabled={quiet}
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      if (!quiet) go(id);
+                    }}
+                  >
+                    {id === "community" ? "敬请期待" : finished ? "已完成" : open ? "收起" : action}
+                  </button>
+                </div>
               </div>
+              {open ? (
+                <form
+                  className="pts-edit"
+                  onSubmit={(event) => {
+                    event.preventDefault();
+                    const value = nickDraft.trim();
+                    if (!value) {
+                      setNote("先写一个昵称");
+                      return;
+                    }
+                    saveNick(value);
+                    const session = readSession();
+                    writeAvatar(avatarDraft);
+                    if (session.name) {
+                      writeSession(value, session.email);
+                      if (session.email) {
+                        writeAccounts(readAccounts().map((item) => (item.email === session.email ? { ...item, nick: value, avatar: avatarDraft } : item)));
+                      }
+                    }
+                    const result = grant("profile", 5, "完善资料", "once");
+                    setState(result.state);
+                    setEditing(false);
+                    setNote(result.added ? `资料已保存，+${result.added}` : "资料已保存");
+                    window.dispatchEvent(new Event("okk-auth"));
+                    requestAnimationFrame(() => {
+                      document.querySelector(".pts-note")?.scrollIntoView({ block: "center" });
+                    });
+                  }}
+                >
+                  {note ? <p className="pts-note">{note}</p> : null}
+                  <AvatarField name={nickDraft || name} value={avatarDraft} onChange={setAvatarDraft} onError={setNote} />
+                  <label>
+                    昵称
+                    <input value={nickDraft} onChange={(event) => setNickDraft(event.target.value)} />
+                  </label>
+                  <button className="go" type="submit">保存</button>
+                </form>
+              ) : null}
             </article>
           );
         })}
@@ -3550,25 +3968,24 @@ export function PointsPage() {
   return (
     <div className="pts-root">
       <div className="wrap" style={{ paddingBottom: 80 }}>
-      <section className="pbanner">
-        <div className="pb-l">
-          <span className="pb-av" aria-hidden="true">
-            <svg width="46" height="46" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M12 12.4a4.2 4.2 0 1 0 0-8.4 4.2 4.2 0 0 0 0 8.4zm0 1.8c-4.1 0-7.6 2.1-7.6 5.3v.5h15.2v-.5c0-3.2-3.5-5.3-7.6-5.3z" />
-            </svg>
-          </span>
-          <div>
-            <div className="pb-name">{display}</div>
-            <div className="pb-sub">做任务赚积分，积分可兑换权益</div>
-          </div>
+      <header className="pts-head">
+        <div>
+          <h1>积分中心</h1>
+          <p>做任务赚积分，兑换 API 额度与权益</p>
         </div>
-        <div className="pb-r">
-          <div className="pb-stat">
+        <div className="pts-stats">
+          <div className="pts-stat">
             <div className="k">当前积分</div>
-            <div className="v">{state.balance}</div>
+            <div className="v olive">{state.balance}</div>
           </div>
+          <i className="pts-split" aria-hidden="true" />
+          <div className="pts-stat">
+            <div className="k">今日已完成</div>
+            <div className="v">{doneCount} / {TRACKED.length}</div>
+          </div>
+          <button className="pts-redeem" type="button" onClick={() => { setTab("redeem"); setNote(""); }}>兑换权益</button>
         </div>
-      </section>
+      </header>
 
       <div className="ptabs">
         {[
@@ -3580,57 +3997,24 @@ export function PointsPage() {
             {label}
           </button>
         ))}
-        <div className="prefresh">
-          {tab === "tasks" ? <span>日常任务每日 0 点(UTC+8)重置</span> : null}
-          <button
-            onClick={() => {
-              setState(readPoints());
-              setNote("");
-              setSpin(true);
-              window.setTimeout(() => setSpin(false), 700);
-            }}
-          >
-            <svg className={spin ? "spin" : ""} width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M21 12a9 9 0 1 1-2.6-6.4" />
-              <path d="M21 3v6h-6" />
-            </svg>
-            刷新
-          </button>
-        </div>
       </div>
 
       {note ? <p className="pts-note">{note}</p> : null}
-      {editing ? (
-        <form
-          className="pts-edit"
-          onSubmit={(event) => {
-            event.preventDefault();
-            const next = saveNick(nickDraft);
-            setState(next);
-            grant("profile", 5, "完善资料", "once");
-            setEditing(false);
-          }}
-        >
-          <label>
-            昵称
-            <input value={nickDraft} onChange={(event) => setNickDraft(event.target.value)} />
-          </label>
-          <button className="go" type="submit">保存</button>
-        </form>
-      ) : null}
 
       {tab === "tasks" ? (
         <>
+          <div className="pts-cols">
+            <section className="psec">
+              <div className="psec-h"><div className="psec-t">日常任务</div></div>
+              <TaskGrid items={DAILY} />
+            </section>
+            <section className="psec">
+              <div className="psec-h"><div className="psec-t">进阶任务</div></div>
+              <TaskGrid items={ADVANCED} />
+            </section>
+          </div>
           <section className="psec">
-            <div className="psec-h"><div className="psec-t">日常任务<span className="cnt">每日 0 点重置</span></div></div>
-            <TaskGrid items={DAILY} />
-          </section>
-          <section className="psec">
-            <div className="psec-h"><div className="psec-t">进阶任务<span className="cnt">优质贡献，多劳多得</span></div></div>
-            <TaskGrid items={ADVANCED} />
-          </section>
-          <section className="psec">
-            <div className="psec-h"><div className="psec-t">基础任务<span className="cnt">一次性，完成即得</span></div></div>
+            <div className="psec-h"><div className="psec-t">基础任务</div></div>
             <TaskGrid items={BASIC} />
           </section>
         </>
@@ -3676,33 +4060,169 @@ export function PointsPage() {
       ) : null}
       <SponsorStrip items={homeSponsors} />
       </div>
+      {inviteOpen ? (
+        <InviteDialog
+          name={name}
+          copied={copied}
+          onCopy={async (text, which) => {
+            try {
+              await navigator.clipboard.writeText(text);
+              setCopied(which);
+            } catch {
+              setCopied("");
+              setNote("这台浏览器没有允许复制");
+            }
+          }}
+          onClose={() => setInviteOpen(false)}
+        />
+      ) : null}
     </div>
   );
 }
 
-export function SubmitPage() {
-  useTitle("提交收录");
-  const [sent, setSent] = useState(false);
+export function AccountPage() {
+  useTitle("账户设置｜头像、昵称和密码只留在这台浏览器");
+  const [session, setSession] = useState(readSession);
+  const [nick, setNick] = useState(session.name);
+  const [avatar, setAvatar] = useState(readAvatar);
+  const [current, setCurrent] = useState("");
+  const [next, setNext] = useState("");
+  const [note, setNote] = useState("");
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    const sync = () => {
+      const nextSession = readSession();
+      setSession(nextSession);
+      setNick(nextSession.name);
+      setAvatar(readAvatar());
+    };
+    window.addEventListener("okk-auth", sync);
+    return () => window.removeEventListener("okk-auth", sync);
+  }, []);
+
+  if (!session.name) {
+    return (
+      <div className="wrap form-page">
+        <h1>账户设置</h1>
+        <p className="sub">先登录。账户只记在这台浏览器里。</p>
+        <button className="go" type="button" onClick={() => window.dispatchEvent(new Event("okk-open-auth"))}>登录</button>
+      </div>
+    );
+  }
+
+  function saveName(event) {
+    event.preventDefault();
+    const value = nick.trim();
+    if (!value) {
+      setError("昵称不能为空");
+      setNote("");
+      return;
+    }
+    saveNick(value);
+    writeSession(value, session.email);
+    writeAvatar(avatar);
+    if (session.email) {
+      writeAccounts(readAccounts().map((item) => (item.email === session.email ? { ...item, nick: value, avatar } : item)));
+    }
+    setSession({ name: value, email: session.email });
+    setError("");
+    setNote("头像和昵称已记下");
+    window.dispatchEvent(new Event("okk-auth"));
+  }
+
+  function savePassword(event) {
+    event.preventDefault();
+    const accounts = readAccounts();
+    const found = accounts.find((item) => item.email === session.email);
+    if (!found) {
+      setError("这台浏览器没有这份账户的密码");
+      setNote("");
+      return;
+    }
+    if (found.password !== current) {
+      setError("当前密码不正确");
+      setNote("");
+      return;
+    }
+    if (next.length < 6) {
+      setError("新密码至少 6 位");
+      setNote("");
+      return;
+    }
+    writeAccounts(accounts.map((item) => (item.email === session.email ? { ...item, password: next } : item)));
+    setCurrent("");
+    setNext("");
+    setError("");
+    setNote("密码已更新，只写在这台浏览器里");
+  }
+
   return (
-    <form className="wrap form-page" onSubmit={(event) => { event.preventDefault(); setSent(true); }}>
-      <h1>提交收录</h1>
-      <p className="sub">告诉榜单一个新的中转站。提交只保存在本机。</p>
-      <div className="field"><label>站点名称</label><input required name="name" /></div>
-      <div className="field"><label>官网地址</label><input required type="url" placeholder="https://" /></div>
-      <div className="field"><label>补充说明</label><textarea rows={4} placeholder="模型、价格、支付方式" /></div>
-      <button className="go" type="submit">提交</button>
-      {sent ? <div className="toast">已保存在本机，不会发送到维渡 AI。</div> : null}
-    </form>
+    <div className="wrap form-page">
+      <h1>账户设置</h1>
+      <p className="sub">头像和昵称只留在这台浏览器，不会发到维渡 AI。</p>
+      <form onSubmit={saveName}>
+        <AvatarField name={nick} value={avatar} onChange={(next) => { setAvatar(next); setError(""); }} onError={(message) => { setError(message); setNote(""); }} />
+        <div className="field">
+          <label>邮箱</label>
+          <input value={session.email || "这台浏览器没有记下邮箱"} readOnly />
+        </div>
+        <div className="field">
+          <label>昵称</label>
+          <input value={nick} onChange={(event) => setNick(event.target.value)} />
+        </div>
+        <button className="go" type="submit">保存</button>
+      </form>
+      {session.email ? (
+        <form onSubmit={savePassword} style={{ marginTop: 28 }}>
+          <div className="field">
+            <label>当前密码</label>
+            <input type="password" value={current} onChange={(event) => setCurrent(event.target.value)} autoComplete="current-password" />
+          </div>
+          <div className="field">
+            <label>新密码</label>
+            <input type="password" value={next} onChange={(event) => setNext(event.target.value)} autoComplete="new-password" />
+          </div>
+          <button className="go" type="submit">保存新密码</button>
+        </form>
+      ) : null}
+      {error ? <div className="toast" style={{ color: "var(--red)" }}>{error}</div> : null}
+      {note ? <div className="toast">{note}</div> : null}
+    </div>
+  );
+}
+
+export function SubmissionsPage() {
+  useTitle("我的提交｜这台浏览器提交过的收录，没有审核状态");
+  const [rows, setRows] = useState(readSubmissions);
+  return (
+    <div className="wrap form-page">
+      <h1>我的提交</h1>
+      <p className="sub">这里只列出这台浏览器提交过的站点，没有审核状态。</p>
+      {rows.length === 0 ? (
+        <p>还没有提交。<Link to="/apply">去申请收录</Link></p>
+      ) : (
+        <ul className="mine">
+          {rows.map((row) => (
+            <li key={row.id}>
+              <b>{row.name}</b>
+              <a href={row.url} target="_blank" rel="noreferrer">{row.url}</a>
+              {row.note ? <p>{row.note}</p> : null}
+              <time>{row.at ? row.at.replace("T", " ").slice(0, 16) : ""}</time>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
   );
 }
 
 
 export function AgentsPage() {
-  useTitle("Agents");
   return (
-    <Article title="给 Agent 的站点说明">
+    <Article title="给 Agent 的站点说明" seoTitle="给 Agent 的站点说明｜榜单路径、字段和数据边界">
       <p>维渡 AI 是 AI 中转站的第三方榜单：在线率、延迟、支付与发票、用户口碑、模型智商和 Codex 额度重置。</p>
-      <p>主要路径：/ 首页，/list 榜单，/station/&lt;slug&gt; 站点，/tools/iq 智商榜，/tools/codex-resets 额度重置，/reputation 投票，/activity 活动，/help 方法。</p>
+      <p>主要路径：/ 首页，/list 榜单，/station/&lt;slug&gt; 站点，/tools/iq 智商榜，/tools/codex-resets 额度重置，/reputation 投票，/activity 福利羊毛，/help 方法。</p>
       <p>这份本地站点使用 2026-10-19 的公开页面快照，不连接探测后端。</p>
     </Article>
   );
@@ -3769,7 +4289,7 @@ export function ReportPage() {
   const [tab, setTab] = useState("report");
   const [copied, setCopied] = useState(false);
   const [poster, setPoster] = useState(false);
-  useTitle(report ? `${report.station} ${report.model} 模型真伪检测报告 ${shanghaiClock(report.at)}` : "报告未找到");
+  useTitle(report ? `${report.station} ${report.model} 检测报告 ${shanghaiClock(report.at)}｜分数不能当成官方原厂鉴定` : "检测报告未找到｜这份快照不在本地目录");
   if (!report) {
     return (
       <div className="wrap form-page">
