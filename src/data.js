@@ -6,6 +6,7 @@ import verd from "./verd-index.json";
 import officialBars from "./official-bars.json";
 import voteCounts from "./vote-counts.json";
 import listedDates from "./listed-dates.json";
+import stationPublic from "./station-public.json";
 import { CAT_LABEL } from "./verd-meta.js";
 
 export const modelTotal = catalog.modelTotal;
@@ -318,13 +319,14 @@ const okkStations = [...catalog.stations]
       labels: extra.stations?.[row.slug]?.labels || null,
       reviews,
       radar: row.radar || null,
-      path: `/station/${row.slug}`,
+      path: `/site/${row.slug}`,
       categories: [],
       modelIds: unique(families.map((name) => MODEL_FROM_VENDOR[name]).filter(Boolean)),
       source: "okkmax",
       online: row.cnDown ? false : null,
       ownerPick: false,
       verdRank: null,
+      catalogRank: row.rank || null,
       voteUp: 0,
       voteDown: 0,
       voteScore: 0,
@@ -350,6 +352,7 @@ for (const extraRow of verd.attach || []) {
   const station = byHost.get(normHost(extraRow.host));
   if (!station) continue;
   if (!station.siteToken) station.siteToken = extraRow.token;
+  if (extraRow.token) station.path = `/site/${extraRow.token}`;
   if (extraRow.token && !station.aliases.includes(extraRow.token)) station.aliases.push(extraRow.token);
   station.verdId = station.verdId || extraRow.id;
   const attachedListed = listedDay(extraRow.id, extraRow);
@@ -363,6 +366,11 @@ for (const extraRow of verd.attach || []) {
   station.voteUp = attachedVotes.up;
   station.voteDown = attachedVotes.down;
   station.voteScore = attachedVotes.up - attachedVotes.down;
+  const attachedTotal = attachedVotes.up + attachedVotes.down;
+  if (attachedTotal > 0) {
+    station.rating = (attachedVotes.up / attachedTotal) * 5;
+    station.ratingCount = attachedTotal;
+  }
   if (extraRow.invoice && station.invoice === "—") station.invoice = "✓";
   for (const pay of extraRow.pay || []) {
     if (!station.pay.includes(pay)) station.pay.push(pay);
@@ -373,15 +381,44 @@ for (const extraRow of verd.attach || []) {
   }
 }
 
+function plainNotice(value) {
+  return String(value || "")
+    .replace(/^#{1,6}\s+/gm, "")
+    .replace(/\*\*/g, "")
+    .replace(/\[(.*?)\]\([^)]*\)/g, "$1")
+    .trim();
+}
+
+function familyKey(name) {
+  const text = String(name || "").toLowerCase();
+  if (/claude|anthropic/.test(text)) return "claude";
+  if (/gemini/.test(text)) return "gemini";
+  if (/grok/.test(text)) return "grok";
+  if (/deepseek/.test(text)) return "deepseek";
+  if (/glm|chatglm|zhipu/.test(text)) return "glm";
+  if (/kimi|moonshot/.test(text)) return "kimi";
+  if (/qwen|通义|千问/.test(text)) return "qwen";
+  if (/gpt|codex|openai|chatgpt|\bo\d/.test(text)) return "gpt";
+  return "";
+}
+
 function mapVerdStation(row) {
+  const published = stationPublic.stations?.[String(row.id)] || null;
+  const publishedModels = published?.models?.length ? published.models : null;
   const vendors = [];
-  for (const id of row.modelIds || []) {
-    const vendor = VENDOR_FROM_MODEL[id];
+  const sourceIds = publishedModels
+    ? publishedModels.map((model) => familyKey(model.name)).filter(Boolean)
+    : (row.modelIds || []);
+  for (const id of sourceIds) {
+    const vendor = VENDOR_FROM_MODEL[id] || id;
     if (vendor && !vendors.includes(vendor)) vendors.push(vendor);
   }
+  const familyNames = vendors.map((name) => FAMILY_NAME[name === "zhipu" ? "glm" : name] || name).filter(Boolean);
   const tags = (row.categories || []).map((id) => CAT_LABEL[id]).filter(Boolean).slice(0, 4);
   const ms = row.avgMs != null ? row.avgMs : row.ms;
   const votes = catalogVotes(row.id, row);
+  const modelCount = publishedModels ? publishedModels.length : (row.modelCount || 0);
+  const lineup = publishedModels && familyNames.length ? familyNames.join("、") : (row.modelLabels || "");
   return {
     slug: row.token,
     path: `/site/${row.token}`,
@@ -396,11 +433,11 @@ function mapVerdStation(row) {
     paymentText: (row.pay || []).length ? (row.pay || []).join("、") : "—",
     refund: "—",
     invoice: row.invoice ? "✓" : "—",
-    rating: null,
-    ratingCount: 0,
-    modelsHome: row.modelCount || 0,
+    rating: votes.up + votes.down ? (votes.up / (votes.up + votes.down)) * 5 : null,
+    ratingCount: votes.up + votes.down,
+    modelsHome: modelCount,
     extra: Math.max(0, vendors.length - 4),
-    modelsList: row.modelCount || 0,
+    modelsList: modelCount,
     tags,
     vendors,
     img: row.logo || "",
@@ -413,18 +450,18 @@ function mapVerdStation(row) {
     upDelta: null,
     speedDelta: null,
     socials: [],
-    cover: row.modelCount || 0,
+    cover: modelCount,
     coverText: row.tag || "",
-    familiesText: row.modelLabels || "",
+    familiesText: lineup,
     week: null,
     month: null,
     meanLatency: ms == null ? "" : `${Math.round(ms)} ms`,
     blurb: row.description || "",
-    lineup: row.modelLabels ? `支持 ${row.modelLabels}` : "",
+    lineup: lineup ? `支持 ${lineup}` : "",
     links: [],
     events: [],
-    announcements: [],
-    models: row.modelRows || [],
+    announcements: published?.notice ? [{ id: `${row.id}-notice`, title: "公告", content: plainNotice(published.notice), date: "" }] : [],
+    models: publishedModels || row.modelRows || [],
     tests: [],
     baseUrl: "",
     windows: null,
@@ -446,6 +483,16 @@ function mapVerdStation(row) {
 }
 
 export const stations = [...okkStations, ...(verd.stations || []).map(mapVerdStation)];
+const rankedStations = stations
+  .filter((station) => Number(station.verdRank) > 0)
+  .sort((a, b) => b.verdRank - a.verdRank || String(a.verdId || "").localeCompare(String(b.verdId || "")));
+rankedStations.forEach((station, index) => {
+  station.place = index + 1;
+});
+for (const station of stations) {
+  if (!station.place && Number(station.catalogRank) > 0) station.place = Number(station.catalogRank);
+}
+
 export const stationTotal = stations.length;
 
 const stationByKey = new Map();
@@ -456,7 +503,7 @@ for (const station of stations) {
 }
 
 export function stationPath(item) {
-  return item?.path || (item?.slug ? `/station/${item.slug}` : "/list");
+  return item?.path || (item?.slug ? `/site/${item.slug}` : "/list");
 }
 
 function officialDays(provider, name, existing) {

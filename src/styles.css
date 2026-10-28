@@ -842,6 +842,14 @@ table.rank.list tbody tr:hover .slb-mic { border-color: #fafafa; }
 .station-main { min-width: 0; flex: 1; }
 .station-actions { display: flex; flex-direction: column; align-items: flex-end; gap: 16px; }
 .st-title { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.head-votes { display: inline-flex; align-items: center; gap: 10px; height: 28px; padding: 0 10px; border-radius: 999px; background: #f3f4f6; color: var(--muted); font-size: 13px; }
+.head-votes svg { width: 15px; height: 15px; display: block; flex: none; }
+.head-votes b { display: inline-flex; align-items: center; gap: 4px; color: var(--orange); font-weight: 750; }
+.head-votes .up, .head-votes .down { display: inline-flex; align-items: center; gap: 4px; border: 0; background: transparent; padding: 0; font: inherit; font-weight: 700; cursor: pointer; }
+.head-votes .up { color: #1f9d62; }
+.head-votes .down { color: #e23d3d; }
+.head-votes .on { text-decoration: underline; }
+:root[data-theme="dark"] .head-votes { background: #2a2d33; }
 .st-title h1 { font-size: 34px; letter-spacing: -0.6px; }
 .score-pill { background: #f3f4f6; border-radius: 999px; padding: 4px 10px; font-size: 13px; color: var(--muted); }
 .score-pill .star { color: #e0a106; }

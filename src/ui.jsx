@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, NavLink, useLocation, useNavigate } from "react-router-dom";
 import { activities, findStation, logoUrl, models, perks, reviews, stations } from "./data.js";
-import { clearSession, readAccounts, readAvatar, readSession, writeAccounts, writeAvatar, writeSession } from "./account.js";
-import { saveNick } from "./points.js";
+import { clearSession, readAccounts, readAvatar, readSession, writeAvatar, writeSession } from "./account.js";
+import { authToken, loginAccount, pullAccount, registerAccount, resetAccount, sendPoints, setAuthToken } from "./community.js";
+import { replacePoints, saveNick } from "./points.js";
 
 const VENDOR_COLOR = {
   nvidia: "#76b900",
@@ -201,6 +202,17 @@ export function Shell({ children }) {
   }, [theme]);
 
   useEffect(() => {
+    const syncPoints = (event) => {
+      const id = event.detail?.id;
+      if (!authToken() || !id || id === "checkin") return;
+      sendPoints(id).then((points) => replacePoints(points)).catch(() => {});
+    };
+    window.addEventListener("okk-points-sync", syncPoints);
+    if (authToken()) pullAccount().catch(() => {});
+    return () => window.removeEventListener("okk-points-sync", syncPoints);
+  }, []);
+
+  useEffect(() => {
     const openAuth = () => setLogin(true);
     const syncAuth = () => {
       const session = readSession();
@@ -215,6 +227,11 @@ export function Shell({ children }) {
       window.removeEventListener("okk-auth", syncAuth);
     };
   }, []);
+
+  useEffect(() => {
+    const code = new URLSearchParams(location.search).get("invite");
+    if (code && /^[A-Za-z0-9]{4,12}$/.test(code)) localStorage.setItem("veridrop-invite-pending", code.trim().toUpperCase());
+  }, [location.search]);
 
   useEffect(() => {
     setOpen("");
@@ -245,7 +262,7 @@ export function Shell({ children }) {
     const stationHits = (q ? stations.filter((item) => `${item.name} ${item.slug} ${item.host || ""}`.toLowerCase().includes(q)) : stations).slice(0, 8);
     return [
       ...modelHits.map((item) => ({ kind: "model", key: `m:${item.slug}`, item, to: `/model/${item.slug}` })),
-      ...stationHits.map((item) => ({ kind: "station", key: `s:${item.slug}`, item, to: item.path || `/station/${item.slug}` })),
+      ...stationHits.map((item) => ({ kind: "station", key: `s:${item.slug}`, item, to: item.path || `/site/${item.slug}` })),
     ];
   }, [query]);
 
@@ -350,6 +367,7 @@ export function Shell({ children }) {
                 avatar={avatar}
                 onLogout={() => {
                   clearSession();
+                  setAuthToken("");
                   setUser("");
                   setEmail("");
                   setAvatar("");
@@ -427,9 +445,9 @@ export function Shell({ children }) {
             <Link to="/terms">服务条款</Link>
             <Link to="/disclaimer">免责声明</Link>
             <h4 style={{ marginTop: 16 }}>Agents</h4>
-            <Link to="/agents">llms.txt</Link>
-            <Link to="/agents">stations.md</Link>
-            <Link to="/help">methodology.md</Link>
+            <a href="/llms.txt">llms.txt</a>
+            <a href="/stations.md">stations.md</a>
+            <a href="/methodology.md">methodology.md</a>
           </div>
         </div>
       </footer>
@@ -630,22 +648,24 @@ function Login({ onClose, onOk }) {
   const [show, setShow] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
+  const [saving, setSaving] = useState(false);
 
   const title = mode === "register" ? "创建账户" : mode === "login" ? "欢迎回来" : "找回密码";
   const subtitle =
     mode === "register"
-      ? "注册后可打分、评论、避雷,全程免费"
+      ? "注册后可打分、评论、投票，记在接口里，其他人也能看到"
       : mode === "login"
-        ? "登录后可打分、评论、避雷,全程免费"
-        : "输入注册邮箱,我们给你发送重置链接";
+        ? "登录后可打分、评论、投票，其他人也能看到"
+        : "输入注册邮箱和新密码。重置不发邮件，直接写回账户。";
 
   function finish(name, nextNick, mail) {
     if (nextNick) saveNick(nextNick);
     onOk(name, mail);
   }
 
-  function submit(event) {
+  async function submit(event) {
     event.preventDefault();
+    if (saving) return;
     setError("");
     setNotice("");
     const mail = email.trim().toLowerCase();
@@ -653,48 +673,43 @@ function Login({ onClose, onOk }) {
       setError("请输入有效邮箱");
       return;
     }
-    const accounts = readAccounts();
-    const found = accounts.find((item) => item.email === mail);
-    if (mode === "register") {
-      if (password.length < 6) {
-        setError("密码至少 6 位");
-        return;
-      }
-      if (found) {
-        setError("该邮箱已注册");
-        return;
-      }
-      const nextNick = nick.trim();
-      writeAccounts([...accounts, { email: mail, password, nick: nextNick }]);
-      finish(nextNick || mail.split("@")[0], nextNick, mail);
-      return;
-    }
     if (mode === "forgot") {
-      if (!found) {
-        setError("没有找到这个邮箱");
-        return;
-      }
       setMode("reset");
       setPassword("");
-      setNotice("邮箱已核对。请设置新密码，只写回这台浏览器。");
+      setNotice("设置新密码。这一步不发邮件，直接写回账户。");
       return;
     }
-    if (mode === "reset") {
-      if (password.length < 6) {
-        setError("密码至少 6 位");
+    if ((mode === "register" || mode === "reset") && password.length < 6) {
+      setError("密码至少 6 位");
+      return;
+    }
+    setSaving(true);
+    try {
+      if (mode === "register") {
+        const invite = localStorage.getItem("veridrop-invite-pending") || "";
+        const data = await registerAccount({ email: mail, password, nick: nick.trim(), invite });
+        localStorage.removeItem("veridrop-invite-pending");
+        setAuthToken(data.token);
+        finish(data.name, data.nick, data.email);
+        pullAccount().catch(() => {});
         return;
       }
-      writeAccounts(accounts.map((item) => (item.email === mail ? { ...item, password } : item)));
-      setMode("login");
-      setPassword("");
-      setNotice("密码已更新，请登录");
-      return;
+      if (mode === "reset") {
+        await resetAccount({ email: mail, password });
+        setMode("login");
+        setPassword("");
+        setNotice("密码已更新，请登录");
+        return;
+      }
+      const data = await loginAccount({ email: mail, password });
+      setAuthToken(data.token);
+      finish(data.name, data.nick, data.email);
+      pullAccount().catch(() => {});
+    } catch (err) {
+      setError(err.message || "没有记下");
+    } finally {
+      setSaving(false);
     }
-    if (!found || found.password !== password) {
-      setError("邮箱或密码不正确");
-      return;
-    }
-    finish(found.nick || mail.split("@")[0], found.nick, mail);
   }
 
   return (
@@ -759,10 +774,8 @@ function Login({ onClose, onOk }) {
                         type="button"
                         className="auth-link"
                         onClick={() => {
-                          setMode("forgot");
                           setError("");
-                          setNotice("");
-                          setPassword("");
+                          setNotice("不发送重置邮件。请登录后在账户设置里修改密码。");
                         }}
                       >
                         忘记密码?
@@ -786,8 +799,8 @@ function Login({ onClose, onOk }) {
               ) : null}
               {error ? <div className="auth-err">{error}</div> : null}
               {notice ? <div className="auth-ok">{notice}</div> : null}
-              <button type="submit" className="auth-submit">
-                {mode === "register" ? "注册" : mode === "forgot" ? "发送重置链接" : mode === "reset" ? "保存新密码" : "登录"}
+              <button type="submit" className="auth-submit" disabled={saving}>
+                {saving ? "正在提交" : mode === "register" ? "注册" : mode === "forgot" ? "继续" : mode === "reset" ? "保存新密码" : "登录"}
               </button>
               {mode === "forgot" || mode === "reset" ? (
                 <div style={{ textAlign: "center", marginTop: 2 }}>
@@ -937,7 +950,7 @@ export function ReviewCard({ item }) {
           <div className="nm">{item.user}</div>
           <Stars count={item.stars} />
         </div>
-        <Link to={station ? `/station/${item.slug}` : "/reputation"} className="right">
+        <Link to={station ? station.path : "/reputation"} className="right">
           {station ? <Logo station={station} className="logo-img" /> : <span className="logo-fallback">站</span>}
           {item.station}
         </Link>

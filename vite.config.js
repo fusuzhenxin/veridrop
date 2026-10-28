@@ -1,5 +1,10 @@
+import fs from "node:fs";
+import http from "node:http";
+import path from "node:path";
+import { spawn } from "node:child_process";
 import dns from "node:dns/promises";
 import net from "node:net";
+import { fileURLToPath } from "node:url";
 import react from "@vitejs/plugin-react";
 import { defineConfig } from "vite";
 import { loadOfficial } from "./server/official-live.mjs";
@@ -168,7 +173,177 @@ function localProbe() {
   };
 }
 
+let communityProcess = null;
+
+function ensureCommunity() {
+  const socket = net.connect({ host: "127.0.0.1", port: 4175 });
+  const giveUp = setTimeout(() => socket.destroy(), 400);
+  socket.on("connect", () => {
+    clearTimeout(giveUp);
+    socket.end();
+  });
+  socket.on("error", () => {
+    clearTimeout(giveUp);
+    if (communityProcess && communityProcess.exitCode == null) return;
+    communityProcess = spawn("python", ["server/community.py"], {
+      cwd: fileURLToPath(new URL(".", import.meta.url)),
+      stdio: "ignore",
+      windowsHide: true,
+    });
+  });
+}
+
+function communityApi() {
+  ensureCommunity();
+  const handle = (req, res, next) => {
+    const path = (req.url || "").split("?")[0];
+    if (path !== "/api/votes" && path !== "/api/comments" && path !== "/api/checkin" && path !== "/api/points" && !path.startsWith("/api/auth") && !path.startsWith("/api/account")) return next();
+    const proxy = http.request(
+      {
+        hostname: "127.0.0.1",
+        port: 4175,
+        path: req.url,
+        method: req.method,
+        headers: { ...req.headers, host: "127.0.0.1:4175" },
+      },
+      (upstream) => {
+        res.statusCode = upstream.statusCode || 502;
+        for (const [key, value] of Object.entries(upstream.headers)) {
+          if (value != null && key !== "transfer-encoding") res.setHeader(key, value);
+        }
+        upstream.pipe(res);
+      },
+    );
+    proxy.on("error", () => {
+      if (res.writableEnded) return;
+      res.statusCode = 502;
+      res.setHeader("content-type", "application/json; charset=utf-8");
+      res.setHeader("cache-control", "no-store");
+      res.end(JSON.stringify({ error: "登录和投票服务没有开" }));
+    });
+    req.pipe(proxy);
+  };
+  return {
+    name: "community-api",
+    configureServer(server) {
+      server.middlewares.use(handle);
+    },
+    configurePreviewServer(server) {
+      server.middlewares.use(handle);
+    },
+  };
+}
+
+function readCommunity() {
+  try {
+    return JSON.parse(fs.readFileSync(new URL("./data/community.json", import.meta.url), "utf8"));
+  } catch {
+    return null;
+  }
+}
+
+function ssrRouterEsm() {
+  const root = fileURLToPath(new URL(".", import.meta.url));
+  const files = {
+    "react-router-dom": path.join(root, "node_modules/react-router-dom/dist/index.mjs"),
+    "react-router": path.join(root, "node_modules/react-router/dist/development/index.mjs"),
+    "react-router/dom": path.join(root, "node_modules/react-router/dist/development/dom-export.mjs"),
+  };
+  return {
+    name: "ssr-router-esm",
+    enforce: "pre",
+    resolveId(id) {
+      if (this.environment?.name !== "ssr") return null;
+      return files[id] || null;
+    },
+  };
+}
+
+function utf8Text() {
+  const root = fileURLToPath(new URL("./public", import.meta.url));
+  const handle = (req, res, next) => {
+    if (req.method !== "GET" && req.method !== "HEAD") return next();
+    const urlPath = decodeURIComponent((req.url || "").split("?")[0]);
+    if (!/\.(txt|md)$/i.test(urlPath)) return next();
+    const file = path.normalize(path.join(root, urlPath.replace(/^\/+/, "")));
+    if (!file.startsWith(root) || !fs.existsSync(file) || !fs.statSync(file).isFile()) return next();
+    res.statusCode = 200;
+    res.setHeader("Content-Type", "text/plain; charset=utf-8");
+    res.setHeader("Cache-Control", "no-cache");
+    if (req.method === "HEAD") {
+      res.end();
+      return;
+    }
+    fs.createReadStream(file).pipe(res);
+  };
+  return {
+    name: "utf8-text",
+    configureServer(server) {
+      server.middlewares.use(handle);
+    },
+    configurePreviewServer(server) {
+      server.middlewares.use(handle);
+    },
+  };
+}
+
+function htmlSnapshot() {
+  const serve = (server) => {
+    server.middlewares.use(async (req, res, next) => {
+      if (req.method !== "GET" && req.method !== "HEAD") return next();
+      const path = (req.url || "").split("?")[0];
+      if (path.startsWith("/station/")) {
+        const slug = decodeURIComponent(path.slice("/station/".length).split("/")[0] || "");
+        let target = `/site/${slug}`;
+        try {
+          const mapping = JSON.parse(fs.readFileSync(new URL("./data/station-redirects.json", import.meta.url), "utf8"));
+          if (mapping[slug]) target = mapping[slug];
+        } catch { /* keep the plain /site path */ }
+        res.statusCode = 301;
+        res.setHeader("Location", target);
+        res.setHeader("Content-Length", "0");
+        res.end();
+        return;
+      }
+      if (path.startsWith("/@") || path.startsWith("/src/") || path.startsWith("/node_modules/") || path.startsWith("/api/")) return next();
+      if (/\.[a-zA-Z0-9]+$/.test(path)) return next();
+      const accept = req.headers.accept || "";
+      if (accept && !accept.includes("text/html") && !accept.includes("*/*")) return next();
+      try {
+        const mod = await server.ssrLoadModule("/src/html-snapshot.js");
+        const page = mod.renderSnapshot(path, readCommunity());
+        if ((page.status || 200) === 200) {
+          try {
+            const app = await server.ssrLoadModule("/src/entry-server.jsx");
+            page.markup = app.renderPage(req.url || path);
+          } catch (error) {
+            server.config.logger.error(error);
+          }
+        }
+        const template = fs.readFileSync(new URL("./index.html", import.meta.url), "utf8");
+        const transformed = await server.transformIndexHtml(path, template);
+        const html = mod.injectSnapshot(transformed, page);
+        res.statusCode = page.status || 200;
+        res.setHeader("content-type", "text/html; charset=utf-8");
+        res.end(html);
+      } catch (error) {
+        next(error);
+      }
+    });
+  };
+  return {
+    name: "html-snapshot",
+    configureServer(server) {
+      serve(server);
+    },
+    configurePreviewServer(server) {
+      serve(server);
+    },
+  };
+}
+
 export default defineConfig({
-  plugins: [react(), officialStatus(), localProbe()],
+  plugins: [utf8Text(), ssrRouterEsm(), react(), communityApi(), officialStatus(), localProbe(), htmlSnapshot()],
   server: { host: "127.0.0.1", port: 5181, strictPort: true },
+  ssr: { noExternal: ["react-router", "react-router-dom"] },
 });

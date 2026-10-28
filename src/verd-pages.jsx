@@ -3,7 +3,8 @@ import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom"
 import { useOfficialStatus } from "./official-store.js";
 import { allReportFor, keepRecoveredDetail, latestAllReport, recoverAllDetail, stopCheckJob, subscribeCheckJob } from "./basic-run.jsx";
 import { Tester } from "./pages.jsx";
-import { addSubmission } from "./account.js";
+import { applyRemoteAccount } from "./account.js";
+import { authToken, saveSubmission } from "./community.js";
 import { useTitle } from "./ui.jsx";
 import { CATS, CHECK_PAGES, OFFICIAL_SEO } from "./verd-meta.js";
 
@@ -380,7 +381,7 @@ export function ApplyPage() {
   const [links, setLinks] = useState([{ kind: "Twitter", url: "" }]);
   const [socialOpen, setSocialOpen] = useState(-1);
   const [probePass, setProbePass] = useState("");
-  function submit(event) {
+  async function submit(event) {
     event.preventDefault();
     const form = new FormData(event.currentTarget);
     const name = String(form.get("name") || "").trim();
@@ -412,11 +413,21 @@ export function ApplyPage() {
       `备注：${form.get("remark") || ""}`,
       `联系方式：${form.get("contact") || ""}`,
     ];
-    addSubmission({
-      name,
-      url,
-      note: [cats.join("、"), pays.join("、"), `发票${form.get("invoice") || ""}`, `退款${form.get("refund") || ""}`, String(form.get("contact") || "").trim()].filter(Boolean).join(" · "),
-    });
+    if (!authToken()) {
+      setError("请先登录，提交才会记到账户里");
+      window.dispatchEvent(new Event("okk-open-auth"));
+      return;
+    }
+    try {
+      applyRemoteAccount(await saveSubmission({
+        name,
+        url,
+        note: [cats.join("、"), pays.join("、"), `发票${form.get("invoice") || ""}`, `退款${form.get("refund") || ""}`, String(form.get("contact") || "").trim()].filter(Boolean).join(" · "),
+      }));
+    } catch (err) {
+      setError(err.message || "没有记下");
+      return;
+    }
     const mail = `mailto:2201219073@qq.com?subject=${encodeURIComponent("申请收录")}&body=${encodeURIComponent(lines.join("\n"))}`;
     window.location.href = mail;
     setError("");
@@ -427,7 +438,7 @@ export function ApplyPage() {
       <aside className="apply-side">
         <h1>申请<em>收录</em></h1>
         <p>填写站点的公开信息。收录前会打开你填的网址核对。本站只做导航，不代收充值，也不保证一定收录。</p>
-        <p>不要填写 API Key。探测账户可以留空；如果填了，密码只写进这封邮件，不会记在这台浏览器的提交列表里。</p>
+        <p>不要填写 API Key。探测账户可以留空；如果填了，密码只写进这封邮件，不会记到账户里的提交列表。</p>
       </aside>
       <form className="apply-form" onSubmit={submit}>
         <h2>站点信息</h2>
@@ -546,7 +557,7 @@ export function ApplyPage() {
           <input required name="contact" placeholder="微信 / QQ号 / 手机号 / Telegram 等" />
         </div>
         {error ? <div className="toast" style={{ color: "var(--red)" }}>{error}</div> : null}
-        {sent ? <div className="toast">已打开邮件，这台浏览器也记下了这条。如果没有弹出，请直接发到 2201219073@qq.com，QQ 2201219073。</div> : null}
+        {sent ? <div className="toast">已记到这个账户，并尝试打开邮件。如果没有弹出，请直接发到 2201219073@qq.com，QQ 2201219073。</div> : null}
         <div className="apply-submit"><button className="go" type="submit">提交申请</button></div>
       </form>
     </div>

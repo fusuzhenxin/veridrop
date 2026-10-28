@@ -1,0 +1,29 @@
+# 维渡 AI
+
+> 维渡 AI 是第三方 AI 中转站目录，网址 https://www.veridrop.cn 。本站不代收充值，也不证明某家站是官方原厂。
+
+页面上的数字只来自已经拿到的记录。没有记录的字段留空，不估计纯度或分数。
+
+## 主要路径
+
+- [首页](https://www.veridrop.cn/)：目录概览和站点列表
+- [站点排行](https://www.veridrop.cn/list)：全部中转站
+- [站点详情](https://www.veridrop.cn/site/)：路径形如 /site/站点标识
+- [模型](https://www.veridrop.cn/model)：模型价格对照
+- [投票](https://www.veridrop.cn/reputation)：赞成、反对和点评
+- [评测方法](https://www.veridrop.cn/help)：数据来源和评分
+- [站点字段](https://www.veridrop.cn/stations.md)
+- [方法说明](https://www.veridrop.cn/methodology.md)
+
+## 不要当成已测到的数据
+
+- 纯度
+- 单个模型的延迟
+- 单个模型的在线率
+- 浏览器里的检测结果。那些记录只留在用户自己的浏览器，Key 不发到本站
+
+## 记在账户里、别人能看到的
+
+- 赞成和反对，每人每站一票
+- 点评和评论
+- 收藏、积分、头像和提交收录只跟登录账户走，不在公开榜单上当作探测结果

@@ -5,7 +5,7 @@ const HISTORY_KEY = "okk-detect-history";
 const ACTIVE_KEY = "okk-detect-active";
 
 export const DETECT_ROWS = [
-  { name: "thinking_signature", label: "思维签名验证", tip: "用数学题逼出模型的 thinking 推理块，校验其中 Anthropic 服务端的密码学签名。这是真伪最硬的铁证——套壳/伪装的模型给不出真签名。" },
+  { name: "thinking_signature", label: "思维签名字段", tip: "看响应里有没有思维签名字段。本机不做密码学校验，所以出现字段也不计分，不能据此判断是不是官方渠道。" },
   { name: "behavioral_signature", label: "行为签名验证", tip: "用一组探针测拒答风格、格式偏好、结构习惯等行为，比对真实 Claude 的行为指纹是否吻合。" },
   { name: "knowledge", label: "知识准确度", tip: "问一组只有官方训练才答得准的事实（Anthropic CEO、总部、首个 Claude 发布年份等），错答说明非真模型。" },
   { name: "pdf", label: "PDF 透传识别", tip: "发一个内嵌唯一暗号的小 PDF，看中转站是否真把文档原样透传给后端模型识别——不透传说明中间动了手脚。" },

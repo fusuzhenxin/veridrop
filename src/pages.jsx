@@ -31,8 +31,9 @@ import {
 } from "./verd-meta.js";
 import { ModelBoard, ModIcon } from "./model-board.jsx";
 
-import { fitAvatar, readAccounts, readAvatar, readSession, readSubmissions, writeAccounts, writeAvatar, writeSession } from "./account.js";
-import { grant, isDone, readPoints, saveNick } from "./points.js";
+import { applyRemoteAccount, fitAvatar, readAvatar, readFavs, readSession, readSubmissions, writeAvatar, writeFavs, writeSession } from "./account.js";
+import { authToken, changePassword, fetchAccount, fetchComments, fetchVotes, saveAvatar, saveFavorite, sendCheckin, sendComment, sendVote, setAuthToken, stationVoteId, updateProfile } from "./community.js";
+import { grant, isDone, readPoints, replacePoints, saveNick } from "./points.js";
 import {
   Logo,
   Mark,
@@ -58,25 +59,18 @@ function showLatency(value) {
   return value == null || !Number.isFinite(Number(value)) ? "—" : `${Number(value).toFixed(1)}s`;
 }
 
-const FAV_KEY = "okk-station-favs";
-
-function readFavs() {
-  try {
-    const parsed = JSON.parse(localStorage.getItem(FAV_KEY) || "{}");
-    return parsed && typeof parsed === "object" ? parsed : {};
-  } catch {
-    return {};
-  }
-}
-
 function toggleFav(slug) {
-  const next = { ...readFavs() };
-  if (next[slug]) delete next[slug];
-  else {
-    next[slug] = true;
-    grant("favorite", 3, "首次收藏", "once");
+  const current = readFavs();
+  if (!authToken()) {
+    window.dispatchEvent(new Event("okk-open-auth"));
+    return current;
   }
-  localStorage.setItem(FAV_KEY, JSON.stringify(next));
+  const on = !current[slug];
+  const next = { ...current };
+  if (on) next[slug] = true;
+  else delete next[slug];
+  writeFavs(next);
+  saveFavorite(slug, on).then((data) => applyRemoteAccount(data)).catch(() => {});
   return next;
 }
 
@@ -278,6 +272,24 @@ const PAY_FILTERS = [["all", "全部"], ["alipay", "支付宝"], ["wechat", "微
 const MIN_FILTERS = [["all", "全部"], ["le10", "¥10 及以下"], ["gt10", "¥10 以上"], ["usd", "美元计价"]];
 const INV_FILTERS = [["all", "全部"], ["yes", "支持"], ["cond", "有条件"], ["no", "不支持"]];
 const SORT_FILTERS = [["overall", "综合"], ["uptime", "在线率"], ["latency", "平均延迟"]];
+
+function Trophy() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path fill="currentColor" d="M6 3h12v2h3v3.2a4.8 4.8 0 0 1-3.7 4.7 6 6 0 0 1-3.3 2.8V18h3v2H7v-2h3v-2.3a6 6 0 0 1-3.3-2.8A4.8 4.8 0 0 1 3 8.2V5h3V3zm0 4H5v1.2a2.8 2.8 0 0 0 2.2 2.7c.3-1.3.6-2.6.8-3.9zm12 0c.2 1.3.5 2.6.8 3.9A2.8 2.8 0 0 0 19 8.2V7h-1z" />
+    </svg>
+  );
+}
+
+function Thumb({ up = false }) {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path fill="currentColor" d={up
+        ? "M2 21h4V9H2v12zm20-11a2 2 0 0 0-2-2h-6.3l.95-4.57.03-.32a1.5 1.5 0 0 0-.44-1.06L13.17 1 6.59 7.59A2 2 0 0 0 6 9v10a2 2 0 0 0 2 2h9a2 2 0 0 0 1.84-1.22l3.02-7.05c.09-.23.14-.47.14-.73v-2z"
+        : "M22 3h-4v12h4V3zM2 14a2 2 0 0 0 2 2h6.3l-.95 4.57-.03.32a1.5 1.5 0 0 0 .44 1.06L10.83 23l6.59-6.59A2 2 0 0 0 18 15V5a2 2 0 0 0-2-2H7a2 2 0 0 0-1.84 1.22L2.14 11.27A2 2 0 0 0 2 12v2z"} />
+    </svg>
+  );
+}
 
 function when(value) {
   if (!value) return "";
@@ -786,6 +798,11 @@ function StationJump({ item }) {
 function RankTable({ rows, mode }) {
   const navigate = useNavigate();
   const [favs, setFavs] = useState(readFavs);
+  useEffect(() => {
+    const sync = () => setFavs(readFavs());
+    window.addEventListener("okk-account", sync);
+    return () => window.removeEventListener("okk-account", sync);
+  }, []);
   const list = mode === "list";
   return (
     <div className="table-wrap">
@@ -1385,7 +1402,7 @@ export function HomePage() {
             最新实测 <Link className="more" to="/list">查看更多 ›</Link>
           </div>
           {latestTests.slice(0, 3).map((item) => (
-            <Link key={item.model + item.slug} to={`/station/${item.slug}`} className="test-row">
+            <Link key={item.model + item.slug} to={stationPath({ slug: item.slug, path: item.path })} className="test-row">
               <Vendor name={item.vendor} />
               <span>{item.model}</span>
               <span className="channel">{item.channel}</span>
@@ -1879,7 +1896,8 @@ function derivedGroups(models) {
       latencyText: rows.find((row) => row.latency && row.latency !== "—")?.latency || "—",
       avail: Number.isFinite(avail) ? avail : null,
       points: Number.isFinite(avail) ? Array.from({ length: 24 }, (_, index) => [index, avail]) : null,
-      models: rows.map((row) => ({ id: row.id, name: row.name, in: row.input, out: row.output, cache: row.cache })),
+      currency: rows.find((row) => row.currency)?.currency || "",
+      models: rows.map((row) => ({ id: row.id, name: row.name, in: row.input, out: row.output, cache: row.cache, currency: row.currency })),
     };
   });
 }
@@ -1901,14 +1919,19 @@ function derivedMenu(models) {
   }));
 }
 
+function unitOf(row) {
+  return row?.currency === "USD" ? "$" : "¥";
+}
+
 function ioText(row) {
   if (row.input == null || row.input === "" || row.output == null || row.output === "") return "—";
-  return `¥${money(row.input)} / ¥${money(row.output)}`;
+  const unit = unitOf(row);
+  return `${unit}${money(row.input)} / ${unit}${money(row.output)}`;
 }
 
 function cacheText(row) {
   if (row.cache == null || row.cache === "") return "—";
-  return `¥${money(row.cache)}`;
+  return `${unitOf(row)}${money(row.cache)}`;
 }
 
 function historyClock(iso) {
@@ -1964,22 +1987,43 @@ function SortMark() {
   );
 }
 
+function staticComments(station) {
+  const data = globalThis.__VERD_COMMUNITY__;
+  if (!station || !data) return [];
+  return (data.comments || []).filter((item) => item && item.slug === station.slug);
+}
+
+function staticVote(station) {
+  const data = globalThis.__VERD_COMMUNITY__;
+  if (!station || !data) return null;
+  const row = data.votes?.stations?.[stationVoteId(station)];
+  if (!row) return null;
+  return { up: Number(row.up) || 0, down: Number(row.down) || 0, mine: "" };
+}
+
 export function StationPage() {
   const routeParams = useParams();
   const slug = routeParams.slug || routeParams.token || "";
   const station = findStation(slug);
-  useTitle(station ? `${station.name} 中转站详情与测评｜纯度、在线率、延迟、价格和评价` : "没有找到这个中转站｜回到排行榜按名称搜索");
+  useTitle(station ? `${station.name} 中转站详情｜在线率、延迟、公开价格和评价` : "没有找到这个中转站｜回到排行榜按名称搜索");
   const [part, setPart] = useState("score");
-  const [modelOpen, setModelOpen] = useState(false);
+  const [modelOpen, setModelOpen] = useState(() => Boolean(globalThis.__VERD_STATIC__));
   const [summaryOpen, setSummaryOpen] = useState(true);
   const [eventPage, setEventPage] = useState(1);
   const [openNotes, setOpenNotes] = useState({});
   const [starred, setStarred] = useState(() => Boolean(readFavs()[slug]));
+  useEffect(() => {
+    const sync = () => setStarred(Boolean(readFavs()[slug]));
+    window.addEventListener("okk-account", sync);
+    return () => window.removeEventListener("okk-account", sync);
+  }, [slug]);
   const [histOpen, setHistOpen] = useState(false);
   const [familyOpen, setFamilyOpen] = useState(false);
   const [groupOpen, setGroupOpen] = useState(() => new Set());
   const [writing, setWriting] = useState(false);
-  const [localReviews, setLocalReviews] = useState(() => readLocalReviews());
+  const [remoteComments, setRemoteComments] = useState(() => staticComments(station));
+  const [liveVote, setLiveVote] = useState(() => staticVote(station));
+  const voting = useRef(false);
   const [params, setParams] = useSearchParams();
   useEffect(() => {
     setPart("score");
@@ -2015,6 +2059,56 @@ export function StationPage() {
     nodes.forEach((node) => obs.observe(node));
     return () => obs.disconnect();
   }, [station]);
+  useEffect(() => {
+    let stop = false;
+    setLiveVote(null);
+    setRemoteComments([]);
+    if (!station) return undefined;
+    const id = stationVoteId(station);
+    fetchVotes().then((data) => {
+      if (stop) return;
+      const row = data.stations?.[id];
+      setLiveVote({
+        up: row ? Number(row.up) || 0 : station.voteUp || 0,
+        down: row ? Number(row.down) || 0 : station.voteDown || 0,
+        mine: data.mine?.[id] === "up" || data.mine?.[id] === "down" ? data.mine[id] : "",
+      });
+    }).catch(() => {});
+    fetchComments(station.slug).then((data) => {
+      if (!stop) setRemoteComments(Array.isArray(data.comments) ? data.comments : []);
+    }).catch(() => {});
+    return () => { stop = true; };
+  }, [slug, station]);
+  const mineVote = liveVote?.mine || "";
+  const shownUp = liveVote ? liveVote.up : (station?.voteUp || 0);
+  const shownDown = liveVote ? liveVote.down : (station?.voteDown || 0);
+  const voteTotal = shownUp + shownDown;
+  const headerRating = voteTotal > 0 ? (shownUp / voteTotal) * 5 : station?.rating;
+  const headerCount = voteTotal > 0 ? voteTotal : station?.ratingCount;
+  const castVote = async (side) => {
+    if (!station || voting.current) return;
+    if (!authToken()) {
+      window.dispatchEvent(new Event("okk-open-auth"));
+      return;
+    }
+    voting.current = true;
+    try {
+      const result = await sendVote(stationVoteId(station), side);
+      setLiveVote({
+        up: Number(result.up) || 0,
+        down: Number(result.down) || 0,
+        mine: result.mine === "up" || result.mine === "down" ? result.mine : "",
+      });
+      if (result.points) replacePoints(result.points);
+    } catch (err) {
+      if (err.status === 401) {
+        setAuthToken("");
+        window.dispatchEvent(new Event("okk-open-auth"));
+      }
+    } finally {
+      voting.current = false;
+    }
+  };
   if (!station) {
     return (
       <div className="wrap form-page">
@@ -2032,7 +2126,7 @@ export function StationPage() {
   const family = menu.some((item) => item.key === params.get("f")) ? params.get("f") : (menu[0]?.key || "ChatGPT");
   const windowGroups = station.windows?.[windowKey] || station.windows?.["24h"] || null;
   const groupMap = new Map((windowGroups || []).map((group) => [group.name, group]));
-  const catalogFamily = rows.filter((row) => familyOf(row) === family);
+  const catalogFamily = globalThis.__VERD_STATIC__ ? rows : rows.filter((row) => familyOf(row) === family);
   const priceRows = catalogFamily.length
     ? catalogFamily.map((row) => overlayRow(row, groupMap.get(row.group)))
     : synthRows(windowGroups, family, station.labels);
@@ -2075,7 +2169,7 @@ export function StationPage() {
     else eventGroups.push({ day: item.day, items: [item] });
   }
   const notes = station.announcements || [];
-  const comments = [...localReviews.filter((item) => item.slug === station.slug), ...(station.reviews || [])];
+  const comments = [...remoteComments].reverse().concat(station.reviews || []);
   const rated = comments.filter((item) => item.rating);
   const average = rated.length ? rated.reduce((sum, item) => sum + Number(item.rating), 0) / rated.length : null;
   const socials = station.socials?.length ? station.socials : [{ name: "官网", url: station.site }];
@@ -2107,9 +2201,14 @@ export function StationPage() {
             <div className="station-main">
               <div className="st-title">
                 <h1>{station.name}</h1>
-                {station.rating ? (
-                  <span className="score-pill"><span className="star">★</span> {station.rating.toFixed(1)} {station.ratingCount}条评价</span>
+                {headerRating != null ? (
+                  <span className="score-pill"><span className="star">★</span> {headerRating.toFixed(1)} {headerCount}条评价</span>
                 ) : <span className="score-pill">暂无评分</span>}
+                <span className="head-votes">
+                  <b><Trophy />第{station.place}名</b>
+                  <button type="button" className={mineVote === "up" ? "up on" : "up"} aria-pressed={mineVote === "up"} onClick={() => castVote("up")}><Thumb up /> {shownUp}</button>
+                  <button type="button" className={mineVote === "down" ? "down on" : "down"} aria-pressed={mineVote === "down"} onClick={() => castVote("down")}><Thumb /> {shownDown}</button>
+                </span>
               </div>
               <div className="links">
                 {socials.map((item) => (
@@ -2290,7 +2389,7 @@ export function StationPage() {
                                 </div>
                               </td>
                               <td>{group.ratio == null ? "—" : `${group.ratio}x`}</td>
-                              <td>{group.startPrice == null ? "—" : `¥${money(group.startPrice)} 起`}</td>
+                              <td>{group.startPrice == null ? "—" : `${unitOf(group)}${money(group.startPrice)} 起`}</td>
                               <td><Purity score={group.score} service={group.service} /></td>
                               <td>{latency}</td>
                               <td className="strong">{avail}</td>
@@ -2308,8 +2407,8 @@ export function StationPage() {
                                           return (
                                             <div key={model.id} className="gm-mrow">
                                               <span>{name}</span>
-                                              <span>{model.in == null || model.out == null ? "—" : `¥${money(model.in)} / ¥${money(model.out)}`}</span>
-                                              <span>{model.cache == null ? "—" : `¥${money(model.cache)}`}</span>
+                                              <span>{model.in == null || model.out == null ? "—" : `${unitOf(model)}${money(model.in)} / ${unitOf(model)}${money(model.out)}`}</span>
+                                              <span>{model.cache == null ? "—" : `${unitOf(model)}${money(model.cache)}`}</span>
                                             </div>
                                           );
                                         })}
@@ -2434,7 +2533,7 @@ export function StationPage() {
           <h2>站点公告 <span className="mini">共 {notes.length} 条</span></h2>
           {notes.length ? notes.map((item) => {
             const long = (item.content || "").length > 180;
-            const open = Boolean(openNotes[item.id]);
+            const open = Boolean(globalThis.__VERD_STATIC__) || Boolean(openNotes[item.id]);
             const text = !long || open ? item.content : `${item.content.slice(0, 180)}…`;
             return (
               <article key={item.id} className="notice">
@@ -2495,13 +2594,13 @@ export function StationPage() {
                 </div>
               ))}
             </article>
-          )) : <p className="mini">原站公开页面上还没有这条站点的评论。</p>}
+          )) : <p className="mini">还没有评论。登录后可以写点评。</p>}
           {writing ? (
             <ReviewDialog
               initialSlug={station.slug}
               onClose={() => setWriting(false)}
               onSaved={(review) => {
-                setLocalReviews((current) => [...current, review]);
+                setRemoteComments((current) => [...current, review]);
                 setWriting(false);
               }}
             />
@@ -2533,31 +2632,9 @@ function StarRow({ score }) {
   );
 }
 
-const LOCAL_REVIEW_KEY = "okk-local-reviews";
 const PRO_TAGS = ["速度快", "稳定", "不掺水", "纯度高", "价格实惠", "客服好", "文档全", "模型全", "充值方便"];
 const CON_TAGS = ["偶发限流", "不稳定", "疑似掺水", "疑似降智", "价格贵", "客服慢", "限制多"];
 
-function readLocalReviews() {
-  try {
-    const parsed = JSON.parse(localStorage.getItem(LOCAL_REVIEW_KEY) || "[]");
-    if (!Array.isArray(parsed)) return [];
-    return parsed.filter((item) => item && item.slug).map((item) => ({
-      ...item,
-      pros: Array.isArray(item.pros) ? item.pros : [],
-      cons: Array.isArray(item.cons) ? item.cons : [],
-      rating: Number(item.rating) || 0,
-      body: item.body || "",
-    }));
-  } catch {
-    return [];
-  }
-}
-
-function writeLocalReviews(items) {
-  localStorage.setItem(LOCAL_REVIEW_KEY, JSON.stringify(items));
-}
-
-const VOTE_KEY = "veridrop-votes";
 const REMARK_KEY = "veridrop-remarks";
 const PICK_PAGE = 40;
 const voteRows = stations.map((station) => ({
@@ -2667,6 +2744,7 @@ function ReviewDialog({ onClose, onSaved, initialSlug = "" }) {
   const [adding, setAdding] = useState("");
   const [draft, setDraft] = useState("");
   const [error, setError] = useState("");
+  const [saving, setSaving] = useState(false);
 
   const toggle = (setter, tag) => {
     setter((current) => {
@@ -2690,24 +2768,39 @@ function ReviewDialog({ onClose, onSaved, initialSlug = "" }) {
       setCons((current) => new Set(current).add(name));
     }
   };
-  const submit = (event) => {
+  const submit = async (event) => {
     event.preventDefault();
+    if (saving) return;
     if (!slug) {
       setError("先选择一个站点");
       return;
     }
-    const review = {
-      id: `local-${Date.now()}`,
-      slug,
-      user: readPoints().nick || "我",
-      rating: stars,
-      body: text.trim().slice(0, 2000),
-      pros: [...pros],
-      cons: [...cons],
-      date: new Date().toISOString().slice(0, 10),
-    };
-    writeLocalReviews([...readLocalReviews(), review]);
-    onSaved(review);
+    if (!authToken()) {
+      setError("请先登录");
+      window.dispatchEvent(new Event("okk-open-auth"));
+      return;
+    }
+    setSaving(true);
+    setError("");
+    try {
+      const review = await sendComment({
+        slug,
+        rating: stars,
+        body: text.trim().slice(0, 2000),
+        pros: [...pros],
+        cons: [...cons],
+      });
+      if (review.points) replacePoints(review.points);
+      onSaved(review);
+    } catch (err) {
+      if (err.status === 401) {
+        setAuthToken("");
+        window.dispatchEvent(new Event("okk-open-auth"));
+      }
+      setError(err.message || "没有记下");
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -2773,7 +2866,7 @@ function ReviewDialog({ onClose, onSaved, initialSlug = "" }) {
           />
           {error ? <p className="review-error">{error}</p> : null}
           <div className="review-actions">
-            <button className="review-submit" type="submit">提交评论</button>
+            <button className="review-submit" type="submit" disabled={saving}>{saving ? "正在提交" : "提交评论"}</button>
           </div>
         </form>
       </div>
@@ -2788,11 +2881,18 @@ export function ReputationPage() {
   const [sort, setSort] = useState("net");
   const [menu, setMenu] = useState("");
   const [shown, setShown] = useState(20);
-  const [votes, setVotes] = useState(() => readObjectStore(VOTE_KEY));
+  const [board, setBoard] = useState(null);
+  const [shared, setShared] = useState([]);
   const [remarks, setRemarks] = useState(() => readObjectStore(REMARK_KEY));
   const [mine, setMine] = useState(false);
-  const [localReviews, setLocalReviews] = useState(() => readLocalReviews());
   const [note, setNote] = useState("");
+  const voting = useRef(false);
+  useEffect(() => {
+    let stop = false;
+    fetchVotes().then((data) => { if (!stop) setBoard(data); }).catch(() => {});
+    fetchComments("").then((data) => { if (!stop) setShared(Array.isArray(data.comments) ? data.comments : []); }).catch(() => {});
+    return () => { stop = true; };
+  }, []);
   useEffect(() => {
     if (!note) return undefined;
     const timer = setTimeout(() => setNote(""), 1600);
@@ -2804,43 +2904,67 @@ export function ReputationPage() {
   }, [q]);
   const localBySlug = useMemo(() => {
     const grouped = new Map();
-    for (const review of localReviews) {
+    for (const review of shared) {
       const list = grouped.get(review.slug) || [];
       list.push(review);
       grouped.set(review.slug, list);
     }
     return grouped;
-  }, [localReviews]);
+  }, [shared]);
   const ranked = useMemo(() => {
     const rows = [];
     for (const row of voteRows) {
       if (query && !row.hay.includes(query)) continue;
-      const mineVote = votes[row.station.slug] === "up" || votes[row.station.slug] === "down" ? votes[row.station.slug] : "";
-      const up = (row.station.voteUp || 0) + (mineVote === "up" ? 1 : 0);
-      const down = (row.station.voteDown || 0) + (mineVote === "down" ? 1 : 0);
+      const id = stationVoteId(row.station);
+      const live = board?.stations?.[id];
+      const mineVote = board?.mine?.[id] === "up" || board?.mine?.[id] === "down" ? board.mine[id] : "";
+      const up = live ? Number(live.up) || 0 : (row.station.voteUp || 0);
+      const down = live ? Number(live.down) || 0 : (row.station.voteDown || 0);
       rows.push({ station: row.station, up, down, net: up - down, mine: mineVote, order: row.order });
     }
     const key = sort === "up" || sort === "down" ? sort : "net";
     rows.sort((a, b) => (b[key] - a[key]) || (b.net - a.net) || (a.order - b.order));
     return rows;
-  }, [query, sort, votes]);
+  }, [query, sort, board]);
   const visible = ranked.slice(0, shown);
-  const cast = (slug, side) => {
-    setVotes((current) => {
-      const next = { ...current };
-      if (next[slug] === side) delete next[slug];
-      else next[slug] = side;
-      localStorage.setItem(VOTE_KEY, JSON.stringify(next));
-      return next;
-    });
-    const cancelling = votes[slug] === side;
-    if (cancelling) {
-      setNote("已取消");
+  const cast = async (station, side) => {
+    if (voting.current) return;
+    if (!authToken()) {
+      setNote("请先登录再投票");
+      window.dispatchEvent(new Event("okk-open-auth"));
       return;
     }
-    const result = grant("like", 2, "投票", "day");
-    const base = side === "up" ? "已投赞成" : "已投反对";
-    setNote(result.added ? `${base}，+${result.added}` : base);
+    voting.current = true;
+    try {
+      const result = await sendVote(stationVoteId(station), side);
+      setBoard((current) => {
+        const next = current || { stations: {}, mine: {} };
+        const mineMap = { ...(next.mine || {}) };
+        if (result.mine === "up" || result.mine === "down") mineMap[result.id] = result.mine;
+        else delete mineMap[result.id];
+        return {
+          ...next,
+          stations: { ...(next.stations || {}), [result.id]: { up: result.up, down: result.down } },
+          mine: mineMap,
+        };
+      });
+      if (!result.mine) {
+        setNote("已取消");
+        return;
+      }
+      if (result.points) replacePoints(result.points);
+      const granted = { added: result.points?.added ? Number(result.points.amount) || 2 : 0 };
+      const base = result.mine === "up" ? "已投赞成" : "已投反对";
+      setNote(granted.added ? `${base}，+${granted.added}` : base);
+    } catch (err) {
+      if (err.status === 401) {
+        setAuthToken("");
+        window.dispatchEvent(new Event("okk-open-auth"));
+      }
+      setNote(err.message || "没有记下");
+    } finally {
+      voting.current = false;
+    }
   };
   const remark = (slug, key, label) => {
     const id = `${slug}|${key}|${label}`;
@@ -2872,7 +2996,7 @@ export function ReputationPage() {
       <div className="page-hd">
         <div>
           <h1>投票</h1>
-          <p className="sub">赞成减反对，净票高的排前面。每人每站一票，记在这台浏览器里。</p>
+          <p className="sub">赞成减反对，净票高的排前面。每人每站一票，记在接口里，其他人也能看到。</p>
         </div>
       </div>
       <div className="vote-bar">
@@ -2922,12 +3046,12 @@ export function ReputationPage() {
                 <div className="vvote">
                   <div className="vnet">净票 <b className={netClass}>{row.net > 0 ? `+${row.net}` : row.net}</b></div>
                   <div className="vbtns">
-                    <button type="button" className={row.mine === "up" ? "vbtn up on" : "vbtn up"} onClick={() => cast(station.slug, "up")}>
+                    <button type="button" className={row.mine === "up" ? "vbtn up on" : "vbtn up"} onClick={() => cast(station, "up")}>
                       <ThumbIcon />
                       <b>{row.up}</b>
                       <span>赞成</span>
                     </button>
-                    <button type="button" className={row.mine === "down" ? "vbtn down on" : "vbtn down"} onClick={() => cast(station.slug, "down")}>
+                    <button type="button" className={row.mine === "down" ? "vbtn down on" : "vbtn down"} onClick={() => cast(station, "down")}>
                       <ThumbIcon down />
                       <b>{row.down}</b>
                       <span>反对</span>
@@ -2946,9 +3070,9 @@ export function ReputationPage() {
         <ReviewDialog
           onClose={() => setMine(false)}
           onSaved={(review) => {
-            setLocalReviews((current) => [...current, review]);
+            setShared((current) => [...current, review]);
             setMine(false);
-            setNote("点评已记在这台浏览器里");
+            setNote("点评已发布，其他人也能看到");
           }}
         />
       ) : null}
@@ -3445,40 +3569,34 @@ export function ModelPage() {
 }
 
 export function HelpPage() {
-  useTitle("评测方法｜纯度分档、在线率、延迟和综合分说明");
+  useTitle("评测方法｜目录探测、公开价格、投票和评价");
   return (
     <div className="wrap help">
       <aside className="side">
         <div className="mini">平台说明</div>
         <a className="on" href="#method">评测方法</a>
         <a href="#scoring">评分说明</a>
-        <a href="#proto">连通性测试</a>
+        <a href="#blank">留空的字段</a>
       </aside>
       <article className="prose">
         <h1 id="method">评测方法</h1>
-        <p>中转测评是一个独立的第三方平台，对各家 AI API 中转站做客观、可复现的实测。我们不收取任何影响排名的费用，榜单上的分数全部来自自动探针，判定方法对外公开。</p>
-        <h2>纯度检测与三档判定</h2>
-        <p>判断一个分组纯度高低的核心，是 Anthropic 官方后端返回的思维签名（thinking signature）——一段无法伪造的加密标记。用被测站自己的账号实际调用模型，根据是否拿到有效签名、以及返回行为是否与官方一致，算出 0–100 的纯度分，并归入三档：</p>
+        <p>维渡 AI 是第三方 AI 中转站目录。本站不代收充值，也不证明某家站是官方原厂。收录和名次不收费。</p>
+        <p>页面上的数字只来自下面几类已经拿到的记录。没有记录的格子留空，不估一个分数。</p>
         <table className="doc">
-          <thead><tr><th>档位</th><th>纯度分</th><th>含义</th></tr></thead>
+          <thead><tr><th>内容</th><th>来源</th><th>页面上怎么用</th></tr></thead>
           <tbody>
-            <tr><td>官方渠道</td><td>85 – 100</td><td>走真 Anthropic 官方后端，带有效思维签名，可认定纯正。</td></tr>
-            <tr><td>混合渠道</td><td>30 – 84</td><td>确为真 Claude，但经 AWS / Kiro / Bedrock 等非官方后端中转，拿不到官方签名。</td></tr>
-            <tr><td>来源存疑</td><td>0 – 29</td><td>既无官方签名，行为也与官方不符，疑似被替换为更廉价的非 Claude 模型。</td></tr>
+            <tr><td>站点在线率、延迟</td><td>目录探测</td><td>写在站点资料里。这是站点级记录，不是每个模型各测一次。</td></tr>
+            <tr><td>输入价、输出价、缓存价</td><td>该站公开的价格接口</td><td>按对方公布的倍率公式换算。没有公开价格，或不是按 token 计价的，价格留空。</td></tr>
+            <tr><td>公告</td><td>该站公开的公告接口</td><td>有公告才显示。没有就写公开页面上没有公告。</td></tr>
+            <tr><td>最低充值、支付、发票、退款</td><td>目录里已经记下的字段</td><td>目录没有的不补。</td></tr>
+            <tr><td>赞成、反对、点评</td><td>登录账户提交</td><td>记在接口里，其他人打开同一页能看到。</td></tr>
           </tbody>
         </table>
-        <h2 id="proto">不同协议能测到的范围</h2>
-        <p>思维签名是 Anthropic 协议独有的机制。OpenAI 与 Google 协议没有等价的可验证签名，因此对 GPT、Gemini 只能做协议级测试——验证连通性、响应模型标识、速度与在线率，无法判断其真伪。</p>
-        <table className="doc">
-          <thead><tr><th>协议家族</th><th>真伪验证</th><th>可测指标</th></tr></thead>
-          <tbody>
-            <tr><td>Anthropic<br /><span className="mini">Claude / Claude Code</span></td><td>可验真伪（思维签名）</td><td>纯度、速度、在线率</td></tr>
-            <tr><td>OpenAI</td><td>仅协议级</td><td>速度、在线率</td></tr>
-            <tr><td>Gemini</td><td>仅协议级</td><td>速度、在线率</td></tr>
-          </tbody>
-        </table>
+        <h2 id="blank">留空的字段</h2>
+        <p>纯度、单个模型的延迟和单个模型的在线率，本站没有做这套探测，详情页对应格子是空的。浏览器里的基础测试、糖果测试和鹈鹕骑车，用的是你自己的接口地址和 Key，结果只留在这台浏览器，不会写成站内的纯度分。</p>
         <h2 id="scoring">评分说明</h2>
-        <p>榜单综合分由在线率、速度和可验证纯度构成。在线率来自分组探针的成功比例，速度由响应耗时换算。没有思维签名的协议不进入纯度分。人工不能改写已经写入的探测结果。</p>
+        <p>有人投票时，星级等于赞成除以赞成加反对，再乘以 5。评价条数等于赞成加反对。没有投票、但目录里原来有评价时，沿用那些评价的星级。投票和评价都没有，就显示暂无评分。</p>
+        <p>名次来自目录排序。目录给出分数的站点，按分数从高到低编成第几名。没有目录分数、但原来的榜单有名次的，沿用那个名次。赞成和反对每人每站一票，再点一次同一边就是取消。</p>
       </article>
     </div>
   );
@@ -3561,7 +3679,7 @@ export function DisclaimerPage() {
       <p>最后更新：2026 年 7 月 3 日</p>
       <p>维渡 AI（下称「本站」）是一个独立的第三方 AI 中转站测评平台。为帮助你理解本站信息的性质与边界，请阅读以下声明。</p>
       <h2>一、检测结果仅供参考</h2>
-      <p>本站的纯度、可用性、速度、价格等数据由自动化程序定期检测与采集产出。受中转站策略调整、上游波动、网络环境、检测覆盖范围有限等因素影响，结果可能出现偏差、延迟或错误，不保证在任何时刻都完全准确。请以你自己的实际使用体验为准。</p>
+      <p>站点在线率、延迟来自目录探测，价格来自各站公开页面。本站没有做纯度探测，单个模型的延迟和在线率也没有测。这些记录可能滞后或有误，请以你自己的使用为准。</p>
       <h2>二、不构成推荐或背书</h2>
       <p>本站对中转站的检测、评分与排名，仅是基于既定方法的客观呈现，不代表本站对任何中转站的推荐、担保或背书。是否使用某个中转站，应由你自行判断与决定。</p>
       <h2>三、数据来源</h2>
@@ -3594,13 +3712,13 @@ export function TermsPage() {
 }
 
 const DAILY = [
-  ["checkin", "每日签到", "UTC+8 每天可签到一次", "3~5", "去完成"],
+  ["checkin", "每日签到", "登录后每天签到一次，记在账户里", "3~5", "去完成"],
   ["detect", "每日检测", "在首页发起一次基础测试", "3", "去完成"],
 ];
 const ADVANCED = [
   ["like", "投票", "在投票页给一家中转站投赞成或反对", "2", "去完成"],
   ["review", "发表点评", "对用过的中转站写一条真实点评", "8", "去完成"],
-  ["invite", "邀请好友", "复制邀请链接。注册后的积分还没接上", "20", "去完成"],
+  ["invite", "邀请好友", "好友用你的链接注册后，你得 20 积分", "20", "去完成"],
 ];
 const BASIC = [
   ["community", "加入官方社群", "加入官方 Telegram / 微信群", "5", "敬请期待"],
@@ -3746,19 +3864,24 @@ function AvatarField({ name, value, onChange, onError }) {
   );
 }
 
-function inviteCode(name) {
-  const saved = localStorage.getItem("okk-invite-code");
-  if (saved && /^[A-Z0-9]{6}$/.test(saved)) return saved;
-  const seed = [...String(name || "VD")].map((ch) => ch.codePointAt(0).toString(36)).join("").toUpperCase().replace(/[^A-Z0-9]/g, "");
-  const extra = Math.random().toString(36).slice(2, 8).toUpperCase().replace(/[^A-Z0-9]/g, "");
-  const code = `${seed}${extra}`.slice(0, 6).padEnd(6, "X");
-  localStorage.setItem("okk-invite-code", code);
-  return code;
-}
-
-function InviteDialog({ name, copied, onCopy, onClose }) {
-  const code = inviteCode(name);
-  const link = `${window.location.origin}/?invite=${code}`;
+function InviteDialog({ copied, onCopy, onClose }) {
+  const [info, setInfo] = useState(null);
+  const [error, setError] = useState("");
+  useEffect(() => {
+    if (!authToken()) {
+      setError("请先登录，邀请链接才会记到账户");
+      return undefined;
+    }
+    let stop = false;
+    fetchAccount().then((data) => {
+      if (!stop) setInfo(data.invite || null);
+    }).catch((err) => {
+      if (!stop) setError(err.message || "没有读到邀请码");
+    });
+    return () => { stop = true; };
+  }, []);
+  const code = info?.code || "";
+  const link = code ? `${window.location.origin}/?invite=${code}` : "";
   return (
     <div className="invite-mask" onClick={onClose}>
       <div className="invite-box" role="dialog" aria-labelledby="invite-title" onClick={(event) => event.stopPropagation()}>
@@ -3774,29 +3897,36 @@ function InviteDialog({ name, copied, onCopy, onClose }) {
           </svg>
         </div>
         <h2 id="invite-title">邀请好友</h2>
-        <p className="invite-lead">分享你的邀请链接。好友用这个链接打开本站即可。注册后的积分还没接上，现在复制不会加分。</p>
-        <div className="invite-k">邀请码</div>
-        <div className="invite-code">
-          <b>{code}</b>
-          <button type="button" aria-label="复制邀请码" onClick={() => onCopy(code, "code")}>{copied === "code" ? "已复制" : "复制"}</button>
-        </div>
-        <div className="invite-k">邀请链接</div>
-        <div className="invite-link">
-          <input readOnly value={link} />
-          <button type="button" onClick={() => onCopy(link, "link")}>{copied === "link" ? "已复制" : "复制"}</button>
-        </div>
-        <div className="invite-k">邀请历史</div>
-        <div className="invite-stats">
-          <div><b>0</b><span>已邀请(人)</span></div>
-          <div><b>0</b><span>累计积分</span></div>
-        </div>
+        <p className="invite-lead">好友用这个链接注册后，你获得 20 积分。同一个好友只算一次。</p>
+        {error ? <p className="review-error">{error}</p> : null}
+        {code ? (
+          <>
+            <div className="invite-k">邀请码</div>
+            <div className="invite-code">
+              <b>{code}</b>
+              <button type="button" aria-label="复制邀请码" onClick={() => onCopy(code, "code")}>{copied === "code" ? "已复制" : "复制"}</button>
+            </div>
+            <div className="invite-k">邀请链接</div>
+            <div className="invite-link">
+              <input readOnly value={link} />
+              <button type="button" onClick={() => onCopy(link, "link")}>{copied === "link" ? "已复制" : "复制"}</button>
+            </div>
+            <div className="invite-k">邀请历史</div>
+            <div className="invite-stats">
+              <div><b>{info.count || 0}</b><span>已邀请(人)</span></div>
+              <div><b>{info.points || 0}</b><span>累计积分</span></div>
+            </div>
+          </>
+        ) : error ? (
+          <button type="button" className="go" onClick={() => window.dispatchEvent(new Event("okk-open-auth"))}>登录</button>
+        ) : <p className="mini">正在读取邀请码</p>}
       </div>
     </div>
   );
 }
 
 export function PointsPage() {
-  useTitle("赚积分｜签到、检测、投票和点评记在这台浏览器");
+  useTitle("赚积分｜签到、投票和点评记在账户，检测只留在这台浏览器");
   const navigate = useNavigate();
   const location = useLocation();
   const [state, setState] = useState(() => readPoints());
@@ -3829,6 +3959,12 @@ export function PointsPage() {
   }, [location.hash]);
 
   useEffect(() => {
+    const sync = () => setState(readPoints());
+    window.addEventListener("okk-account", sync);
+    return () => window.removeEventListener("okk-account", sync);
+  }, []);
+
+  useEffect(() => {
     if (!inviteOpen) return undefined;
     const onKey = (event) => {
       if (event.key === "Escape") setInviteOpen(false);
@@ -3849,9 +3985,23 @@ export function PointsPage() {
 
   function go(id) {
     if (id === "checkin") {
-      const amount = 3 + Math.floor(Math.random() * 3);
-      const result = grant("checkin", amount, "每日签到", "day");
-      setNote(result.added ? `签到成功，+${result.added}` : "今天已经签过到了");
+      if (!authToken()) {
+        setNote("请先登录再签到");
+        window.dispatchEvent(new Event("okk-open-auth"));
+        return;
+      }
+      sendCheckin().then(async (result) => {
+        const account = await fetchAccount();
+        applyRemoteAccount(account);
+        setState(readPoints());
+        setNote(result.added ? `签到成功，+${result.amount}` : "今天已经签过到了");
+      }).catch((err) => {
+        if (err.status === 401) {
+          setAuthToken("");
+          window.dispatchEvent(new Event("okk-open-auth"));
+        }
+        setNote(err.message || "没有记下");
+      });
       return;
     }
     if (id === "detect" || id === "first-detect") {
@@ -3923,7 +4073,7 @@ export function PointsPage() {
               {open ? (
                 <form
                   className="pts-edit"
-                  onSubmit={(event) => {
+                  onSubmit={async (event) => {
                     event.preventDefault();
                     const value = nickDraft.trim();
                     if (!value) {
@@ -3933,11 +4083,17 @@ export function PointsPage() {
                     saveNick(value);
                     const session = readSession();
                     writeAvatar(avatarDraft);
-                    if (session.name) {
-                      writeSession(value, session.email);
-                      if (session.email) {
-                        writeAccounts(readAccounts().map((item) => (item.email === session.email ? { ...item, nick: value, avatar: avatarDraft } : item)));
+                    if (authToken()) {
+                      try {
+                        const profile = await updateProfile({ nick: value });
+                        writeSession(profile.name || value, session.email);
+                        applyRemoteAccount(await saveAvatar(avatarDraft));
+                      } catch (err) {
+                        setNote(err.message || "昵称没有写到接口");
+                        return;
                       }
+                    } else if (session.name) {
+                      writeSession(value, session.email);
                     }
                     const result = grant("profile", 5, "完善资料", "once");
                     setState(result.state);
@@ -3971,7 +4127,7 @@ export function PointsPage() {
       <header className="pts-head">
         <div>
           <h1>积分中心</h1>
-          <p>做任务赚积分，兑换 API 额度与权益</p>
+          <p>做任务赚积分。兑换页目前没有奖品。</p>
         </div>
         <div className="pts-stats">
           <div className="pts-stat">
@@ -4062,7 +4218,6 @@ export function PointsPage() {
       </div>
       {inviteOpen ? (
         <InviteDialog
-          name={name}
           copied={copied}
           onCopy={async (text, which) => {
             try {
@@ -4081,7 +4236,7 @@ export function PointsPage() {
 }
 
 export function AccountPage() {
-  useTitle("账户设置｜头像、昵称和密码只留在这台浏览器");
+  useTitle("账户设置｜头像、积分、收藏和提交记在账户");
   const [session, setSession] = useState(readSession);
   const [nick, setNick] = useState(session.name);
   const [avatar, setAvatar] = useState(readAvatar);
@@ -4105,13 +4260,13 @@ export function AccountPage() {
     return (
       <div className="wrap form-page">
         <h1>账户设置</h1>
-        <p className="sub">先登录。账户只记在这台浏览器里。</p>
+        <p className="sub">先登录。头像、积分、收藏和提交记在这个账户里。</p>
         <button className="go" type="button" onClick={() => window.dispatchEvent(new Event("okk-open-auth"))}>登录</button>
       </div>
     );
   }
 
-  function saveName(event) {
+  async function saveName(event) {
     event.preventDefault();
     const value = nick.trim();
     if (!value) {
@@ -4119,29 +4274,35 @@ export function AccountPage() {
       setNote("");
       return;
     }
-    saveNick(value);
-    writeSession(value, session.email);
-    writeAvatar(avatar);
-    if (session.email) {
-      writeAccounts(readAccounts().map((item) => (item.email === session.email ? { ...item, nick: value, avatar } : item)));
-    }
-    setSession({ name: value, email: session.email });
-    setError("");
-    setNote("头像和昵称已记下");
-    window.dispatchEvent(new Event("okk-auth"));
-  }
-
-  function savePassword(event) {
-    event.preventDefault();
-    const accounts = readAccounts();
-    const found = accounts.find((item) => item.email === session.email);
-    if (!found) {
-      setError("这台浏览器没有这份账户的密码");
+    if (!authToken()) {
+      setError("请退出后重新登录，昵称才会记到点评里");
       setNote("");
       return;
     }
-    if (found.password !== current) {
-      setError("当前密码不正确");
+    try {
+      const profile = await updateProfile({ nick: value });
+      saveNick(profile.name || value);
+      writeSession(profile.name || value, session.email);
+      applyRemoteAccount(await saveAvatar(avatar));
+      setSession({ name: profile.name || value, email: session.email });
+      setNick(profile.name || value);
+      setError("");
+      setNote("头像和昵称已记到账户");
+      window.dispatchEvent(new Event("okk-auth"));
+    } catch (err) {
+      if (err.status === 401) {
+        setAuthToken("");
+        window.dispatchEvent(new Event("okk-open-auth"));
+      }
+      setError(err.message || "没有记下");
+      setNote("");
+    }
+  }
+
+  async function savePassword(event) {
+    event.preventDefault();
+    if (!authToken()) {
+      setError("请退出后重新登录，再改密码");
       setNote("");
       return;
     }
@@ -4150,17 +4311,26 @@ export function AccountPage() {
       setNote("");
       return;
     }
-    writeAccounts(accounts.map((item) => (item.email === session.email ? { ...item, password: next } : item)));
-    setCurrent("");
-    setNext("");
-    setError("");
-    setNote("密码已更新，只写在这台浏览器里");
+    try {
+      await changePassword({ current, password: next });
+      setCurrent("");
+      setNext("");
+      setError("");
+      setNote("密码已更新");
+    } catch (err) {
+      if (err.status === 401) {
+        setAuthToken("");
+        window.dispatchEvent(new Event("okk-open-auth"));
+      }
+      setError(err.message || "没有记下");
+      setNote("");
+    }
   }
 
   return (
     <div className="wrap form-page">
       <h1>账户设置</h1>
-      <p className="sub">头像和昵称只留在这台浏览器，不会发到维渡 AI。</p>
+      <p className="sub">头像、昵称、积分、收藏和提交都记在这个账户里。检测记录只留在这台浏览器。</p>
       <form onSubmit={saveName}>
         <AvatarField name={nick} value={avatar} onChange={(next) => { setAvatar(next); setError(""); }} onError={(message) => { setError(message); setNote(""); }} />
         <div className="field">
@@ -4193,12 +4363,17 @@ export function AccountPage() {
 }
 
 export function SubmissionsPage() {
-  useTitle("我的提交｜这台浏览器提交过的收录，没有审核状态");
+  useTitle("我的提交｜记在登录账户里，没有审核状态");
   const [rows, setRows] = useState(readSubmissions);
+  useEffect(() => {
+    const sync = () => setRows(readSubmissions());
+    window.addEventListener("okk-account", sync);
+    return () => window.removeEventListener("okk-account", sync);
+  }, []);
   return (
     <div className="wrap form-page">
       <h1>我的提交</h1>
-      <p className="sub">这里只列出这台浏览器提交过的站点，没有审核状态。</p>
+      <p className="sub">这里列出这个账户提交过的站点，没有审核状态。</p>
       {rows.length === 0 ? (
         <p>还没有提交。<Link to="/apply">去申请收录</Link></p>
       ) : (
@@ -4220,10 +4395,12 @@ export function SubmissionsPage() {
 
 export function AgentsPage() {
   return (
-    <Article title="给 Agent 的站点说明" seoTitle="给 Agent 的站点说明｜榜单路径、字段和数据边界">
-      <p>维渡 AI 是 AI 中转站的第三方榜单：在线率、延迟、支付与发票、用户口碑、模型智商和 Codex 额度重置。</p>
-      <p>主要路径：/ 首页，/list 榜单，/station/&lt;slug&gt; 站点，/tools/iq 智商榜，/tools/codex-resets 额度重置，/reputation 投票，/activity 福利羊毛，/help 方法。</p>
-      <p>这份本地站点使用 2026-10-19 的公开页面快照，不连接探测后端。</p>
+    <Article title="给 Agent 的站点说明" seoTitle="给 Agent 的站点说明｜路径、字段和没有探测的项目">
+      <p>维渡 AI 是 AI 中转站目录。下面三份文件按现在的页面写，不是探测后端的说明书。</p>
+      <p><a href="/llms.txt">llms.txt</a> 是给模型看的站点简介和主要路径。</p>
+      <p><a href="/stations.md">stations.md</a> 写每个中转站页面有哪些字段，哪些格子是空的。</p>
+      <p><a href="/methodology.md">methodology.md</a> 写价格、在线率、投票和评分的实际来源。</p>
+      <p>登录、投票、点评、收藏、积分和提交收录记在账户接口里。检测记录和 Key 只留在浏览器。本站没有纯度分，也不证明官方原厂。</p>
     </Article>
   );
 }
@@ -4313,7 +4490,7 @@ export function ReportPage() {
         <div className="crumb">
           <Link to="/list">站点</Link>
           <span> › </span>
-          {report.slug ? <Link to={`/station/${report.slug}`}>{report.station}</Link> : <span>{report.station}</span>}
+          {report.slug ? <Link to={stationPath(findStation(report.slug) || { slug: report.slug })}>{report.station}</Link> : <span>{report.station}</span>}
           <span> › 检测报告</span>
         </div>
         <div className="report-actions">
@@ -4382,11 +4559,11 @@ export function ReportPage() {
       <div className="report-archive">
         <div>
           <b>该站已被维渡 AI 收录</b>
-          <span> —— 含长期在线率、速度、历史纯度趋势</span>
+          <span> —— 站点在线率、公开价格和评价以详情页为准</span>
         </div>
-        {report.slug ? <Link to={`/station/${report.slug}`}>查看完整档案 →</Link> : null}
+        {report.slug ? <Link to={stationPath(findStation(report.slug) || { slug: report.slug })}>查看完整档案 →</Link> : null}
       </div>
-      <p className="report-note">本站仅提供中转站 API 的自动化真伪与质量检测,结果可能因中转站策略调整、网络波动或检测覆盖有限而出现偏差或错误,仅供参考。检测不代表对任何中转站的推荐或背书,请以你自己的实际使用体验为准。</p>
+      <p className="report-note">这次检测用的是你填写的地址和 Key，结果只留在这台浏览器。它不是纯度鉴定，也不代表对任何中转站的推荐。请以你自己的使用为准。</p>
       {poster ? (
         <div className="th-overlay" onClick={() => setPoster(false)}>
           <div className="poster-dialog" onClick={(event) => event.stopPropagation()}>

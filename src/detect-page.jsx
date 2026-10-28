@@ -150,7 +150,7 @@ export function DetectRunPage() {
         <div className="dcrumb">
           <Link to="/list">站点</Link>
           <span>&gt;</span>
-          {station ? <Link to={`/station/${station.slug}`}>{host}</Link> : <span>{host}</span>}
+          {station ? <Link to={station.path}>{host}</Link> : <span>{host}</span>}
           <span>&gt;</span>
           <b>{running ? "检测中" : "检测报告"}</b>
         </div>

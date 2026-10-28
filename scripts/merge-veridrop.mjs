@@ -211,7 +211,7 @@ writeFileSync(resolve(root, "src", "verd-index.json"), JSON.stringify({
 }));
 
 function xml(url) {
-  return `  <url><loc>${origin}${url}</loc><lastmod>2026-10-22</lastmod></url>`;
+  return `  <url><loc>${origin}${url}</loc><lastmod>2026-10-28</lastmod></url>`;
 }
 
 const pages = [
@@ -233,8 +233,6 @@ const pages = [
   "/privacy",
   "/terms",
   "/points",
-  "/submit",
-  "/history",
   "/agents",
   "/tools/iq",
   "/tools/codex-resets",
@@ -246,7 +244,7 @@ for (const [id] of [
 ]) pages.push(`/cat/${id}`);
 for (const id of ["gpt", "claude", "gemini", "grok", "deepseek", "kimi", "qwen", "glm", "image", "video"]) pages.push(`/model/${id}`);
 for (const id of ["openai", "anthropic", "gemini", "deepseek", "moonshot", "xai"]) pages.push(`/official/${id}`);
-for (const row of catalog.stations || []) pages.push(`/station/${row.slug}`);
+for (const row of catalog.stations || []) pages.push(`/site/${row.slug}`);
 for (const row of modelRows) if (row.slug) pages.push(`/model/${row.slug}`);
 for (const skin of skins) if (skin.id) pages.push(`/tools/skins/${skin.id}`);
 
@@ -263,7 +261,7 @@ for (const row of attach) {
 
 const pageXml = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${pages.map(xml).join("\n")}\n</urlset>\n`;
 const siteXml = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${siteUrls.map(xml).join("\n")}\n</urlset>\n`;
-const indexXml = `<?xml version="1.0" encoding="UTF-8"?>\n<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n  <sitemap><loc>${origin}/sitemap-pages.xml</loc><lastmod>2026-10-22</lastmod></sitemap>\n  <sitemap><loc>${origin}/sitemap-sites.xml</loc><lastmod>2026-10-22</lastmod></sitemap>\n</sitemapindex>\n`;
+const indexXml = `<?xml version="1.0" encoding="UTF-8"?>\n<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n  <sitemap><loc>${origin}/sitemap-pages.xml</loc><lastmod>2026-10-28</lastmod></sitemap>\n  <sitemap><loc>${origin}/sitemap-sites.xml</loc><lastmod>2026-10-28</lastmod></sitemap>\n</sitemapindex>\n`;
 writeFileSync(resolve(root, "public", "sitemap-pages.xml"), pageXml);
 writeFileSync(resolve(root, "public", "sitemap-sites.xml"), siteXml);
 writeFileSync(resolve(root, "public", "sitemap.xml"), indexXml);

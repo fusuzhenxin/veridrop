@@ -30,6 +30,32 @@ export function saveNick(nick) {
   return write(state);
 }
 
+export function replacePoints(remote) {
+  const day = shanghaiDay();
+  const done = {};
+  for (const id of ["checkin", "like", "review", "detect"]) {
+    if (remote?.done?.[id]) done[`${id}:${day}`] = true;
+  }
+  for (const id of ["first-detect", "favorite", "profile"]) {
+    if (remote?.done?.[id]) done[id] = true;
+  }
+  const state = {
+    balance: Number(remote?.balance) || 0,
+    ledger: Array.isArray(remote?.ledger) ? remote.ledger : [],
+    done,
+    nick: readPoints().nick,
+  };
+  return write(state);
+}
+
+export function markDone(id, scope) {
+  const state = readPoints();
+  const token = scope === "day" ? `${id}:${shanghaiDay()}` : id;
+  if (state.done[token]) return state;
+  state.done[token] = true;
+  return write(state);
+}
+
 export function isDone(id, scope) {
   const token = scope === "day" ? `${id}:${shanghaiDay()}` : id;
   return Boolean(readPoints().done[token]);
@@ -41,6 +67,7 @@ export function grant(id, amount, reason, scope) {
   if (token && state.done[token]) return { state, added: 0 };
   if (token) state.done[token] = true;
   state.balance += amount;
+  queueMicrotask(() => window.dispatchEvent(new CustomEvent("okk-points-sync", { detail: { id } })));
   state.ledger.unshift({
     id,
     reason,

@@ -1,3 +1,5 @@
+import { replacePoints } from "./points.js";
+
 const ACCOUNTS = "okk-accounts";
 const USER = "okk-user";
 const EMAIL = "okk-email";
@@ -87,6 +89,34 @@ export function readSubmissions() {
   } catch {
     return [];
   }
+}
+
+export function writeSubmissions(list) {
+  localStorage.setItem(SUBS, JSON.stringify(list));
+}
+
+export function readFavs() {
+  try {
+    const parsed = JSON.parse(localStorage.getItem("okk-station-favs") || "{}");
+    return parsed && typeof parsed === "object" ? parsed : {};
+  } catch {
+    return {};
+  }
+}
+
+export function writeFavs(map) {
+  localStorage.setItem("okk-station-favs", JSON.stringify(map));
+}
+
+export function applyRemoteAccount(data) {
+  writeAvatar(data?.avatar || "");
+  const favs = {};
+  for (const slug of data?.favorites || []) favs[slug] = true;
+  writeFavs(favs);
+  writeSubmissions(Array.isArray(data?.submissions) ? data.submissions : []);
+  if (data?.points) replacePoints(data.points);
+  window.dispatchEvent(new Event("okk-auth"));
+  window.dispatchEvent(new Event("okk-account"));
 }
 
 export function addSubmission(entry) {

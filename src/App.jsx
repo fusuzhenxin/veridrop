@@ -1,4 +1,5 @@
-import { Navigate, Route, Routes } from "react-router-dom";
+import { Navigate, Route, Routes, useParams } from "react-router-dom";
+import { findStation } from "./data.js";
 import { Shell } from "./ui.jsx";
 import {
   AboutPage,
@@ -25,6 +26,12 @@ import { DetectRunPage } from "./detect-page.jsx";
 import { CodexPage, HistoryPage, IqPage, SpeedPage } from "./tools.jsx";
 import { ApplyPage, CheckPage, OfficialPage } from "./verd-pages.jsx";
 
+function LegacyStationRedirect() {
+  const { slug } = useParams();
+  const station = findStation(slug);
+  return <Navigate to={station?.path || `/site/${slug}`} replace />;
+}
+
 export default function App() {
   return (
     <Shell>
@@ -34,7 +41,7 @@ export default function App() {
         <Route path="/list" element={<ListPage />} />
         <Route path="/cat/:cat" element={<ListPage />} />
         <Route path="/site/:token" element={<StationPage />} />
-        <Route path="/station/:slug" element={<StationPage />} />
+        <Route path="/station/:slug" element={<LegacyStationRedirect />} />
         <Route path="/official/:provider" element={<OfficialPage />} />
         <Route path="/check/:kind?" element={<CheckPage />} />
         <Route path="/apply" element={<ApplyPage />} />
