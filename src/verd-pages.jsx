@@ -423,13 +423,12 @@ export function ApplyPage() {
         name,
         url,
         note: [cats.join("、"), pays.join("、"), `发票${form.get("invoice") || ""}`, `退款${form.get("refund") || ""}`, String(form.get("contact") || "").trim()].filter(Boolean).join(" · "),
+        letter: lines.join("\n"),
       }));
     } catch (err) {
       setError(err.message || "没有记下");
       return;
     }
-    const mail = `mailto:2201219073@qq.com?subject=${encodeURIComponent("申请收录")}&body=${encodeURIComponent(lines.join("\n"))}`;
-    window.location.href = mail;
     setError("");
     setSent(true);
   }
@@ -557,7 +556,7 @@ export function ApplyPage() {
           <input required name="contact" placeholder="微信 / QQ号 / 手机号 / Telegram 等" />
         </div>
         {error ? <div className="toast" style={{ color: "var(--red)" }}>{error}</div> : null}
-        {sent ? <div className="toast">已记到这个账户，并尝试打开邮件。如果没有弹出，请直接发到 2201219073@qq.com，QQ 2201219073。</div> : null}
+        {sent ? <div className="toast">申请已发到邮箱，并记在这个账户里。</div> : null}
         <div className="apply-submit"><button className="go" type="submit">提交申请</button></div>
       </form>
     </div>

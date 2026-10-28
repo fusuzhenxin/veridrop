@@ -49,6 +49,22 @@ export function loginAccount(body) {
   });
 }
 
+export function requestCode(body) {
+  return api("/api/auth/code", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+}
+
+export function requestReset(body) {
+  return api("/api/auth/forgot", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+}
+
 export function resetAccount(body) {
   return api("/api/auth/reset", {
     method: "POST",

@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, NavLink, useLocation, useNavigate } from "react-router-dom";
 import { activities, findStation, logoUrl, models, perks, reviews, stations } from "./data.js";
 import { clearSession, readAccounts, readAvatar, readSession, writeAvatar, writeSession } from "./account.js";
-import { authToken, loginAccount, pullAccount, registerAccount, resetAccount, sendPoints, setAuthToken } from "./community.js";
+import { authToken, loginAccount, pullAccount, registerAccount, requestCode, resetAccount, sendPoints, setAuthToken } from "./community.js";
 import { replacePoints, saveNick } from "./points.js";
 
 const VENDOR_COLOR = {
@@ -229,8 +229,11 @@ export function Shell({ children }) {
   }, []);
 
   useEffect(() => {
-    const code = new URLSearchParams(location.search).get("invite");
+    const params = new URLSearchParams(location.search);
+    const code = params.get("invite");
     if (code && /^[A-Za-z0-9]{4,12}$/.test(code)) localStorage.setItem("veridrop-invite-pending", code.trim().toUpperCase());
+    const reset = params.get("reset");
+    if (reset) setLogin(true);
   }, [location.search]);
 
   useEffect(() => {
@@ -644,19 +647,27 @@ function Login({ onClose, onOk }) {
   const [mode, setMode] = useState("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [code, setCode] = useState("");
   const [nick, setNick] = useState("");
   const [show, setShow] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [saving, setSaving] = useState(false);
+  const [wait, setWait] = useState(0);
+
+  useEffect(() => {
+    if (!wait) return undefined;
+    const timer = window.setTimeout(() => setWait((value) => Math.max(0, value - 1)), 1000);
+    return () => window.clearTimeout(timer);
+  }, [wait]);
 
   const title = mode === "register" ? "创建账户" : mode === "login" ? "欢迎回来" : "找回密码";
   const subtitle =
     mode === "register"
-      ? "注册后可打分、评论、投票，记在接口里，其他人也能看到"
+      ? "先收取邮箱验证码，再注册。注册后可打分、评论、投票"
       : mode === "login"
         ? "登录后可打分、评论、投票，其他人也能看到"
-        : "输入注册邮箱和新密码。重置不发邮件，直接写回账户。";
+        : "验证码会发到注册邮箱，10 分钟内有效。";
 
   function finish(name, nextNick, mail) {
     if (nextNick) saveNick(nextNick);
@@ -673,32 +684,31 @@ function Login({ onClose, onOk }) {
       setError("请输入有效邮箱");
       return;
     }
-    if (mode === "forgot") {
-      setMode("reset");
-      setPassword("");
-      setNotice("设置新密码。这一步不发邮件，直接写回账户。");
+    if ((mode === "register" || mode === "forgot") && password.length < 6) {
+      setError("密码至少 6 位");
       return;
     }
-    if ((mode === "register" || mode === "reset") && password.length < 6) {
-      setError("密码至少 6 位");
+    if ((mode === "register" || mode === "forgot") && !/^\d{6}$/.test(code.trim())) {
+      setError("请输入 6 位验证码");
       return;
     }
     setSaving(true);
     try {
+      if (mode === "forgot") {
+        await resetAccount({ email: mail, password, code: code.trim() });
+        setPassword("");
+        setCode("");
+        setNotice("密码已更新，请登录");
+        setMode("login");
+        return;
+      }
       if (mode === "register") {
         const invite = localStorage.getItem("veridrop-invite-pending") || "";
-        const data = await registerAccount({ email: mail, password, nick: nick.trim(), invite });
+        const data = await registerAccount({ email: mail, password, nick: nick.trim(), invite, code: code.trim() });
         localStorage.removeItem("veridrop-invite-pending");
         setAuthToken(data.token);
         finish(data.name, data.nick, data.email);
         pullAccount().catch(() => {});
-        return;
-      }
-      if (mode === "reset") {
-        await resetAccount({ email: mail, password });
-        setMode("login");
-        setPassword("");
-        setNotice("密码已更新，请登录");
         return;
       }
       const data = await loginAccount({ email: mail, password });
@@ -760,12 +770,42 @@ function Login({ onClose, onOk }) {
                     required
                     type="email"
                     value={email}
-                    readOnly={mode === "reset"}
                     onChange={(event) => setEmail(event.target.value)}
                   />
                 </div>
               </label>
-              {mode !== "forgot" ? (
+              {mode === "register" || mode === "forgot" ? (
+                <label className="auth-fld">
+                  <span className="lb">验证码</span>
+                  <div className="auth-inp code">
+                    <input placeholder="6 位验证码" inputMode="numeric" maxLength={6} value={code} onChange={(event) => setCode(event.target.value.replace(/\D/g, "").slice(0, 6))} />
+                    <button
+                      type="button"
+                      className="auth-code"
+                      disabled={wait > 0}
+                      onClick={async () => {
+                        const mail = email.trim().toLowerCase();
+                        if (!mail.includes("@")) {
+                          setError("请输入有效邮箱");
+                          return;
+                        }
+                        setError("");
+                        setNotice("");
+                        try {
+                          await requestCode({ email: mail, purpose: mode === "register" ? "register" : "reset" });
+                          setNotice("验证码已发到邮箱，10 分钟内有效");
+                          setWait(60);
+                        } catch (err) {
+                          setError(err.message || "没有发出去");
+                        }
+                      }}
+                    >
+                      {wait > 0 ? `${wait} 秒` : "获取验证码"}
+                    </button>
+                  </div>
+                </label>
+              ) : null}
+              {mode !== "none" ? (
                 <label className="auth-fld">
                   <span className="lb">
                     密码
@@ -774,8 +814,10 @@ function Login({ onClose, onOk }) {
                         type="button"
                         className="auth-link"
                         onClick={() => {
+                          setMode("forgot");
                           setError("");
-                          setNotice("不发送重置邮件。请登录后在账户设置里修改密码。");
+                          setNotice("");
+                          setPassword("");
                         }}
                       >
                         忘记密码?
@@ -800,7 +842,7 @@ function Login({ onClose, onOk }) {
               {error ? <div className="auth-err">{error}</div> : null}
               {notice ? <div className="auth-ok">{notice}</div> : null}
               <button type="submit" className="auth-submit" disabled={saving}>
-                {saving ? "正在提交" : mode === "register" ? "注册" : mode === "forgot" ? "继续" : mode === "reset" ? "保存新密码" : "登录"}
+                {saving ? "正在提交" : mode === "register" ? "注册" : mode === "forgot" ? "保存新密码" : "登录"}
               </button>
               {mode === "forgot" || mode === "reset" ? (
                 <div style={{ textAlign: "center", marginTop: 2 }}>

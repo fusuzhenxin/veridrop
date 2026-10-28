@@ -7,12 +7,30 @@ import hashlib
 import json
 import os
 import secrets
+import smtplib
+import time
 from datetime import datetime, timedelta, timezone
+from email.message import EmailMessage
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import parse_qs, unquote, urlparse
 
 ROOT = Path(__file__).resolve().parent.parent
+
+
+def load_env() -> None:
+    path = ROOT / ".env"
+    if not path.exists():
+        return
+    for line in path.read_text(encoding="utf-8").splitlines():
+        text = line.strip()
+        if not text or text.startswith("#") or "=" not in text:
+            continue
+        key, value = text.split("=", 1)
+        os.environ.setdefault(key.strip(), value.strip())
+
+
+load_env()
 DATA = ROOT / "data" / "community.json"
 SEED = ROOT / "src" / "vote-counts.json"
 DIST = ROOT / "dist"
@@ -36,6 +54,47 @@ FILE_TYPES = {
     ".xml": "application/xml; charset=utf-8",
     ".webmanifest": "application/manifest+json",
 }
+
+
+def issue_code(store: dict, email: str, purpose: str) -> str:
+    key = f"{purpose}:{email}"
+    current = store.setdefault("codes", {}).get(key) or {}
+    if float(current.get("sent") or 0) > time.time() - 60:
+        raise ValueError("请稍后再获取验证码")
+    code = f"{secrets.randbelow(1000000):06d}"
+    store["codes"][key] = {
+        "digest": hashlib.sha256(code.encode("utf-8")).hexdigest(),
+        "exp": time.time() + 600,
+        "sent": time.time(),
+    }
+    return code
+
+
+def check_code(store: dict, email: str, purpose: str, code: str) -> None:
+    key = f"{purpose}:{email}"
+    row = store.get("codes", {}).get(key)
+    if not row or float(row.get("exp") or 0) < time.time():
+        raise ValueError("验证码无效或已过期")
+    if hashlib.sha256(str(code or "").strip().encode("utf-8")).hexdigest() != row.get("digest"):
+        raise ValueError("验证码不正确")
+    store["codes"].pop(key, None)
+
+
+def send_mail(to: str, subject: str, body: str) -> None:
+    host = os.environ.get("SMTP_HOST", "")
+    user = os.environ.get("SMTP_USER", "")
+    password = os.environ.get("SMTP_PASS", "")
+    port = int(os.environ.get("SMTP_PORT", "465"))
+    if not host or not user or not password:
+        raise ValueError("邮件服务还没有配置")
+    message = EmailMessage()
+    message["From"] = user
+    message["To"] = to
+    message["Subject"] = subject
+    message.set_content(body)
+    with smtplib.SMTP_SSL(host, port, timeout=20) as smtp:
+        smtp.login(user, password)
+        smtp.send_message(message)
 
 
 def utcnow() -> str:
@@ -249,6 +308,8 @@ def load_store() -> dict:
     data.setdefault("checkins", {})
     data.setdefault("points", {})
     data.setdefault("profiles", {})
+    data.setdefault("resets", {})
+    data.setdefault("codes", {})
     return data
 
 
@@ -480,6 +541,7 @@ class Handler(BaseHTTPRequestHandler):
                         raise ValueError("密码至少 6 位")
                     if email in store["accounts"]:
                         raise ValueError("该邮箱已注册")
+                    check_code(store, email, "register", body.get("code"))
                     salt = secrets.token_hex(16)
                     store["accounts"][email] = {"email": email, "nick": nick, "salt": salt, "password": hash_password(password, salt)}
                     token = secrets.token_urlsafe(24)
@@ -500,8 +562,37 @@ class Handler(BaseHTTPRequestHandler):
                     save_store(store)
                     self._send(200, {**public_user(account), "token": token})
                     return
+                if path == "/api/auth/code":
+                    email = str(body.get("email") or "").strip().lower()
+                    purpose = str(body.get("purpose") or "")
+                    if "@" not in email:
+                        raise ValueError("请输入有效邮箱")
+                    if purpose not in ("register", "reset"):
+                        raise ValueError("没有这种验证码")
+                    if purpose == "register" and email in store["accounts"]:
+                        raise ValueError("该邮箱已注册")
+                    if purpose == "reset" and email not in store["accounts"]:
+                        raise ValueError("没有找到这个邮箱")
+                    code = issue_code(store, email, purpose)
+                    save_store(store)
+                    title = "维渡 AI 注册验证码" if purpose == "register" else "维渡 AI 重置密码验证码"
+                    send_mail(email, title, f"验证码是 {code}。10 分钟内有效。如果不是你本人操作，忽略这封邮件。")
+                    self._send(200, {"ok": True})
+                    return
                 if path == "/api/auth/reset":
-                    raise ValueError("不发送重置邮件。请登录后在账户设置里修改密码。")
+                    email = str(body.get("email") or "").strip().lower()
+                    password = str(body.get("password") or "")
+                    if len(password) < 6:
+                        raise ValueError("密码至少 6 位")
+                    account = store["accounts"].get(email)
+                    if not account:
+                        raise ValueError("没有找到这个邮箱")
+                    check_code(store, email, "reset", body.get("code"))
+                    account["salt"] = secrets.token_hex(16)
+                    account["password"] = hash_password(password, account["salt"])
+                    save_store(store)
+                    self._send(200, {"ok": True})
+                    return
                 user = self._user(store)
                 if not user:
                     self._send(401, {"error": "请先登录"})
@@ -564,6 +655,13 @@ class Handler(BaseHTTPRequestHandler):
                     })
                     profile["submissions"] = profile["submissions"][:50]
                     save_store(store)
+                    letter = str(body.get("letter") or "").strip()
+                    if letter:
+                        send_mail(
+                            os.environ.get("SMTP_USER", ""),
+                            "维渡 AI 申请收录：" + name,
+                            "申请人：" + user["email"] + "\n\n" + letter[:4000],
+                        )
                     self._send(200, public_account(store, user["email"]))
                     return
                 if path == "/api/account/migrate":

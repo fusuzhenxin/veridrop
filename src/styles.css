@@ -1427,6 +1427,22 @@ table.rank.list tbody tr:hover .slb-mic { border-color: #fafafa; }
   font-size: 15px;
 }
 .auth-inp.pw input { padding-right: 42px; }
+.auth-inp.code { display: flex; gap: 8px; align-items: center; }
+.auth-inp.code input { flex: 1; min-width: 0; width: auto; }
+.auth-code {
+  flex: none;
+  height: 44px;
+  padding: 0 12px;
+  border: 1px solid #d2d2d7;
+  border-radius: 4px;
+  background: #fff;
+  color: #65A30D;
+  font-size: 14px;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.auth-code:hover:not(:disabled) { border-color: #65A30D; }
+.auth-code:disabled { color: #76767c; cursor: default; }
 .auth-inp input::placeholder { color: #76767c; }
 .auth-inp input:focus { border-color: #65A30D; box-shadow: 0 0 0 3px rgba(101, 163, 13, 0.18); }
 .auth-eye {
