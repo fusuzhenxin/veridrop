@@ -6,6 +6,7 @@ import modelRows from "./model-rows.json";
 import {
   findReport,
   latestCodex,
+  compareStations,
   findStation,
   iq,
   latestTests,
@@ -1562,9 +1563,7 @@ export function ListPage({ modelId = "" }) {
       if (invoice === "cond" && !/其他|有条件/.test(String(item.invoice))) return false;
       return true;
     });
-    if (sort === "uptime") list = [...list].sort((a, b) => (b.uptime ?? -1) - (a.uptime ?? -1));
-    if (sort === "latency") list = [...list].sort((a, b) => (a.latency ?? 999) - (b.latency ?? 999));
-    return list;
+    return [...list].sort((a, b) => compareStations(a, b, sort === "latency" || sort === "uptime" ? sort : "overall"));
   }, [q, pay, min, invoice, sort, cat, model]);
   useEffect(() => setPage(1), [q, pay, min, invoice, sort, cat, model]);
 
@@ -3596,7 +3595,7 @@ export function HelpPage() {
         <p>纯度、单个模型的延迟和单个模型的在线率，本站没有做这套探测，详情页对应格子是空的。浏览器里的基础测试、糖果测试和鹈鹕骑车，用的是你自己的接口地址和 Key，结果只留在这台浏览器，不会写成站内的纯度分。</p>
         <h2 id="scoring">评分说明</h2>
         <p>有人投票时，星级等于赞成除以赞成加反对，再乘以 5。评价条数等于赞成加反对。没有投票、但目录里原来有评价时，沿用那些评价的星级。投票和评价都没有，就显示暂无评分。</p>
-        <p>名次来自目录排序。目录给出分数的站点，按分数从高到低编成第几名。没有目录分数、但原来的榜单有名次的，沿用那个名次。赞成和反对每人每站一票，再点一次同一边就是取消。</p>
+        <p>站点排行把原来的站和后收录的站放在一起。访问异常的排在最后。其余先比可用率，高的在前；可用率相同再比延迟，低的在前。没有探测数字的排在有数字的后面。投票不参与这个名次。赞成和反对每人每站一票，再点一次同一边就是取消。</p>
       </article>
     </div>
   );

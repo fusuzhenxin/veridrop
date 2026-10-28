@@ -1,0 +1,71 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 1000" width="100%" height="100%">
+    <defs>
+        <!-- 1. 圆角背景的深海蓝渐变 -->
+        <linearGradient id="bgGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stop-color="#162242" />
+            <stop offset="100%" stop-color="#0a1020" />
+        </linearGradient>
+
+        <!-- 2. 主体色带的全局渐变 (复刻参考图：青绿 -> 青蓝 -> 亮蓝 -> 深蓝) -->
+        <linearGradient id="mainGrad" x1="100" y1="380" x2="900" y2="620" gradientUnits="userSpaceOnUse">
+            <stop offset="0%" stop-color="#6ae89d" />   <!-- 左侧顶点：薄荷绿 -->
+            <stop offset="35%" stop-color="#20b2aa" />  <!-- 左中：湖蓝色 -->
+            <stop offset="65%" stop-color="#2a62ff" />  <!-- 右中：亮蓝色 -->
+            <stop offset="100%" stop-color="#15368a" /> <!-- 右侧顶点：深邃蓝 -->
+        </linearGradient>
+
+        <!-- 3. 纽带交叠处的 3D 投影滤镜 -->
+        <filter id="shadow" x="-50%" y="-50%" width="200%" height="200%">
+            <feDropShadow dx="8" dy="16" stdDeviation="10" flood-color="#000000" flood-opacity="0.5" />
+        </filter>
+    </defs>
+
+    <!-- ================= 背景层 ================= -->
+    <!-- 带有超大圆角的底层基板。如果想要透明背景，可以把这一行删掉或注释掉 -->
+    <rect width="1000" height="1000" rx="180" fill="url(#bgGrad)" />
+
+    <!-- ================= 图形主体层 ================= -->
+    <g transform="translate(0, 0)">
+        <!-- 
+            第一层：底层无限符号轨迹 (Base Infinity Path)
+            利用精确的数学坐标系构建45度倒角，Z闭合路径天然形成底部结构
+        -->
+        <path d="
+            M 380,380 
+            L 220,380 
+            L 100,500 
+            L 220,620 
+            L 380,620 
+            L 620,380 
+            L 780,380 
+            L 900,500 
+            L 780,620 
+            L 620,620 Z" 
+            fill="none" 
+            stroke="url(#mainGrad)" 
+            stroke-width="110" 
+            stroke-linejoin="round" 
+            stroke-linecap="round" />
+
+        <!-- 
+            第二层：真实的物理阴影层 (Shadow Layer)
+            放置在交叠线的正下方，制造前后的空间深度差
+        -->
+        <path d="M 620,620 L 380,380" 
+            fill="none" 
+            stroke="rgba(0,0,0,0.6)" 
+            stroke-width="110" 
+            stroke-linecap="round" 
+            filter="url(#shadow)" />
+
+        <!-- 
+            第三层：顶层横跨纽带 (Top Crossing Layer)
+            单独绘制穿过中心的对角线，配合 round 线帽，完美融入第一层的圆角节点中
+        -->
+        <path d="M 620,620 L 380,380" 
+            fill="none" 
+            stroke="url(#mainGrad)" 
+            stroke-width="110" 
+            stroke-linecap="round" />
+    </g>
+</svg>

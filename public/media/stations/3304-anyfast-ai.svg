@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 92 92" fill="none">
+  <style>
+    :root {
+      color: #0a0a0a;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        color: #ffffff;
+      }
+    }
+  </style>
+  <path
+    d="M0 10.1417C0 4.54061 4.54061 0 10.1417 0H81.8583C87.4594 0 92 4.54061 92 10.1417V81.8583C92 87.4594 87.4594 92 81.8583 92H64.2479C58.3594 69.1818 60.808 45.0111 71.1532 23.8375L82.8 0H80.5L41.8182 55.2L15.5868 92H10.1417C4.54062 92 0 87.4594 0 81.8583V10.1417Z"
+    fill="currentColor"
+  />
+</svg>

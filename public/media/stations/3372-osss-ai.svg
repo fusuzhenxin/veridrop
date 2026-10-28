@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">
+  <style>
+    .favicon-mark {
+      fill: #030d2b;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      .favicon-mark {
+        fill: #f8fafc;
+      }
+    }
+  </style>
+  <path
+    class="favicon-mark"
+    fill-rule="evenodd"
+    clip-rule="evenodd"
+    d="M32 4C15.78 4 5 16.04 5 32s10.78 28 27 28 27-12.04 27-28S48.22 4 32 4Zm0 12.5c-8.72 0-14 6.37-14 15.5s5.28 15.5 14 15.5S46 41.13 46 32s-5.28-15.5-14-15.5Z"
+  />
+</svg>

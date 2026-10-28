@@ -1,0 +1,552 @@
+<svg id="shop-logo" style="width:100%;height:100%;display:block;overflow:visible" xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024" role="img" aria-labelledby="title desc">
+  <title id="title">Shop logo motion-ready vector preview</title>
+  <desc id="desc">A smooth vector reconstruction of the source shop logo with semantic ribbon and hexagon parts for animation.</desc>
+  <style>
+@media (prefers-reduced-motion: no-preference) {
+#shop-logo {
+  --p2m-duration: 1800ms;
+  --p2m-ease-enter: cubic-bezier(0.16, 1, 0.3, 1);
+  --p2m-ease-settle: cubic-bezier(0.22, 1, 0.36, 1);
+  --p2m-ease-narrative: cubic-bezier(0.34, 0, 0.14, 1);
+  overflow: visible;
+}
+
+#logo-symbol,
+#hex-frame,
+.ribbon,
+#motion-glints {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+#logo-symbol {
+  animation: p2m-symbol-settle var(--p2m-duration) linear both;
+}
+
+#hex-stroke,
+#hex-depth,
+#hex-highlight,
+.draw-path {
+  stroke-dasharray: 1 1;
+  stroke-dashoffset: 0;
+}
+
+#hex-stroke,
+#hex-depth {
+  animation: p2m-hex-draw var(--p2m-duration) linear both;
+}
+
+#hex-highlight {
+  animation: p2m-hex-highlight var(--p2m-duration) linear both;
+}
+
+.ribbon {
+  opacity: 1;
+}
+
+.ribbon .draw-path {
+  animation-duration: var(--p2m-duration);
+  animation-timing-function: linear;
+  animation-fill-mode: both;
+}
+
+#ribbon-blue {
+  animation: p2m-blue-body var(--p2m-duration) linear both;
+}
+
+#ribbon-blue .draw-path {
+  animation-name: p2m-blue-draw;
+}
+
+#ribbon-teal {
+  animation: p2m-teal-body var(--p2m-duration) linear both;
+}
+
+#ribbon-teal .draw-path {
+  animation-name: p2m-teal-draw;
+}
+
+#ribbon-orange {
+  animation: p2m-orange-body var(--p2m-duration) linear both;
+}
+
+#ribbon-orange .draw-path {
+  animation-name: p2m-orange-draw;
+}
+
+#ribbon-magenta {
+  animation: p2m-magenta-body var(--p2m-duration) linear both;
+}
+
+#ribbon-magenta .draw-path {
+  animation-name: p2m-magenta-draw;
+}
+
+#ribbon-green {
+  animation: p2m-green-body var(--p2m-duration) linear both;
+}
+
+#ribbon-green .draw-path {
+  animation-name: p2m-green-draw;
+}
+
+#ribbon-yellow {
+  animation: p2m-yellow-body var(--p2m-duration) linear both;
+}
+
+#ribbon-yellow .draw-path {
+  animation-name: p2m-yellow-draw;
+}
+
+#motion-glints {
+  animation: p2m-glints var(--p2m-duration) linear both;
+}
+
+#glint-a {
+  animation: p2m-glint-a var(--p2m-duration) linear both;
+}
+
+#glint-b {
+  animation: p2m-glint-b var(--p2m-duration) linear both;
+}
+
+#glint-c {
+  animation: p2m-glint-c var(--p2m-duration) linear both;
+}
+
+@keyframes p2m-symbol-settle {
+  0% {
+    opacity: 0;
+    transform: translateY(26px) scale(0.92);
+    filter: saturate(0.8) blur(5px);
+    animation-timing-function: cubic-bezier(0.34, 0, 0.14, 1);
+  }
+  18% {
+    opacity: 1;
+    transform: translateY(18px) scale(0.9);
+    filter: saturate(0.95) blur(2px);
+    animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  66% {
+    opacity: 1;
+    transform: translateY(-5px) scale(1.025);
+    filter: saturate(1.08) blur(0);
+    animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  84% {
+    transform: translateY(2px) scale(0.992);
+    filter: saturate(1) blur(0);
+    animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    filter: saturate(1) blur(0);
+  }
+}
+
+@keyframes p2m-hex-draw {
+  0% {
+    opacity: 0;
+    stroke-dashoffset: 1;
+    animation-timing-function: cubic-bezier(0.34, 0, 0.14, 1);
+  }
+  13% {
+    opacity: 0.92;
+    stroke-dashoffset: 0.92;
+    animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  68% {
+    opacity: 1;
+    stroke-dashoffset: 0;
+    animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  100% {
+    opacity: 1;
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes p2m-hex-highlight {
+  0%, 24% {
+    opacity: 0;
+    stroke-dashoffset: 1;
+    animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  58% {
+    opacity: 0.65;
+    stroke-dashoffset: 0;
+    animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  100% {
+    opacity: 0.45;
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes p2m-blue-draw {
+  0%, 13% {
+    opacity: 0;
+    stroke-dashoffset: 1;
+    animation-timing-function: cubic-bezier(0.34, 0, 0.14, 1);
+  }
+  15% {
+    opacity: 1;
+    stroke-dashoffset: 1;
+    animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  55% {
+    opacity: 1;
+    stroke-dashoffset: 0;
+    animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  100% {
+    opacity: 1;
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes p2m-teal-draw {
+  0%, 18% {
+    opacity: 0;
+    stroke-dashoffset: 1;
+    animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  59%, 100% {
+    opacity: 1;
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes p2m-orange-draw {
+  0%, 25% {
+    opacity: 0;
+    stroke-dashoffset: 1;
+    animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  68%, 100% {
+    opacity: 1;
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes p2m-magenta-draw {
+  0%, 33% {
+    opacity: 0;
+    stroke-dashoffset: 1;
+    animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  76%, 100% {
+    opacity: 1;
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes p2m-green-draw {
+  0%, 41% {
+    opacity: 0;
+    stroke-dashoffset: 1;
+    animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  82%, 100% {
+    opacity: 1;
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes p2m-yellow-draw {
+  0%, 47% {
+    opacity: 0;
+    stroke-dashoffset: 1;
+    animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  86%, 100% {
+    opacity: 1;
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes p2m-blue-body {
+  0%, 13% {
+    opacity: 0;
+    transform: translate(-18px, 30px) rotate(-5deg) scale(0.94);
+    animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  55% {
+    opacity: 1;
+    transform: translate(3px, -6px) rotate(1deg) scale(1.025);
+    animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  82% {
+    transform: translate(0, 2px) rotate(-0.3deg) scale(0.994);
+    animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  100% {
+    opacity: 1;
+    transform: translate(0, 0) rotate(0) scale(1);
+  }
+}
+
+@keyframes p2m-teal-body {
+  0%, 18% {
+    opacity: 0;
+    transform: translate(-30px, 12px) rotate(-6deg) scale(0.94);
+    animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  60% {
+    opacity: 1;
+    transform: translate(4px, -4px) rotate(1.4deg) scale(1.022);
+    animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  84% {
+    transform: translate(0, 2px) rotate(-0.3deg) scale(0.995);
+    animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  100% {
+    opacity: 1;
+    transform: translate(0, 0) rotate(0) scale(1);
+  }
+}
+
+@keyframes p2m-orange-body {
+  0%, 25% {
+    opacity: 0;
+    transform: translate(28px, -10px) rotate(5deg) scale(0.94);
+    animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  68% {
+    opacity: 1;
+    transform: translate(-4px, -4px) rotate(-1.2deg) scale(1.02);
+    animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  86% {
+    transform: translate(1px, 2px) rotate(0.2deg) scale(0.996);
+    animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  100% {
+    opacity: 1;
+    transform: translate(0, 0) rotate(0) scale(1);
+  }
+}
+
+@keyframes p2m-magenta-body {
+  0%, 33% {
+    opacity: 0;
+    transform: translate(-20px, 28px) rotate(-4deg) scale(0.94);
+    animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  76% {
+    opacity: 1;
+    transform: translate(4px, -6px) rotate(1deg) scale(1.02);
+    animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  90% {
+    transform: translate(0, 2px) rotate(-0.2deg) scale(0.997);
+    animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  100% {
+    opacity: 1;
+    transform: translate(0, 0) rotate(0) scale(1);
+  }
+}
+
+@keyframes p2m-green-body {
+  0%, 41% {
+    opacity: 0;
+    transform: translate(18px, 30px) rotate(4deg) scale(0.94);
+    animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  82% {
+    opacity: 1;
+    transform: translate(-4px, -5px) rotate(-1deg) scale(1.018);
+    animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  92% {
+    transform: translate(0, 2px) rotate(0.2deg) scale(0.997);
+    animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  100% {
+    opacity: 1;
+    transform: translate(0, 0) rotate(0) scale(1);
+  }
+}
+
+@keyframes p2m-yellow-body {
+  0%, 47% {
+    opacity: 0;
+    transform: translate(26px, 20px) rotate(5deg) scale(0.94);
+    animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  86% {
+    opacity: 1;
+    transform: translate(-3px, -5px) rotate(-1deg) scale(1.018);
+    animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  94% {
+    transform: translate(0, 2px) rotate(0.2deg) scale(0.997);
+    animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  100% {
+    opacity: 1;
+    transform: translate(0, 0) rotate(0) scale(1);
+  }
+}
+
+@keyframes p2m-glints {
+  0%, 60% {
+    opacity: 0;
+    animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  74% {
+    opacity: 0.95;
+    animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes p2m-glint-a {
+  0%, 58% {
+    transform: translate(-16px, 9px) scale(0.2);
+  }
+  72% {
+    transform: translate(0, 0) scale(1.2);
+  }
+  100% {
+    transform: translate(0, 0) scale(0.2);
+  }
+}
+
+@keyframes p2m-glint-b {
+  0%, 65% {
+    transform: translate(-22px, -26px) scale(0.2);
+  }
+  81% {
+    transform: translate(0, 0) scale(1.1);
+  }
+  100% {
+    transform: translate(0, 0) scale(0.2);
+  }
+}
+
+@keyframes p2m-glint-c {
+  0%, 70% {
+    transform: translate(-30px, 20px) scale(0.15);
+  }
+  87% {
+    transform: translate(0, 0) scale(1.05);
+  }
+  100% {
+    transform: translate(0, 0) scale(0.15);
+  }
+}
+
+}
+@media (prefers-reduced-motion: reduce) {
+  #shop-logo * { animation: none !important; transition: none !important; }
+}
+  </style>
+
+  <defs>
+    <linearGradient id="hexGradient" x1="130" y1="720" x2="875" y2="250" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#0074d9"/>
+      <stop offset="0.18" stop-color="#00c7c7"/>
+      <stop offset="0.42" stop-color="#ffe000"/>
+      <stop offset="0.67" stop-color="#f00092"/>
+      <stop offset="0.86" stop-color="#ff4c00"/>
+      <stop offset="1" stop-color="#ffce00"/>
+    </linearGradient>
+    <linearGradient id="blueGradient" x1="394" y1="516" x2="611" y2="243" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#0068d9"/>
+      <stop offset="0.48" stop-color="#09a9ef"/>
+      <stop offset="1" stop-color="#16e0ff"/>
+    </linearGradient>
+    <linearGradient id="tealGradient" x1="280" y1="358" x2="526" y2="632" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#12e0b5"/>
+      <stop offset="0.48" stop-color="#00a9a4"/>
+      <stop offset="1" stop-color="#0076a8"/>
+    </linearGradient>
+    <linearGradient id="magentaGradient" x1="263" y1="590" x2="617" y2="650" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#6b00d6"/>
+      <stop offset="0.52" stop-color="#d000c6"/>
+      <stop offset="1" stop-color="#ff23cf"/>
+    </linearGradient>
+    <linearGradient id="greenGradient" x1="628" y1="456" x2="478" y2="792" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#06d84c"/>
+      <stop offset="0.45" stop-color="#00b66d"/>
+      <stop offset="1" stop-color="#0096cc"/>
+    </linearGradient>
+    <linearGradient id="orangeGradient" x1="470" y1="405" x2="790" y2="435" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#ff3c00"/>
+      <stop offset="0.48" stop-color="#ff9d00"/>
+      <stop offset="1" stop-color="#fff000"/>
+    </linearGradient>
+    <linearGradient id="yellowGradient" x1="560" y1="450" x2="706" y2="724" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#ffcb00"/>
+      <stop offset="0.5" stop-color="#fff200"/>
+      <stop offset="1" stop-color="#f0a000"/>
+    </linearGradient>
+    <radialGradient id="softGlint" cx="50%" cy="50%" r="50%">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.95"/>
+      <stop offset="0.42" stop-color="#ffffff" stop-opacity="0.45"/>
+      <stop offset="1" stop-color="#ffffff" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="softDepth" x="-16%" y="-16%" width="132%" height="132%">
+      <feDropShadow dx="0" dy="10" stdDeviation="8" flood-color="#05305b" flood-opacity="0.25"/>
+    </filter>
+  </defs>
+
+  <g id="logo-symbol" filter="url(#softDepth)">
+    <g id="hex-frame">
+      <path id="hex-depth" pathLength="1" d="M512 109 C535 109 556 115 576 127 L831 274 C861 291 879 322 879 356 L879 648 C879 682 861 713 831 730 L576 877 C536 900 488 900 448 877 L193 730 C163 713 145 682 145 648 L145 356 C145 322 163 291 193 274 L448 127 C468 115 489 109 512 109 Z" fill="none" stroke="#033c7a" stroke-width="43" stroke-linejoin="round" stroke-linecap="round" opacity="0.23"/>
+      <path id="hex-stroke" pathLength="1" d="M512 109 C535 109 556 115 576 127 L831 274 C861 291 879 322 879 356 L879 648 C879 682 861 713 831 730 L576 877 C536 900 488 900 448 877 L193 730 C163 713 145 682 145 648 L145 356 C145 322 163 291 193 274 L448 127 C468 115 489 109 512 109 Z" fill="none" stroke="url(#hexGradient)" stroke-width="27" stroke-linejoin="round" stroke-linecap="round"/>
+      <path id="hex-highlight" pathLength="1" d="M203 284 L452 140 C490 118 534 118 572 140 L821 284" fill="none" stroke="#ffffff" stroke-width="7" stroke-linecap="round" opacity="0.45"/>
+    </g>
+
+    <g id="mark">
+      <g id="ribbon-blue" class="ribbon">
+        <path class="draw-path ribbon-shadow" pathLength="1" d="M608 253 C536 224 452 247 417 311 C384 371 395 446 440 490" fill="none" stroke="#064e8e" stroke-width="126" stroke-linecap="butt" stroke-linejoin="round" opacity="0.34"/>
+        <path class="draw-path ribbon-main" pathLength="1" d="M608 253 C536 224 452 247 417 311 C384 371 395 446 440 490" fill="none" stroke="url(#blueGradient)" stroke-width="106" stroke-linecap="butt" stroke-linejoin="round"/>
+        <path class="draw-path ribbon-shine" pathLength="1" d="M589 264 C530 245 467 264 438 317" fill="none" stroke="#ffffff" stroke-width="18" stroke-linecap="round" opacity="0.22"/>
+      </g>
+
+      <g id="ribbon-teal" class="ribbon">
+        <path class="draw-path ribbon-shadow" pathLength="1" d="M364 334 C278 393 270 520 350 596 C399 642 470 655 529 615" fill="none" stroke="#005a78" stroke-width="124" stroke-linecap="butt" stroke-linejoin="round" opacity="0.33"/>
+        <path class="draw-path ribbon-main" pathLength="1" d="M364 334 C278 393 270 520 350 596 C399 642 470 655 529 615" fill="none" stroke="url(#tealGradient)" stroke-width="104" stroke-linecap="butt" stroke-linejoin="round"/>
+        <path class="draw-path ribbon-shine" pathLength="1" d="M349 357 C302 406 301 513 369 573" fill="none" stroke="#ffffff" stroke-width="16" stroke-linecap="round" opacity="0.18"/>
+      </g>
+
+      <g id="ribbon-orange" class="ribbon">
+        <path class="draw-path ribbon-shadow" pathLength="1" d="M474 377 C580 314 714 331 775 433 C798 472 799 518 780 553" fill="none" stroke="#9a5200" stroke-width="124" stroke-linecap="butt" stroke-linejoin="round" opacity="0.34"/>
+        <path class="draw-path ribbon-main" pathLength="1" d="M474 377 C580 314 714 331 775 433 C798 472 799 518 780 553" fill="none" stroke="url(#orangeGradient)" stroke-width="104" stroke-linecap="butt" stroke-linejoin="round"/>
+        <path class="draw-path ribbon-shine" pathLength="1" d="M500 379 C589 337 694 353 752 431" fill="none" stroke="#ffffff" stroke-width="17" stroke-linecap="round" opacity="0.23"/>
+      </g>
+
+      <g id="ribbon-magenta" class="ribbon">
+        <path class="draw-path ribbon-shadow" pathLength="1" d="M262 586 C332 735 497 754 617 628" fill="none" stroke="#570080" stroke-width="123" stroke-linecap="butt" stroke-linejoin="round" opacity="0.34"/>
+        <path class="draw-path ribbon-main" pathLength="1" d="M262 586 C332 735 497 754 617 628" fill="none" stroke="url(#magentaGradient)" stroke-width="103" stroke-linecap="butt" stroke-linejoin="round"/>
+        <path class="draw-path ribbon-shine" pathLength="1" d="M305 626 C374 702 496 713 585 646" fill="none" stroke="#ffffff" stroke-width="16" stroke-linecap="round" opacity="0.16"/>
+      </g>
+
+      <g id="ribbon-green" class="ribbon">
+        <path class="draw-path ribbon-shadow" pathLength="1" d="M620 459 L620 650 C609 737 554 785 463 789" fill="none" stroke="#006761" stroke-width="120" stroke-linecap="butt" stroke-linejoin="round" opacity="0.32"/>
+        <path class="draw-path ribbon-main" pathLength="1" d="M620 459 L620 650 C609 737 554 785 463 789" fill="none" stroke="url(#greenGradient)" stroke-width="100" stroke-linecap="butt" stroke-linejoin="round"/>
+        <path class="draw-path ribbon-shine" pathLength="1" d="M637 474 L637 647 C630 705 594 748 535 769" fill="none" stroke="#ffffff" stroke-width="15" stroke-linecap="round" opacity="0.17"/>
+      </g>
+
+      <g id="ribbon-yellow" class="ribbon">
+        <path class="draw-path ribbon-shadow" pathLength="1" d="M559 450 C668 497 734 593 695 723" fill="none" stroke="#a46500" stroke-width="116" stroke-linecap="butt" stroke-linejoin="round" opacity="0.32"/>
+        <path class="draw-path ribbon-main" pathLength="1" d="M559 450 C668 497 734 593 695 723" fill="none" stroke="url(#yellowGradient)" stroke-width="96" stroke-linecap="butt" stroke-linejoin="round"/>
+        <path class="draw-path ribbon-shine" pathLength="1" d="M587 467 C663 509 707 584 694 674" fill="none" stroke="#ffffff" stroke-width="15" stroke-linecap="round" opacity="0.2"/>
+      </g>
+    </g>
+
+    <g id="motion-glints" opacity="0">
+      <circle id="glint-a" cx="512" cy="119" r="32" fill="url(#softGlint)"/>
+      <circle id="glint-b" cx="779" cy="553" r="28" fill="url(#softGlint)"/>
+      <circle id="glint-c" cx="617" cy="628" r="24" fill="url(#softGlint)"/>
+    </g>
+  </g>
+</svg>
+

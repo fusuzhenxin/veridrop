@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128" role="img" aria-labelledby="title desc">
+  <title id="title">启明星</title>
+  <desc id="desc">启明星品牌标识</desc>
+  <defs>
+    <radialGradient id="planet" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(45 37) rotate(52) scale(76)">
+      <stop stop-color="#fff8bd"/>
+      <stop offset="0.35" stop-color="#ffd466"/>
+      <stop offset="0.72" stop-color="#ff963f"/>
+      <stop offset="1" stop-color="#f36b2f"/>
+    </radialGradient>
+    <linearGradient id="star" x1="63" y1="2" x2="65" y2="126" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#fff9c8"/>
+      <stop offset="0.52" stop-color="#fff1a8"/>
+      <stop offset="1" stop-color="#ffc65f"/>
+    </linearGradient>
+    <filter id="planetGlow" x="8" y="8" width="112" height="112" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feFlood flood-opacity="0" result="BackgroundImageFix"/>
+      <feColorMatrix in="SourceAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha"/>
+      <feOffset/>
+      <feGaussianBlur stdDeviation="4"/>
+      <feComposite in2="hardAlpha" operator="out"/>
+      <feColorMatrix type="matrix" values="0 0 0 0 1 0 0 0 0 0.62 0 0 0 0 0.18 0 0 0 0.55 0"/>
+      <feBlend mode="normal" in2="BackgroundImageFix" result="effect1_dropShadow"/>
+      <feBlend mode="normal" in="SourceGraphic" in2="effect1_dropShadow" result="shape"/>
+    </filter>
+    <clipPath id="planetClip">
+      <circle cx="64" cy="64" r="46"/>
+    </clipPath>
+  </defs>
+
+  <g filter="url(#planetGlow)">
+    <circle cx="64" cy="64" r="46" fill="url(#planet)"/>
+    <g clip-path="url(#planetClip)" fill="none" stroke-linecap="round">
+      <path d="M23 46C49 57 84 56 107 44" stroke="#fff2ad" stroke-width="7" opacity="0.82"/>
+      <path d="M20 78C48 90 84 88 108 75" stroke="#e86d33" stroke-width="6" opacity="0.38"/>
+      <path d="M26 64C50 69 79 68 104 60" stroke="#ffd06b" stroke-width="4" opacity="0.38"/>
+    </g>
+  </g>
+
+  <path d="M64 2L74 54L126 64L74 74L64 126L54 74L2 64L54 54L64 2Z" fill="url(#star)" opacity="0.78"/>
+  <path d="M64 24L70 58L104 64L70 70L64 104L58 70L24 64L58 58L64 24Z" fill="#fff8c8"/>
+</svg>

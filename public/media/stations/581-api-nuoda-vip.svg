@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240">
+  <defs>
+    <filter id="grungeV" x="-8%" y="-8%" width="116%" height="116%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.05" numOctaves="3" seed="11" result="noise"/>
+      <feDisplacementMap in="SourceGraphic" in2="noise" scale="8" xChannelSelector="R" yChannelSelector="G"/>
+    </filter>
+  </defs>
+  <text x="120" y="196" text-anchor="middle"
+        font-family="Impact, 'Arial Black', 'Helvetica Neue', sans-serif" font-weight="900"
+        font-size="205" fill="#090F1D" filter="url(#grungeV)">V</text>
+</svg>

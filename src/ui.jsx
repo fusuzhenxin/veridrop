@@ -112,12 +112,12 @@ export function Mark({ value }) {
   return <span className={good ? "mark ok" : bad ? "mark no" : ""}>{value}</span>;
 }
 
+const STATION_LOGO = "/img/station-default.png";
+
 export function Logo({ station, className = "logo-img" }) {
-  const [failed, setFailed] = useState(false);
-  if (failed || !station.img) {
-    return <span className={`logo-fallback ${className}`}>{station.name.slice(0, 1)}</span>;
-  }
-  return <img className={className} src={logoUrl(station.img)} alt="" onError={() => setFailed(true)} />;
+  const [src, setSrc] = useState(() => logoUrl(station?.img) || STATION_LOGO);
+  useEffect(() => { setSrc(logoUrl(station?.img) || STATION_LOGO); }, [station?.img]);
+  return <img className={className} src={src} alt="" onError={() => { if (src !== STATION_LOGO) setSrc(STATION_LOGO); }} />;
 }
 
 export function Stars({ count = 5 }) {

@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64" role="img" aria-labelledby="title desc">
+  <title id="title">Toknex</title>
+  <desc id="desc">Two interlocking routes form an open N: a single connection between models and developers.</desc>
+  <rect width="64" height="64" rx="16" fill="#2557d6"/><g fill="#fff"><path d="M15 47V23a8 8 0 0 1 8-8h14v8H25a2 2 0 0 0-2 2v22Z"/>
+    <path d="M49 17v24a8 8 0 0 1-8 8H27v-8h12a2 2 0 0 0 2-2V17Z"/>
+    <path d="m23 24 8 0 10 16h-8Z"/></g>
+</svg>

@@ -360,6 +360,12 @@ for (const extraRow of verd.attach || []) {
   station.categories = unique([...(station.categories || []), ...(extraRow.categories || [])]);
   station.modelIds = unique([...(station.modelIds || []), ...(extraRow.modelIds || [])]);
   if (extraRow.online != null) station.online = extraRow.online;
+  if (extraRow.online === false) station.issue = true;
+  if (station.uptime == null && extraRow.uptime != null) station.uptime = Math.round(extraRow.uptime);
+  if (station.latency == null && (extraRow.avgMs != null || extraRow.ms != null)) {
+    const attachedMs = extraRow.avgMs != null ? extraRow.avgMs : extraRow.ms;
+    station.latency = Math.round(attachedMs / 100) / 10;
+  }
   if (extraRow.ownerPick) station.ownerPick = true;
   if (station.verdRank == null) station.verdRank = extraRow.rank;
   const attachedVotes = catalogVotes(extraRow.id, extraRow);
@@ -482,16 +488,36 @@ function mapVerdStation(row) {
   };
 }
 
-export const stations = [...okkStations, ...(verd.stations || []).map(mapVerdStation)];
-const rankedStations = stations
-  .filter((station) => Number(station.verdRank) > 0)
-  .sort((a, b) => b.verdRank - a.verdRank || String(a.verdId || "").localeCompare(String(b.verdId || "")));
-rankedStations.forEach((station, index) => {
+function hasNumber(value) {
+  return value != null && Number.isFinite(Number(value));
+}
+
+function isDown(station) {
+  return Boolean(station.issue) || station.online === false;
+}
+
+export function compareStations(a, b, mode = "overall") {
+  const down = Number(isDown(a)) - Number(isDown(b));
+  if (down) return down;
+  if (mode === "latency") {
+    const missing = Number(!hasNumber(a.latency)) - Number(!hasNumber(b.latency));
+    if (missing) return missing;
+    if (hasNumber(a.latency) && a.latency !== b.latency) return a.latency - b.latency;
+  } else {
+    const missing = Number(!hasNumber(a.uptime)) - Number(!hasNumber(b.uptime));
+    if (missing) return missing;
+    if (hasNumber(a.uptime) && a.uptime !== b.uptime) return b.uptime - a.uptime;
+    const latencyMissing = Number(!hasNumber(a.latency)) - Number(!hasNumber(b.latency));
+    if (latencyMissing) return latencyMissing;
+    if (hasNumber(a.latency) && a.latency !== b.latency) return a.latency - b.latency;
+  }
+  return String(a.name || "").localeCompare(String(b.name || ""), "zh");
+}
+
+export const stations = [...okkStations, ...(verd.stations || []).map(mapVerdStation)].sort(compareStations);
+stations.forEach((station, index) => {
   station.place = index + 1;
 });
-for (const station of stations) {
-  if (!station.place && Number(station.catalogRank) > 0) station.place = Number(station.catalogRank);
-}
 
 export const stationTotal = stations.length;
 

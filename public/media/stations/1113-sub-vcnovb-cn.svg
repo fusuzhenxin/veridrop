@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96" role="img" aria-labelledby="title desc">
+  <title id="title">VC API</title>
+  <desc id="desc">由字母 V 与开放式路由 C 组合而成的品牌标识</desc>
+  <rect width="96" height="96" rx="24" fill="#141619"/>
+  <path
+    d="M70 23H49C31.9 23 22 32.8 22 48s9.9 25 27 25h21"
+    fill="none"
+    stroke="#F16043"
+    stroke-width="10"
+    stroke-linecap="round"
+  />
+  <path
+    d="M31 34l17 29 17-29"
+    fill="none"
+    stroke="#F1F4F2"
+    stroke-width="9"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+  />
+  <rect x="75" y="20" width="7" height="7" rx="2" fill="#F16043"/>
+  <rect x="75" y="69" width="7" height="7" rx="2" fill="#F16043"/>
+</svg>

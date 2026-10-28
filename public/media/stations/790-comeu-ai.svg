@@ -1,0 +1,53 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="beam1" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#6366f1" stop-opacity="0.3"/>
+      <stop offset="100%" stop-color="#8b5cf6" stop-opacity="1"/>
+    </linearGradient>
+    <linearGradient id="beam2" x1="0%" y1="50%" x2="100%" y2="50%">
+      <stop offset="0%" stop-color="#3b82f6" stop-opacity="0.3"/>
+      <stop offset="100%" stop-color="#7c3aed" stop-opacity="1"/>
+    </linearGradient>
+    <linearGradient id="beam3" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#2563eb" stop-opacity="0.3"/>
+      <stop offset="100%" stop-color="#9333ea" stop-opacity="1"/>
+    </linearGradient>
+    <linearGradient id="uGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#6366f1"/>
+      <stop offset="50%" stop-color="#8b5cf6"/>
+      <stop offset="100%" stop-color="#a855f7"/>
+    </linearGradient>
+    <linearGradient id="glowGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#818cf8" stop-opacity="0.6"/>
+      <stop offset="100%" stop-color="#c084fc" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Background -->
+  <circle cx="256" cy="256" r="240" fill="#0f172a"/>
+
+  <!-- Glow behind U -->
+  <ellipse cx="320" cy="280" rx="100" ry="120" fill="url(#glowGrad)"/>
+
+  <!-- Converging beams from left -->
+  <path d="M 60 120 Q 180 180 280 200" stroke="url(#beam1)" stroke-width="4" fill="none" stroke-linecap="round"/>
+  <path d="M 40 200 Q 160 230 280 240" stroke="url(#beam1)" stroke-width="3.5" fill="none" stroke-linecap="round"/>
+  <path d="M 50 256 Q 170 256 280 260" stroke="url(#beam2)" stroke-width="5" fill="none" stroke-linecap="round"/>
+  <path d="M 40 310 Q 160 290 280 280" stroke="url(#beam2)" stroke-width="3.5" fill="none" stroke-linecap="round"/>
+  <path d="M 60 390 Q 180 340 280 320" stroke="url(#beam3)" stroke-width="4" fill="none" stroke-linecap="round"/>
+
+  <!-- Thinner accent beams -->
+  <path d="M 80 150 Q 190 190 280 215" stroke="url(#beam1)" stroke-width="2" fill="none" stroke-linecap="round" opacity="0.6"/>
+  <path d="M 70 360 Q 180 320 280 300" stroke="url(#beam3)" stroke-width="2" fill="none" stroke-linecap="round" opacity="0.6"/>
+
+  <!-- The U shape -->
+  <path d="M 280 160 L 280 340 Q 280 420 360 420 Q 440 420 440 340 L 440 160"
+        stroke="url(#uGrad)" stroke-width="32" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- Energy dots at convergence points -->
+  <circle cx="280" cy="200" r="4" fill="#a78bfa"/>
+  <circle cx="280" cy="240" r="4" fill="#818cf8"/>
+  <circle cx="280" cy="260" r="5" fill="#7c3aed"/>
+  <circle cx="280" cy="280" r="4" fill="#818cf8"/>
+  <circle cx="280" cy="320" r="4" fill="#a78bfa"/>
+</svg>

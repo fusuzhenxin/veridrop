@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-labelledby="title desc">
+  <title id="title">MagicCore Fuel</title>
+  <desc id="desc">Black diamond enclosing a magenta conductor diamond.</desc>
+  <polygon points="64,8 120,64 64,120 8,64" fill="#0A0A0F" />
+  <polygon points="64,43 85,64 64,85 43,64" fill="#FF2D6F" />
+</svg>
