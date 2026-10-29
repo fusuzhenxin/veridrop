@@ -133,11 +133,13 @@ function liveCounts(station, community) {
   return { up: Number(row.up) || 0, down: Number(row.down) || 0 };
 }
 
-function scoreText(station, counts) {
-  const total = counts.up + counts.down;
-  if (total > 0) return `${((counts.up / total) * 5).toFixed(1)} 分，${total} 条评价`;
-  if (station.rating != null) return `${Number(station.rating).toFixed(1)} 分，${station.ratingCount} 条评价`;
-  return "暂无评分";
+function scoreText(station, community) {
+  const remote = (community?.comments || []).filter((row) => row.slug === station.slug);
+  const baked = Array.isArray(station.reviews) ? station.reviews : [];
+  const rated = [...remote, ...baked].filter((row) => Number(row.rating) > 0);
+  if (!rated.length) return "暂无评分";
+  const sum = rated.reduce((total, row) => total + Number(row.rating), 0);
+  return `${(sum / rated.length).toFixed(1)} 分，${rated.length} 条评价`;
 }
 
 function commentBlock(station, community) {
@@ -160,7 +162,7 @@ ${tags ? `<ul>\n${tags}\n</ul>` : ""}
 
 function stationDocument(station, community) {
   const counts = liveCounts(station, community);
-  const rank = station.place ? `第${station.place}名` : "没有目录名次";
+  const rank = station.votePlace ? `投票第${station.votePlace}名` : "还没有投票名次";
   const facts = [
     station.uptime == null ? "" : `<li>在线率：${esc(station.uptime)}%</li>`,
     station.latency == null ? "" : `<li>延迟：${esc(station.latency)} 秒</li>`,
@@ -177,7 +179,7 @@ function stationDocument(station, community) {
 <p>${esc(plain(item.content))}</p>
 </article>`);
   return `<h1>${esc(station.name)}</h1>
-<p>${esc(rank)}，赞 ${counts.up}，踩 ${counts.down}，${esc(scoreText(station, counts))}</p>
+<p>${esc(rank)}，赞 ${counts.up}，踩 ${counts.down}，${esc(scoreText(station, community))}</p>
 ${station.blurb ? `<p>${esc(plain(station.blurb))}</p>` : ""}
 <h2>基本信息</h2>
 ${facts.length ? `<ul>\n${facts.join("\n")}\n</ul>` : "<p>公开页面上没有最低充值、退款和发票。</p>"}
@@ -279,6 +281,27 @@ function pageFor(pathname, community) {
       description: meta.desc,
       body: `<h1>${esc(meta.h1 || meta.title)}</h1><p>${esc(meta.desc)}</p>`,
       robots: "index,follow",
+      status: 200,
+    };
+  }
+  if (path.startsWith("/r/d/")) {
+    const id = decodeURIComponent(path.slice("/r/d/".length).split("/")[0] || "");
+    let report = null;
+    let station = null;
+    for (const item of stations) {
+      const test = (item.tests || []).find((row) => row.id === id);
+      if (!test) continue;
+      report = test;
+      station = item;
+      break;
+    }
+    if (!report || !station) return null;
+    return {
+      path,
+      title: brand(`${station.name} ${report.model} 检测报告`),
+      description: `${station.name} 的 ${report.model} 检测记录，总分 ${report.score}。只有总分，没有逐项探针。`,
+      body: `<h1>${esc(station.name)} ${esc(report.model)} 检测报告</h1><p>总分 ${esc(report.score)}。时间 ${esc(report.at)}。协议 ${esc(report.channel || "")}。</p><p><a href="${esc(station.path || `/site/${station.slug}`)}">返回${esc(station.name)}</a></p>`,
+      robots: "noindex,follow",
       status: 200,
     };
   }

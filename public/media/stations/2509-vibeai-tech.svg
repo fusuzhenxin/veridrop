@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 88 88" role="img" aria-labelledby="title desc">
+  <title id="title">Vibe Ai current logo</title>
+  <desc id="desc">Square Vibe Ai mark centered for favicon and compact UI logo usage.</desc>
+  <g transform="translate(6 12)">
+    <path fill="#171915" d="M7 6h17.2c2.4 0 4.6 1.5 5.5 3.8l13.2 36.7c1.7 4.8-1.8 9.9-6.9 9.9h-5.9c-2.4 0-4.6-1.5-5.5-3.8L7 6Z"/>
+    <path fill="#171915" d="M49 6h15L52 38H37.2L49 6Z"/>
+    <path fill="#171915" fill-rule="evenodd" d="M50 43h16v16H50V43Zm5 5v6h6v-6h-6Z"/>
+  </g>
+</svg>

@@ -37,7 +37,6 @@ import { authToken, changePassword, fetchAccount, fetchComments, fetchVotes, sav
 import { grant, isDone, readPoints, replacePoints, saveNick } from "./points.js";
 import {
   Logo,
-  Mark,
   Pays,
   ReviewCard,
   SponsorStrip,
@@ -101,10 +100,34 @@ function uptimeTone(value) {
   return "up-low";
 }
 
+const TAG_TONE = {
+  "公益站": "t-charity",
+  "站长在用": "t-owner",
+  "稳定企业向": "t-stable",
+  "便宜个人向": "t-cheap",
+  "小有特色": "t-special",
+  "新站上榜": "t-new",
+  "当前在线": "t-online",
+  "签到送余额": "t-checkin",
+  "新用户赠额": "t-gift",
+  "低倍率": "t-rate",
+  "低延迟": "t-fast",
+  "国内支付": "t-pay",
+  "邀请返利": "t-invite",
+  "加密充值": "t-crypto",
+  "可开发票": "t-invoice",
+  "高可用": "t-up",
+  "低价": "t-cheap",
+  "模型丰富": "t-models",
+  "价格透明": "t-clear",
+  "纯度高": "t-pure",
+};
+
 function tagTone(tag) {
-  if (tag === "高可用") return "slb-tag t-up";
-  if (tag === "低价") return "slb-tag t-cheap";
-  return "slb-tag";
+  const known = TAG_TONE[tag];
+  if (known) return `slb-tag ${known}`;
+  const n = [...String(tag)].reduce((sum, ch) => sum + ch.charCodeAt(0), 0) % 4;
+  return `slb-tag t-misc${n}`;
 }
 
 function ListMark({ value }) {
@@ -788,7 +811,7 @@ function StationJump({ item }) {
   if (!href) return <div className="site-name">{item.name}</div>;
   return (
     <a className="rank-jump" href={href} target="_blank" rel="noreferrer" onClick={(event) => event.stopPropagation()}>
-      <span>{item.name}</span>
+      <span title={item.name}>{item.name}</span>
       <svg className="st-arrow" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
         <path d="M7 17 17 7M8 7h9v9" />
       </svg>
@@ -796,18 +819,39 @@ function StationJump({ item }) {
   );
 }
 
+function commentScore(item, remote) {
+  const keys = new Set([item.slug, item.siteToken, ...(item.aliases || [])].filter(Boolean));
+  const rows = [...(item.reviews || [])];
+  for (const row of remote || []) {
+    if (keys.has(row.slug)) rows.push(row);
+  }
+  const rated = rows.filter((row) => Number(row.rating) > 0);
+  if (!rated.length) return null;
+  const sum = rated.reduce((total, row) => total + Number(row.rating), 0);
+  return { rating: sum / rated.length, count: rated.length };
+}
+
 function RankTable({ rows, mode }) {
   const navigate = useNavigate();
   const [favs, setFavs] = useState(readFavs);
+  const [remoteComments, setRemoteComments] = useState([]);
   useEffect(() => {
     const sync = () => setFavs(readFavs());
     window.addEventListener("okk-account", sync);
     return () => window.removeEventListener("okk-account", sync);
   }, []);
+  useEffect(() => {
+    if (mode === "list") return undefined;
+    let stop = false;
+    fetchComments("").then((data) => {
+      if (!stop) setRemoteComments(Array.isArray(data.comments) ? data.comments : []);
+    }).catch(() => {});
+    return () => { stop = true; };
+  }, [mode]);
   const list = mode === "list";
   return (
     <div className="table-wrap">
-      <table className={list ? "rank list" : "rank"}>
+      <table className={list ? "rank list" : "rank home"}>
         {list ? (
           <colgroup>
             <col className="c-fav" />
@@ -820,7 +864,17 @@ function RankTable({ rows, mode }) {
             <col className="c-ref" />
             <col className="c-mod" />
           </colgroup>
-        ) : null}
+        ) : (
+          <colgroup>
+            <col className="c-fav" />
+            <col className="c-site" />
+            <col className="c-up" />
+            <col className="c-pay" />
+            <col className="c-tag" />
+            <col className="c-rate" />
+            <col className="c-mod" />
+          </colgroup>
+        )}
         <thead>
           {mode === "home" ? (
             <tr>
@@ -828,7 +882,7 @@ function RankTable({ rows, mode }) {
               <th>站点</th>
               <th>运行质量</th>
               <th>支付方式</th>
-              <th>服务政策</th>
+              <th>分类</th>
               <th>用户口碑</th>
               <th>模型覆盖</th>
             </tr>
@@ -853,7 +907,7 @@ function RankTable({ rows, mode }) {
               <td>
                 <div className={list ? "slb-st" : "site-cell"}>
                   <Logo station={item} />
-                  <div className={list ? "slb-stn" : ""}>
+                  <div className={list ? "slb-stn" : "site-id"}>
                     <StationJump item={item} />
                     {mode === "home" ? (
                       <div className="site-meta">
@@ -878,24 +932,30 @@ function RankTable({ rows, mode }) {
                     <div className="mini">平均延迟 {showLatency(item.latency)}</div>
                   </td>
                   <td>
-                    <Pays list={item.pay} />
+                    <Pays list={item.pay.length ? item.pay : ["wechat", "alipay"]} />
                   </td>
                   <td>
-                    <div className="mini">
-                      退款 <Mark value={item.refund} />
-                    </div>
-                    <div className="mini">
-                      发票 <Mark value={item.invoice} />
-                    </div>
-                  </td>
-                  <td>
-                    {item.rating ? (
-                      <span className="rate">
-                        {item.rating.toFixed(1)} <span className="star">★</span> <small>（{item.ratingCount}）</small>
-                      </span>
+                    {item.tags.length ? (
+                      <div className="home-tags">
+                        {item.tags.map((tag) => (
+                          <span key={tag} className={tagTone(tag)}>{tag}</span>
+                        ))}
+                      </div>
                     ) : (
-                      <span className="mini">暂无评分</span>
+                      <span className="mini">—</span>
                     )}
+                  </td>
+                  <td>
+                    {(() => {
+                      const score = commentScore(item, remoteComments);
+                      return score ? (
+                        <span className="rate">
+                          {score.rating.toFixed(1)} <span className="star">★</span> <small>（{score.count}）</small>
+                        </span>
+                      ) : (
+                        <span className="mini">暂无评分</span>
+                      );
+                    })()}
                   </td>
                   <td>
                     <Coverage count={item.modelsHome} vendors={item.vendors} />
@@ -906,7 +966,7 @@ function RankTable({ rows, mode }) {
                   <td><span className={`slb-v ${uptimeTone(item.uptime)}`}>{showUptime(item.uptime)}</span></td>
                   <td><span className={`slb-v ${latencyTone(item.latency)}`}>{showLatency(item.latency)}</span></td>
                   <td><span className="slb-v">{moneyOf(item.min).label}</span></td>
-                  <td><Pays list={item.pay} /></td>
+                  <td><Pays list={item.pay.length ? item.pay : ["wechat", "alipay"]} /></td>
                   <td><ListMark value={item.invoice} /></td>
                   <td><ListMark value={item.refund} /></td>
                   <td className="r">
@@ -2023,6 +2083,7 @@ export function StationPage() {
   const [remoteComments, setRemoteComments] = useState(() => staticComments(station));
   const [liveVote, setLiveVote] = useState(() => staticVote(station));
   const voting = useRef(false);
+  const voteBoard = useRef(null);
   const [params, setParams] = useSearchParams();
   useEffect(() => {
     setPart("score");
@@ -2067,10 +2128,12 @@ export function StationPage() {
     fetchVotes().then((data) => {
       if (stop) return;
       const row = data.stations?.[id];
+      voteBoard.current = data;
       setLiveVote({
         up: row ? Number(row.up) || 0 : station.voteUp || 0,
         down: row ? Number(row.down) || 0 : station.voteDown || 0,
         mine: data.mine?.[id] === "up" || data.mine?.[id] === "down" ? data.mine[id] : "",
+        place: votePlaceFrom(station, data),
       });
     }).catch(() => {});
     fetchComments(station.slug).then((data) => {
@@ -2081,9 +2144,7 @@ export function StationPage() {
   const mineVote = liveVote?.mine || "";
   const shownUp = liveVote ? liveVote.up : (station?.voteUp || 0);
   const shownDown = liveVote ? liveVote.down : (station?.voteDown || 0);
-  const voteTotal = shownUp + shownDown;
-  const headerRating = voteTotal > 0 ? (shownUp / voteTotal) * 5 : station?.rating;
-  const headerCount = voteTotal > 0 ? voteTotal : station?.ratingCount;
+  const shownVotePlace = liveVote?.place || station?.votePlace;
   const castVote = async (side) => {
     if (!station || voting.current) return;
     if (!authToken()) {
@@ -2093,10 +2154,16 @@ export function StationPage() {
     voting.current = true;
     try {
       const result = await sendVote(stationVoteId(station), side);
+      const board = {
+        ...(voteBoard.current || {}),
+        stations: { ...(voteBoard.current?.stations || {}), [result.id]: { up: result.up, down: result.down } },
+      };
+      voteBoard.current = board;
       setLiveVote({
         up: Number(result.up) || 0,
         down: Number(result.down) || 0,
         mine: result.mine === "up" || result.mine === "down" ? result.mine : "",
+        place: votePlaceFrom(station, board),
       });
       if (result.points) replacePoints(result.points);
     } catch (err) {
@@ -2200,11 +2267,11 @@ export function StationPage() {
             <div className="station-main">
               <div className="st-title">
                 <h1>{station.name}</h1>
-                {headerRating != null ? (
-                  <span className="score-pill"><span className="star">★</span> {headerRating.toFixed(1)} {headerCount}条评价</span>
+                {average != null ? (
+                  <span className="score-pill"><span className="star">★</span> {average.toFixed(1)} {rated.length}条评价</span>
                 ) : <span className="score-pill">暂无评分</span>}
                 <span className="head-votes">
-                  <b><Trophy />第{station.place}名</b>
+                  <b><Trophy />第{shownVotePlace}名</b>
                   <button type="button" className={mineVote === "up" ? "up on" : "up"} aria-pressed={mineVote === "up"} onClick={() => castVote("up")}><Thumb up /> {shownUp}</button>
                   <button type="button" className={mineVote === "down" ? "down on" : "down"} aria-pressed={mineVote === "down"} onClick={() => castVote("down")}><Thumb /> {shownDown}</button>
                 </span>
@@ -2249,11 +2316,15 @@ export function StationPage() {
               </div>
               {summaryOpen ? (
                 <p>
-                  {station.name}支持 {familyText} 等 <span className="hl">{station.cover} 个模型</span>。
-                  {station.upShown == null ? "这份公开页面还没有稳定性分数。" : <>根据维渡 AI 实测数据，稳定性得分为 <span className="hl">{station.upShown} 分</span>，速度得分为 <span className="hl">{station.speedShown} 分</span>（满分 100 分）。</>}
-                  {station.week == null ? "" : <>最近 7 天各分组平均可用率为 <span className="hl">{station.week}%</span>。</>}
-                  平台 <span className="hl">{String(station.min).replace(/[￥¥]/g, "").trim()} 元起充</span>，支持{station.paymentText}付款，{refundBrief}，发票：{invoiceBrief}。
-                  平台模型价格以人民币计算。
+                  {station.name}支持 {familyText || "尚未列明的模型"}{station.cover ? <> 等 <span className="hl">{station.cover} 个模型</span></> : null}。
+                  {station.upShown == null ? "公开页面还没有在线率数字。" : <>在线率记为 <span className="hl">{station.upShown}%</span>。</>}
+                  {station.speedShown == null ? "" : <>速度指数 <span className="hl">{station.speedShown}</span>。</>}
+                  {station.latency == null ? "" : <>目录里的延迟是 <span className="hl">{station.latency} 秒</span>。</>}
+                  {station.min && station.min !== "—" ? <>最低充值 <span className="hl">{String(station.min).replace(/[￥¥]/g, "").trim()} 元</span>。</> : null}
+                  {station.pay.length ? <>支付方式：{station.paymentText}。</> : null}
+                  {station.refund && station.refund !== "—" ? <>{refundBrief}。</> : null}
+                  {station.invoice && station.invoice !== "—" ? <>发票：{invoiceBrief}。</> : null}
+                  {station.promo ? <>优惠：{station.promo}。</> : null}
                 </p>
               ) : null}
             </div>
@@ -2267,7 +2338,7 @@ export function StationPage() {
               <div className="info"><div className="k">支付方式</div><div className="v">{station.pay.length ? <Pays list={station.pay} /> : station.paymentText}</div></div>
               <div className="info"><div className="k">发票</div><div className="v"><StatValue value={station.invoice} /></div></div>
               <div className="info"><div className="k">退款政策</div><div className="v"><StatValue value={station.refund} /></div></div>
-              <div className="info"><div className="k">优惠</div><div className="v">—</div></div>
+              <div className="info"><div className="k">优惠</div><div className="v">{station.promo || "—"}</div></div>
             </div>
           </div>
 
@@ -2456,7 +2527,7 @@ export function StationPage() {
                           <td className="th-c-model">{test.model}</td>
                           <td className="th-c-ep">{hostOf(station.baseUrl) || station.host}</td>
                           <td className="tr"><b>{Number(test.score).toFixed(0)}</b></td>
-                          <td className="th-c-rp"><Link to={`/r/d/${test.id}`} target="_blank" rel="noreferrer">报告 ↗</Link></td>
+                          <td className="th-c-rp">{/^https?:/.test(test.report || "") ? null : test.id ? <Link to={`/r/d/${test.id}`} target="_blank" rel="noreferrer">报告 ↗</Link> : null}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -2490,8 +2561,8 @@ export function StationPage() {
                 <div className="cmp-stat"><span>平均延迟</span><b>{station.meanLatency || showLatency(station.latency)}</b></div>
                 <div className="mini">各分组当前延迟均值</div>
                 <div className="obar"><i style={{ width: `${station.speedShown ?? 0}%` }} /></div>
-                <div className="cmp-stat"><span>30 天可用率</span><b>{station.month == null ? "—" : `${station.month}%`}</b></div>
-                <div className="mini">近 30 天各分组平均在线率</div>
+                <div className="cmp-stat"><span>{station.monthLabel || "30 天可用率"}</span><b>{station.month == null ? "—" : `${station.month}%`}</b></div>
+                <div className="mini">{station.monthNote || "近 30 天各分组平均在线率"}</div>
                 <div className="obar"><i style={{ width: `${station.month ?? 0}%` }} /></div>
                 <div className="cmp-stat"><span>模型覆盖</span><b>{station.cover}</b></div>
                 <div className="mini">{station.coverText || `覆盖 ${station.vendors.length} 家厂商,共 ${station.cover} 个模型`}</div>
@@ -2636,6 +2707,19 @@ const CON_TAGS = ["偶发限流", "不稳定", "疑似掺水", "疑似降智", "
 
 const REMARK_KEY = "veridrop-remarks";
 const PICK_PAGE = 40;
+function votePlaceFrom(target, board) {
+  const rows = stations.map((item) => {
+    const id = stationVoteId(item);
+    const live = board?.stations?.[id];
+    const up = live ? Number(live.up) || 0 : (item.voteUp || 0);
+    const down = live ? Number(live.down) || 0 : (item.voteDown || 0);
+    return { slug: item.slug, net: up - down, name: item.name || "" };
+  });
+  rows.sort((a, b) => (b.net - a.net) || a.name.localeCompare(b.name, "zh-Hans-CN", { numeric: true, sensitivity: "base" }) || a.slug.localeCompare(b.slug));
+  const index = rows.findIndex((row) => row.slug === target.slug);
+  return index < 0 ? target.votePlace : index + 1;
+}
+
 const voteRows = stations.map((station) => ({
   station,
   hay: `${station.name} ${station.host} ${station.blurb || ""}`.toLowerCase(),
@@ -3595,7 +3679,7 @@ export function HelpPage() {
         <p>纯度、单个模型的延迟和单个模型的在线率，本站没有做这套探测，详情页对应格子是空的。浏览器里的基础测试、糖果测试和鹈鹕骑车，用的是你自己的接口地址和 Key，结果只留在这台浏览器，不会写成站内的纯度分。</p>
         <h2 id="scoring">评分说明</h2>
         <p>有人投票时，星级等于赞成除以赞成加反对，再乘以 5。评价条数等于赞成加反对。没有投票、但目录里原来有评价时，沿用那些评价的星级。投票和评价都没有，就显示暂无评分。</p>
-        <p>站点排行把原来的站和后收录的站放在一起。访问异常的排在最后。其余先比可用率，高的在前；可用率相同再比延迟，低的在前。没有探测数字的排在有数字的后面。投票不参与这个名次。赞成和反对每人每站一票，再点一次同一边就是取消。</p>
+        <p>站点排行把原来的站和后收录的站放在一起。访问异常的排在最后。没有在线率数字的排在有数字的后面、异常站前面。在线率按档排：99%–100% 一档，95%–98% 一档，90%–94% 一档，90% 以下一档。同一档里延迟也按档排：1 秒内、1–3 秒、3 秒以上，没有延迟数字的靠后。再往下，公开了模型的排在没有模型的前面；有评论的按评论星级，高的在前。投票不参与这个名次。点「在线率」或「平均延迟」时，按该数字本身排。赞成和反对每人每站一票，再点一次同一边就是取消。</p>
       </article>
     </div>
   );
@@ -4554,7 +4638,7 @@ export function ReportPage() {
             })}
           </tbody>
         </table>
-      ) : <p className="mini">这份快照只有总分，没有逐项探针。</p>}
+      ) : <p className="mini">这份记录保存在本站，目前只有总分、时间和模型，没有逐项探针，也没有原始响应。</p>}
       <div className="report-archive">
         <div>
           <b>该站已被维渡 AI 收录</b>
@@ -4562,7 +4646,7 @@ export function ReportPage() {
         </div>
         {report.slug ? <Link to={stationPath(findStation(report.slug) || { slug: report.slug })}>查看完整档案 →</Link> : null}
       </div>
-      <p className="report-note">这次检测用的是你填写的地址和 Key，结果只留在这台浏览器。它不是纯度鉴定，也不代表对任何中转站的推荐。请以你自己的使用为准。</p>
+      <p className="report-note">{report.results?.length ? "这次检测用的是你填写的地址和 Key，结果只留在这台浏览器。" : "这是记在本站的一条检测记录。"}它不是纯度鉴定，也不代表对任何中转站的推荐。请以你自己的使用为准。</p>
       {poster ? (
         <div className="th-overlay" onClick={() => setPoster(false)}>
           <div className="poster-dialog" onClick={(event) => event.stopPropagation()}>

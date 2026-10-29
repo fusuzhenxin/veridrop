@@ -1,0 +1,48 @@
+<svg width="80" height="80" viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="AiZR icon logo">
+  <defs>
+    <linearGradient id="bg" x1="12" y1="8" x2="68" y2="72" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#0B1B5E"/>
+      <stop offset="0.5" stop-color="#102B75"/>
+      <stop offset="1" stop-color="#04111F"/>
+    </linearGradient>
+    <linearGradient id="mark" x1="20" y1="18" x2="62" y2="60" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#7DFEFF"/>
+      <stop offset="0.52" stop-color="#26E6B3"/>
+      <stop offset="1" stop-color="#79FF7A"/>
+    </linearGradient>
+    <linearGradient id="markDark" x1="17" y1="15" x2="58" y2="65" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#1DF7FF"/>
+      <stop offset="1" stop-color="#18D68E"/>
+    </linearGradient>
+    <filter id="glow" x="8" y="8" width="64" height="64" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feFlood flood-opacity="0" result="BackgroundImageFix"/>
+      <feGaussianBlur in="SourceGraphic" stdDeviation="1.7" result="blur"/>
+      <feColorMatrix in="blur" type="matrix" values="0 0 0 0 0.15 0 0 0 0 0.95 0 0 0 0 0.78 0 0 0 0.72 0"/>
+      <feBlend in2="BackgroundImageFix" mode="screen" result="glow"/>
+      <feBlend in="SourceGraphic" in2="glow" mode="normal"/>
+    </filter>
+    <clipPath id="hexClip">
+      <path d="M40 6L68.6 22.5V57.5L40 74L11.4 57.5V22.5L40 6Z"/>
+    </clipPath>
+  </defs>
+  <path d="M40 6L68.6 22.5V57.5L40 74L11.4 57.5V22.5L40 6Z" fill="url(#bg)"/>
+  <path d="M40 6L68.6 22.5V57.5L40 74L11.4 57.5V22.5L40 6Z" stroke="#2CE7D0" stroke-width="2.4"/>
+  <g clip-path="url(#hexClip)" opacity="0.34">
+    <path d="M-4 55H84" stroke="#50F5D7" stroke-width="0.9" stroke-opacity="0.35"/>
+    <path d="M-4 41H84" stroke="#50F5D7" stroke-width="0.7" stroke-opacity="0.23"/>
+    <path d="M-4 27H84" stroke="#50F5D7" stroke-width="0.7" stroke-opacity="0.18"/>
+    <path d="M22 -3V83" stroke="#7DFEFF" stroke-width="0.7" stroke-opacity="0.2"/>
+    <path d="M40 -3V83" stroke="#7DFEFF" stroke-width="0.7" stroke-opacity="0.22"/>
+    <path d="M58 -3V83" stroke="#7DFEFF" stroke-width="0.7" stroke-opacity="0.2"/>
+  </g>
+  <path d="M40 12.4L63 25.8V54.2L40 67.6L17 54.2V25.8L40 12.4Z" stroke="#8CFFEF" stroke-width="1.1" stroke-opacity="0.28"/>
+  <g filter="url(#glow)">
+    <path d="M45.9 19.2H31.7L19.7 39.8L31.7 60.8H46.4L37.8 46.1H47.4C51.2 46.1 53.2 49.7 51.3 53L47 60.8H61.1L64.3 55.1C69.5 45.8 62.8 34.3 52.1 34.3H37.2L45.9 19.2Z" fill="url(#mark)" fill-opacity="0.96"/>
+    <path d="M33.8 24.6H36.8L28 39.8L36.8 55.4H33.8L24.8 39.8L33.8 24.6Z" fill="#071735" fill-opacity="0.62"/>
+    <path d="M47.3 24.6H38.7L33.2 34.3H42L47.3 24.6Z" fill="#071735" fill-opacity="0.74"/>
+    <path d="M40.9 40.1H52.1C56.7 40.1 59.6 45 57.4 49L54.1 55.4H51.2L54.5 49.6C56.1 46.8 54.1 43.2 50.9 43.2H39.1L40.9 40.1Z" fill="#071735" fill-opacity="0.68"/>
+  </g>
+  <circle cx="22.2" cy="39.8" r="2.2" fill="#9BFFF3"/>
+  <circle cx="57.6" cy="39.8" r="2.2" fill="#7AFFB2"/>
+  <circle cx="40" cy="19.1" r="1.7" fill="#6AFBFF"/>
+</svg>

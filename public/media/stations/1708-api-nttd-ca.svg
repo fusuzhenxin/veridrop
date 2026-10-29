@@ -1,0 +1,10 @@
+<svg width="256" height="256" viewBox="0 0 256 256" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect x="36" y="36" width="184" height="184" rx="40" fill="#FCFCFA"/>
+  <rect x="36.75" y="36.75" width="182.5" height="182.5" rx="39.25" stroke="#D4D4D0" stroke-width="1.5"/>
+  <path d="M128 76V180" stroke="#E7E5E4" stroke-width="2"/>
+  <path d="M76 128H180" stroke="#E7E5E4" stroke-width="2"/>
+  <text x="102" y="118" text-anchor="middle" fill="#111827" font-size="50" font-weight="700" font-family="Inter, Helvetica, Arial, sans-serif">N</text>
+  <text x="154" y="118" text-anchor="middle" fill="#111827" font-size="50" font-weight="700" font-family="Inter, Helvetica, Arial, sans-serif">T</text>
+  <text x="102" y="170" text-anchor="middle" fill="#111827" font-size="50" font-weight="700" font-family="Inter, Helvetica, Arial, sans-serif">T</text>
+  <text x="154" y="170" text-anchor="middle" fill="#111827" font-size="50" font-weight="700" font-family="Inter, Helvetica, Arial, sans-serif">D</text>
+</svg>

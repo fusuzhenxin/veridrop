@@ -1,0 +1,39 @@
+<svg width="80" height="80" viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="14" y1="10" x2="66" y2="70" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#071121"/>
+      <stop offset="0.55" stop-color="#020812"/>
+      <stop offset="1" stop-color="#09182A"/>
+    </linearGradient>
+    <filter id="softGlow" x="4" y="4" width="72" height="72" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="4"/>
+    </filter>
+    <filter id="starGlow" x="12" y="12" width="56" height="56" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="2.4"/>
+    </filter>
+  </defs>
+
+  <rect width="80" height="80" rx="20" fill="url(#bg)"/>
+  <rect x="3.5" y="3.5" width="73" height="73" rx="18" stroke="white" stroke-opacity="0.12"/>
+  <rect x="7.5" y="7.5" width="65" height="65" rx="15" stroke="#57E2D0" stroke-opacity="0.18"/>
+
+  <path
+    d="M40 14.5L45.2 34.8L65.5 40L45.2 45.2L40 65.5L34.8 45.2L14.5 40L34.8 34.8L40 14.5Z"
+    fill="white"
+    fill-opacity="0.16"
+    filter="url(#starGlow)"
+  />
+  <path
+    d="M40 18L44.2 35.8L62 40L44.2 44.2L40 62L35.8 44.2L18 40L35.8 35.8L40 18Z"
+    fill="#F7FFFF"
+  />
+  <path
+    d="M40 18L44.2 35.8L62 40L44.2 44.2L40 62L35.8 44.2L18 40L35.8 35.8L40 18Z"
+    fill="white"
+    filter="url(#softGlow)"
+    opacity="0.38"
+  />
+
+  <circle cx="58.5" cy="21.5" r="2.6" fill="white" fill-opacity="0.76"/>
+  <circle cx="22.5" cy="58" r="1.8" fill="white" fill-opacity="0.66"/>
+</svg>

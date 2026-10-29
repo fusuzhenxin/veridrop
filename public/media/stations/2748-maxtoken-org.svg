@@ -1,0 +1,9 @@
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title desc">
+  <title id="title">MaxToken Fresh Flat Mark</title>
+  <desc id="desc">A fresh minimal flat green m mark for MaxToken.</desc>
+  <rect width="1024" height="1024" fill="#FFFFFF"/>
+  <g transform="translate(512 512) scale(0.82) translate(-512 -512)">
+    <path d="M262 652V417C262 340.785 323.785 279 400 279C477.821 279 532 343.293 532 442V652M532 652V442C532 343.293 586.179 279 664 279C740.215 279 802 340.785 802 417V652" stroke="#21C86A" stroke-width="72" stroke-linecap="round" stroke-linejoin="round"/>
+    <circle cx="858" cy="318" r="34" fill="#A7F3C0"/>
+  </g>
+</svg>

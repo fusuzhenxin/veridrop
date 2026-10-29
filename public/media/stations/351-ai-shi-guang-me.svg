@@ -1,0 +1,10 @@
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
+  <rect x="0" y="0" width="1024" height="1024" rx="224" fill="#F5610A"/>
+  <text x="512" y="660"
+    text-anchor="middle"
+    font-family="Noto Sans SC, PingFang SC, Microsoft YaHei, sans-serif"
+    font-size="380"
+    font-weight="300"
+    letter-spacing="30"
+    fill="#FFFFFF">拾光</text>
+</svg>

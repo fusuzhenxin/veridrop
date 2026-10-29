@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" fill="none" role="img" aria-labelledby="title desc">
+  <title id="title">山水 AI 科技图标</title>
+  <desc id="desc">抽象山峰、水纹与网络节点组成的山水品牌图标</desc>
+
+  <defs>
+    <linearGradient id="bg" x1="72" y1="48" x2="440" y2="464" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#111A2C"/>
+      <stop offset="1" stop-color="#071018"/>
+    </linearGradient>
+    <linearGradient id="mountain" x1="108" y1="304" x2="400" y2="146" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#35E0C1"/>
+      <stop offset="0.52" stop-color="#75F0B0"/>
+      <stop offset="1" stop-color="#D4F56B"/>
+    </linearGradient>
+    <linearGradient id="water" x1="104" y1="340" x2="410" y2="394" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#30C7F2"/>
+      <stop offset="1" stop-color="#5486FF"/>
+    </linearGradient>
+    <radialGradient id="node" cx="0" cy="0" r="1" gradientTransform="translate(0.35 0.3) rotate(48) scale(0.8)" gradientUnits="objectBoundingBox">
+      <stop stop-color="#FFFFFF"/>
+      <stop offset="1" stop-color="#78F0BF"/>
+    </radialGradient>
+    <filter id="softGlow" x="-25%" y="-25%" width="150%" height="150%" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="5" result="blur"/>
+      <feColorMatrix in="blur" type="matrix" values="0 0 0 0 0.20  0 0 0 0 0.88  0 0 0 0 0.76  0 0 0 0.28 0"/>
+      <feBlend in="SourceGraphic"/>
+    </filter>
+    <clipPath id="frame">
+      <circle cx="256" cy="256" r="232"/>
+    </clipPath>
+  </defs>
+
+  <g clip-path="url(#frame)">
+    <circle cx="256" cy="256" r="232" fill="url(#bg)"/>
+    <path d="M80 256H126L154 228L208 160L264 246L329 139L406 256H432" stroke="#9CEBCC" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" opacity="0.13"/>
+    <path d="M105 315L195 201L246 269L320 161L407 315" stroke="url(#mountain)" stroke-width="28" stroke-linecap="round" stroke-linejoin="round" filter="url(#softGlow)"/>
+
+    <path d="M195 201V154H160" stroke="#53DCC5" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" opacity="0.86"/>
+    <path d="M320 161V114H357" stroke="#9DEE95" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" opacity="0.86"/>
+    <path d="M246 269H279V234" stroke="#75E7B4" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" opacity="0.74"/>
+
+    <g fill="url(#node)">
+      <circle cx="160" cy="154" r="9"/>
+      <circle cx="357" cy="114" r="9"/>
+      <circle cx="279" cy="234" r="8"/>
+    </g>
+    <g fill="#0B1420" stroke="#A1F0C1" stroke-width="4">
+      <circle cx="195" cy="201" r="9"/>
+      <circle cx="320" cy="161" r="9"/>
+      <circle cx="246" cy="269" r="8"/>
+    </g>
+
+    <path d="M101 348C136 326 171 326 206 348C241 370 276 370 311 348C346 326 381 326 416 348" stroke="url(#water)" stroke-width="17" stroke-linecap="round"/>
+    <path d="M116 389C145 374 174 374 203 389C232 404 261 404 290 389C319 374 348 374 377 389" stroke="url(#water)" stroke-width="11" stroke-linecap="round" opacity="0.72"/>
+
+    <path d="M104 429H408" stroke="#D8F7F0" stroke-width="3" stroke-linecap="round" opacity="0.13"/>
+  </g>
+
+  <circle cx="256" cy="256" r="230.5" stroke="#E5FFF8" stroke-width="3" opacity="0.12"/>
+</svg>

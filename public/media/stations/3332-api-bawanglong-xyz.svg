@@ -1,0 +1,22 @@
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="markGradient" x1="86" y1="82" x2="420" y2="428" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#10B981"/>
+      <stop offset="0.5" stop-color="#06B6D4"/>
+      <stop offset="1" stop-color="#F59E0B"/>
+    </linearGradient>
+    <filter id="softShadow" x="32" y="28" width="448" height="460" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="22" stdDeviation="22" flood-color="#0F172A" flood-opacity="0.18"/>
+    </filter>
+  </defs>
+
+  <rect width="512" height="512" rx="112" fill="#F8FAFC"/>
+  <g filter="url(#softShadow)">
+    <rect x="70" y="58" width="372" height="372" rx="96" fill="#0F172A"/>
+    <path d="M138 256C138 172.1 206.1 104 290 104H337C362.4 104 383 124.6 383 150V187C383 205.8 367.8 221 349 221H317L374 295C382.7 306.3 374.7 322.7 360.4 322.7H309.3C298.2 322.7 287.8 317.7 280.9 309L238 253.2V322C238 340.8 222.8 356 204 356H172C153.2 356 138 340.8 138 322V256Z" fill="url(#markGradient)"/>
+    <path d="M224 159H326C335.4 159 343 166.6 343 176C343 185.4 335.4 193 326 193H224V159Z" fill="#F8FAFC" fill-opacity="0.92"/>
+    <path d="M224 230H294C303.4 230 311 237.6 311 247C311 256.4 303.4 264 294 264H224V230Z" fill="#F8FAFC" fill-opacity="0.92"/>
+    <circle cx="337" cy="151" r="10" fill="#F8FAFC"/>
+    <path d="M154 132L116 94M154 378L116 416M406 120L444 82M407 390L445 428" stroke="#06B6D4" stroke-width="13" stroke-linecap="round"/>
+  </g>
+</svg>

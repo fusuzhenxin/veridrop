@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="1200" viewBox="0 0 1200 1200" role="img" aria-labelledby="title desc">
+  <!-- Hallmark: logo-brand; genre: modern-minimal; theme: Cobalt; tone: technical-austere -->
+  <!-- Hallmark pre-emit critique: P4 H5 E5 S4 R5 V5 -->
+  <title id="title">TOKAN AI API Relay logo</title>
+  <desc id="desc">A geometric relay gateway mark with one input, two outputs, a hidden T, and the TOKAN wordmark.</desc>
+  <style>
+    :root {
+      --color-paper: #F4F7FB;
+      --color-ink: #111827;
+      --color-muted: #536174;
+      --color-accent: #245BFF;
+    }
+  </style>
+
+  <rect width="1200" height="1200" fill="var(--color-paper)"/>
+
+  <!-- Relay gateway: one inlet, a central handoff core, and two exits. -->
+  <g fill="var(--color-ink)">
+    <rect x="244" y="337" width="188" height="62"/>
+    <circle cx="568" cy="368" r="164" fill="none" stroke="var(--color-ink)" stroke-width="62"/>
+    <path d="M688 253 731 296 854 205H930V267H874L755 355 710 321Z"/>
+    <path d="M688 483 731 440 854 531H930V469H874L755 381 710 415Z"/>
+  </g>
+
+  <!-- The negative-space T links the emblem to the name without becoming a literal monogram. -->
+  <path d="M487 300H649V350H593V466H543V350H487Z" fill="var(--color-paper)"/>
+  <rect x="724" y="350" width="36" height="36" rx="4" fill="var(--color-accent)"/>
+
+  <text x="600" y="842" fill="var(--color-ink)" font-family="Bahnschrift, Segoe UI Variable Display, Segoe UI, sans-serif" font-size="174" font-weight="700" text-anchor="middle">TOKAN</text>
+  <text x="600" y="927" fill="var(--color-muted)" font-family="Segoe UI Variable, Segoe UI, sans-serif" font-size="31" font-weight="600" text-anchor="middle">AI API RELAY</text>
+</svg>

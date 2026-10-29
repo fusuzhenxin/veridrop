@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 80" role="img" aria-labelledby="title desc">
+  <title id="title">YW Nexus</title>
+  <desc id="desc">A connected Y-shaped mark in teal and cyan on a dark rounded square.</desc>
+  <defs>
+    <linearGradient id="bg" x1="8" y1="8" x2="72" y2="72" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#0f1f33"/>
+      <stop offset="1" stop-color="#07111f"/>
+    </linearGradient>
+    <linearGradient id="mark" x1="18" y1="18" x2="62" y2="63" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#5eead4"/>
+      <stop offset="1" stop-color="#22d3ee"/>
+    </linearGradient>
+    <filter id="glow" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur stdDeviation="2.2" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+  <rect width="80" height="80" rx="18" fill="url(#bg)"/>
+  <rect x="1" y="1" width="78" height="78" rx="17" fill="none" stroke="#5eead4" stroke-opacity=".24" stroke-width="2"/>
+  <g fill="none" stroke="url(#mark)" stroke-linecap="round" stroke-linejoin="round" stroke-width="8" filter="url(#glow)">
+    <path d="M19 19 40 40 61 19"/>
+    <path d="M40 40v22"/>
+  </g>
+  <g fill="#ccfbf1">
+    <circle cx="19" cy="19" r="3"/>
+    <circle cx="61" cy="19" r="3"/>
+    <circle cx="40" cy="62" r="3"/>
+  </g>
+</svg>

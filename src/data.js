@@ -7,6 +7,8 @@ import officialBars from "./official-bars.json";
 import voteCounts from "./vote-counts.json";
 import listedDates from "./listed-dates.json";
 import stationPublic from "./station-public.json";
+import externalTests from "./external-tests.json";
+import relayLive from "./relay-live.json";
 import { CAT_LABEL } from "./verd-meta.js";
 
 export const modelTotal = catalog.modelTotal;
@@ -223,6 +225,40 @@ function markInvoice(value) {
   return value;
 }
 
+function speedScore(seconds) {
+  if (seconds == null || !Number.isFinite(Number(seconds))) return null;
+  const value = Number(seconds);
+  if (value <= 1) return 100;
+  if (value >= 8) return 0;
+  return Math.round(((8 - value) / 7) * 100);
+}
+
+function modelScore(count) {
+  const value = Number(count) || 0;
+  if (value <= 0) return 0;
+  return Math.max(18, Math.min(100, Math.round((Math.log10(value + 1) / 2.2) * 100)));
+}
+
+function priceScore(models) {
+  const ratios = (models || []).map((model) => Number(model.ratio)).filter((ratio) => ratio > 0);
+  if (!ratios.length) return 0;
+  return Math.max(0, Math.min(100, Math.round(100 - Math.min(...ratios) * 60)));
+}
+
+function latencyLabel(seconds) {
+  if (seconds == null || !Number.isFinite(Number(seconds))) return "";
+  const value = Number(seconds);
+  if (value >= 1) return `${value.toFixed(1)}s`;
+  return `${Math.round(value * 1000)} ms`;
+}
+
+function policyMark(value) {
+  if (value === true || value === "yes" || value === "是" || value === "✓") return "✓";
+  if (value === "no" || value === "否" || value === "✗") return "✗";
+  if (typeof value === "string" && value && value !== "false") return value;
+  return "—";
+}
+
 function cleanUrl(url) {
   try {
     const parsed = new URL(url);
@@ -372,11 +408,6 @@ for (const extraRow of verd.attach || []) {
   station.voteUp = attachedVotes.up;
   station.voteDown = attachedVotes.down;
   station.voteScore = attachedVotes.up - attachedVotes.down;
-  const attachedTotal = attachedVotes.up + attachedVotes.down;
-  if (attachedTotal > 0) {
-    station.rating = (attachedVotes.up / attachedTotal) * 5;
-    station.ratingCount = attachedTotal;
-  }
   if (extraRow.invoice && station.invoice === "—") station.invoice = "✓";
   for (const pay of extraRow.pay || []) {
     if (!station.pay.includes(pay)) station.pay.push(pay);
@@ -423,7 +454,23 @@ function mapVerdStation(row) {
   const tags = (row.categories || []).map((id) => CAT_LABEL[id]).filter(Boolean).slice(0, 4);
   const ms = row.avgMs != null ? row.avgMs : row.ms;
   const votes = catalogVotes(row.id, row);
-  const modelCount = publishedModels ? publishedModels.length : (row.modelCount || 0);
+  const listedCount = publishedModels
+    ? new Set(publishedModels.map((model) => model.name || model.id).filter(Boolean)).size
+    : 0;
+  const modelCount = Math.max(listedCount, row.modelCount || 0);
+  const directoryLatency = ms == null ? null : Math.round(ms / 100) / 10;
+  const live = relayLive[row.domain] || null;
+  const latency = live && live.latency != null ? live.latency : directoryLatency;
+  const uptime = live && live.uptime != null ? live.uptime : (row.uptime == null ? null : Math.round(row.uptime));
+  const speedShown = speedScore(latency);
+  const priced = publishedModels || row.modelRows || [];
+  const radar = {
+    "纯度": 0,
+    "稳定": uptime == null ? 0 : Math.max(0, Math.min(100, Math.round(Number(uptime)))),
+    "速度": speedShown ?? 0,
+    "价格": priceScore(priced),
+    "模型": modelScore(modelCount),
+  };
   const lineup = publishedModels && familyNames.length ? familyNames.join("、") : (row.modelLabels || "");
   return {
     slug: row.token,
@@ -432,15 +479,16 @@ function mapVerdStation(row) {
     aliases: [],
     name: row.name,
     listed: listedDay(row.id, row),
-    uptime: row.uptime == null ? null : Math.round(row.uptime),
-    latency: ms == null ? null : Math.round(ms / 100) / 10,
-    min: "—",
+    uptime: uptime == null ? null : Math.round(Number(uptime)),
+    latency,
+    min: row.minTopup || "—",
+    promo: row.promo || live?.promo || "",
     pay: row.pay || [],
     paymentText: (row.pay || []).length ? (row.pay || []).join("、") : "—",
-    refund: "—",
-    invoice: row.invoice ? "✓" : "—",
-    rating: votes.up + votes.down ? (votes.up / (votes.up + votes.down)) * 5 : null,
-    ratingCount: votes.up + votes.down,
+    refund: policyMark(row.refund),
+    invoice: policyMark(row.invoice),
+    rating: null,
+    ratingCount: 0,
     modelsHome: modelCount,
     extra: Math.max(0, vendors.length - 4),
     modelsList: modelCount,
@@ -449,10 +497,11 @@ function mapVerdStation(row) {
     img: row.logo || "",
     site: row.url || "",
     host: row.domain || "",
+    probe: null,
     issue: row.online === false,
-    speed: null,
-    upShown: row.uptime == null ? null : Math.round(row.uptime),
-    speedShown: null,
+    speed: speedShown,
+    upShown: uptime == null ? null : Math.round(Number(uptime)),
+    speedShown,
     upDelta: null,
     speedDelta: null,
     socials: [],
@@ -460,21 +509,29 @@ function mapVerdStation(row) {
     coverText: row.tag || "",
     familiesText: lineup,
     week: null,
-    month: null,
-    meanLatency: ms == null ? "" : `${Math.round(ms)} ms`,
+    month: uptime == null ? null : Math.round(Number(uptime)),
+    monthLabel: live?.uptime != null ? "探测在线率" : "可用率",
+    monthNote: live?.uptime != null ? "公开探测到的在线率" : "目录记录的在线率",
+    meanLatency: latencyLabel(latency),
     blurb: row.description || "",
     lineup: lineup ? `支持 ${lineup}` : "",
     links: [],
     events: [],
     announcements: published?.notice ? [{ id: `${row.id}-notice`, title: "公告", content: plainNotice(published.notice), date: "" }] : [],
     models: publishedModels || row.modelRows || [],
-    tests: [],
+    tests: (externalTests[row.domain] || []).map((test, index) => ({
+      id: `h-${row.id}-${index}`,
+      at: test.at,
+      channel: test.channel,
+      model: test.model,
+      score: test.score,
+    })),
     baseUrl: "",
     windows: null,
     familiesMenu: null,
     labels: null,
     reviews: [],
-    radar: null,
+    radar,
     categories: row.categories || [],
     modelIds: row.modelIds || [],
     source: "veridrop",
@@ -496,6 +553,53 @@ function isDown(station) {
   return Boolean(station.issue) || station.online === false;
 }
 
+function uptimeBand(station) {
+  if (!hasNumber(station.uptime)) return 4;
+  const value = Number(station.uptime);
+  if (value >= 99) return 0;
+  if (value >= 95) return 1;
+  if (value >= 90) return 2;
+  return 3;
+}
+
+function latencyBand(station) {
+  if (!hasNumber(station.latency)) return 3;
+  const value = Number(station.latency);
+  if (value < 1) return 0;
+  if (value < 3) return 1;
+  return 2;
+}
+
+function commentRank(station) {
+  if (!(station.ratingCount > 0) || !hasNumber(station.rating)) return null;
+  return Number(station.rating);
+}
+
+function compareOverall(a, b) {
+  const uptime = uptimeBand(a) - uptimeBand(b);
+  if (uptime) return uptime;
+  const latency = latencyBand(a) - latencyBand(b);
+  if (latency) return latency;
+  const models = Number(!(Number(a.modelsHome) > 0)) - Number(!(Number(b.modelsHome) > 0));
+  if (models) return models;
+  const left = commentRank(a);
+  const right = commentRank(b);
+  if (left == null && right != null) return 1;
+  if (left != null && right == null) return -1;
+  if (left != null && right != null && left !== right) return right - left;
+  return String(a.name || "").localeCompare(String(b.name || ""), "zh");
+}
+
+function compareUptime(a, b) {
+  const missing = Number(!hasNumber(a.uptime)) - Number(!hasNumber(b.uptime));
+  if (missing) return missing;
+  if (hasNumber(a.uptime) && a.uptime !== b.uptime) return b.uptime - a.uptime;
+  const latencyMissing = Number(!hasNumber(a.latency)) - Number(!hasNumber(b.latency));
+  if (latencyMissing) return latencyMissing;
+  if (hasNumber(a.latency) && a.latency !== b.latency) return a.latency - b.latency;
+  return String(a.name || "").localeCompare(String(b.name || ""), "zh");
+}
+
 export function compareStations(a, b, mode = "overall") {
   const down = Number(isDown(a)) - Number(isDown(b));
   if (down) return down;
@@ -503,20 +607,24 @@ export function compareStations(a, b, mode = "overall") {
     const missing = Number(!hasNumber(a.latency)) - Number(!hasNumber(b.latency));
     if (missing) return missing;
     if (hasNumber(a.latency) && a.latency !== b.latency) return a.latency - b.latency;
-  } else {
-    const missing = Number(!hasNumber(a.uptime)) - Number(!hasNumber(b.uptime));
-    if (missing) return missing;
-    if (hasNumber(a.uptime) && a.uptime !== b.uptime) return b.uptime - a.uptime;
-    const latencyMissing = Number(!hasNumber(a.latency)) - Number(!hasNumber(b.latency));
-    if (latencyMissing) return latencyMissing;
-    if (hasNumber(a.latency) && a.latency !== b.latency) return a.latency - b.latency;
+    return String(a.name || "").localeCompare(String(b.name || ""), "zh");
   }
-  return String(a.name || "").localeCompare(String(b.name || ""), "zh");
+  if (mode === "uptime") return compareUptime(a, b);
+  return compareOverall(a, b);
 }
 
 export const stations = [...okkStations, ...(verd.stations || []).map(mapVerdStation)].sort(compareStations);
 stations.forEach((station, index) => {
   station.place = index + 1;
+});
+const voteRanked = [...stations].sort((a, b) => {
+  const net = ((b.voteUp || 0) - (b.voteDown || 0)) - ((a.voteUp || 0) - (a.voteDown || 0));
+  if (net) return net;
+  return String(a.name || "").localeCompare(String(b.name || ""), "zh-Hans-CN", { numeric: true, sensitivity: "base" })
+    || String(a.slug || "").localeCompare(String(b.slug || ""));
+});
+voteRanked.forEach((station, index) => {
+  station.votePlace = index + 1;
 });
 
 export const stationTotal = stations.length;

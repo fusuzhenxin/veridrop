@@ -1,0 +1,13 @@
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <title>Token routing mark</title>
+  <rect width="1024" height="1024" rx="224" fill="#050608"/>
+  <circle cx="512" cy="512" r="318" stroke="#F5F7FA" stroke-width="54"/>
+  <path d="M512 224C650.071 224 762 335.929 762 474C762 612.071 650.071 724 512 724C373.929 724 262 612.071 262 474" stroke="#050608" stroke-width="82" stroke-linecap="round"/>
+  <path d="M314 634L508 390L710 634" stroke="#F5F7FA" stroke-width="62" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M508 390V714" stroke="#F5F7FA" stroke-width="62" stroke-linecap="round"/>
+  <circle cx="314" cy="634" r="48" fill="#050608" stroke="#F5F7FA" stroke-width="38"/>
+  <circle cx="508" cy="390" r="48" fill="#050608" stroke="#F5F7FA" stroke-width="38"/>
+  <circle cx="710" cy="634" r="48" fill="#050608" stroke="#F5F7FA" stroke-width="38"/>
+  <circle cx="508" cy="714" r="48" fill="#050608" stroke="#F5F7FA" stroke-width="38"/>
+  <circle cx="762" cy="474" r="36" fill="#8DFF7A"/>
+</svg>

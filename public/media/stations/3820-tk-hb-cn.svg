@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" role="img" aria-labelledby="title desc">
+  <title id="title">OrbitGate icon</title>
+  <desc id="desc">A dark orbital gateway mark for OrbitGate.</desc>
+  <defs>
+    <linearGradient id="core" x1="206" y1="184" x2="826" y2="836" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#67E8F9"/>
+      <stop offset="0.55" stop-color="#6366F1"/>
+      <stop offset="1" stop-color="#A78BFA"/>
+    </linearGradient>
+    <radialGradient id="halo" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(512 512) rotate(90) scale(476)">
+      <stop offset="0" stop-color="#22D3EE" stop-opacity="0.28"/>
+      <stop offset="0.62" stop-color="#6366F1" stop-opacity="0.12"/>
+      <stop offset="1" stop-color="#020617" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="1024" height="1024" rx="220" fill="#050814"/>
+  <circle cx="512" cy="512" r="476" fill="url(#halo)"/>
+  <ellipse cx="512" cy="512" rx="340" ry="176" fill="none" stroke="#67E8F9" stroke-width="26" stroke-opacity="0.72" transform="rotate(-18 512 512)"/>
+  <ellipse cx="512" cy="512" rx="404" ry="236" fill="none" stroke="#A78BFA" stroke-width="18" stroke-opacity="0.48" transform="rotate(24 512 512)"/>
+  <circle cx="512" cy="512" r="166" fill="#07101F" stroke="url(#core)" stroke-width="34"/>
+  <path d="M512 382c-78 0-130 55-130 130s52 130 130 130c40 0 75-14 99-38v-65h-105v-62h178v154c-42 47-100 73-172 73-119 0-209-84-209-192s90-192 209-192c69 0 126 25 166 68l-53 49c-29-35-67-55-113-55Z" fill="#ECFEFF"/>
+  <circle cx="220" cy="414" r="22" fill="#67E8F9"/>
+  <circle cx="812" cy="606" r="24" fill="#A78BFA"/>
+</svg>

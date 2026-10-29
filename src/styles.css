@@ -588,7 +588,23 @@ table.rank th { text-align: left; font-size: 13px; font-weight: 500; color: var(
 table.rank td { padding: 14px 10px; border-bottom: 1px solid var(--line-2); vertical-align: middle; font-size: 14px; }
 table.rank tr.click:hover td { background: #fafafa; }
 :root[data-theme="dark"] table.rank tr.click:hover td { background: #1c1e22; }
-.site-cell { display: flex; gap: 10px; align-items: center; }
+.site-cell { display: flex; gap: 10px; align-items: center; min-width: 0; }
+.site-id { min-width: 0; flex: 1; overflow: hidden; }
+table.rank.home { table-layout: fixed; min-width: 980px; }
+table.rank.home .c-fav { width: 36px; }
+table.rank.home .c-site { width: 24%; }
+table.rank.home .c-up { width: 13%; }
+table.rank.home .c-pay { width: 11%; }
+table.rank.home .c-tag { width: 18%; }
+table.rank.home .c-rate { width: 14%; }
+table.rank.home .c-mod { width: 16%; }
+table.rank.home .site-name,
+table.rank.home .rank-jump { max-width: 9em; }
+table.rank.home .site-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+table.rank.home .rank-jump { display: inline-flex; width: fit-content; min-width: 0; padding-right: 14px; vertical-align: bottom; }
+table.rank.home .rank-jump span { display: block; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+table.rank.home .rank-jump .st-arrow { left: auto; right: 0; margin: -6px 0 0 0; }
+table.rank.home .mini { white-space: nowrap; }
 .logo-img, .logo-fallback { width: 38px; height: 38px; border-radius: 10px; object-fit: cover; background: var(--chip); flex: none; }
 .logo-fallback { display: grid; place-items: center; font-weight: 700; }
 .site-name { font-weight: 650; font-size: 15px; }
@@ -765,11 +781,54 @@ table.rank.list tbody tr:hover .slb-mic { border-color: #fafafa; }
 .st-out:hover .slb-nm { border-bottom-color: #4d7c0f; }
 .st-out:hover .st-arrow { opacity: 1; }
 .slb-tags { display: flex; flex-wrap: nowrap; gap: 4px; margin-top: 6px; overflow: hidden; }
+.home-tags { display: flex; flex-wrap: wrap; gap: 4px; max-width: 168px; }
 .slb-tag { white-space: nowrap; color: var(--muted); background: var(--chip); border-radius: 4px; padding: 3px 6px; font-size: 11px; line-height: 12px; }
-.slb-tag.t-cheap { color: #3f6212; background: #65A30D12; }
-.slb-tag.t-up { color: #4a7488; background: #0369a112; }
-:root[data-theme="dark"] .slb-tag.t-cheap { color: #bef264; background: #65A30D1c; }
-:root[data-theme="dark"] .slb-tag.t-up { color: #7196a8; background: #0369a121; }
+.slb-tag.t-charity { color: #15803d; background: #dcfce7; }
+.slb-tag.t-owner { color: #7c3aed; background: #f3e8ff; }
+.slb-tag.t-stable { color: #1d4ed8; background: #dbeafe; }
+.slb-tag.t-cheap { color: #3f6212; background: #ecfccb; }
+.slb-tag.t-special { color: #be185d; background: #fce7f3; }
+.slb-tag.t-new { color: #0369a1; background: #e0f2fe; }
+.slb-tag.t-online { color: #047857; background: #d1fae5; }
+.slb-tag.t-checkin { color: #b45309; background: #ffedd5; }
+.slb-tag.t-gift { color: #c2410c; background: #ffedd5; }
+.slb-tag.t-rate { color: #4d7c0f; background: #ecfccb; }
+.slb-tag.t-fast { color: #a16207; background: #fef9c3; }
+.slb-tag.t-pay { color: #0f766e; background: #ccfbf1; }
+.slb-tag.t-invite { color: #9d174d; background: #ffe4e6; }
+.slb-tag.t-crypto { color: #92400e; background: #fef3c7; }
+.slb-tag.t-invoice { color: #0e7490; background: #cffafe; }
+.slb-tag.t-up { color: #1d4ed8; background: #dbeafe; }
+.slb-tag.t-models { color: #6d28d9; background: #ede9fe; }
+.slb-tag.t-clear { color: #0369a1; background: #e0f2fe; }
+.slb-tag.t-pure { color: #0f766e; background: #ccfbf1; }
+.slb-tag.t-misc0 { color: #7c3aed; background: #f3e8ff; }
+.slb-tag.t-misc1 { color: #be185d; background: #fce7f3; }
+.slb-tag.t-misc2 { color: #0f766e; background: #ccfbf1; }
+.slb-tag.t-misc3 { color: #b45309; background: #ffedd5; }
+:root[data-theme="dark"] .slb-tag.t-charity { color: #4ade80; background: #14532d55; }
+:root[data-theme="dark"] .slb-tag.t-owner { color: #d8b4fe; background: #581c8755; }
+:root[data-theme="dark"] .slb-tag.t-stable,
+:root[data-theme="dark"] .slb-tag.t-up { color: #93c5fd; background: #1e3a8a55; }
+:root[data-theme="dark"] .slb-tag.t-cheap,
+:root[data-theme="dark"] .slb-tag.t-rate { color: #bef264; background: #3f621255; }
+:root[data-theme="dark"] .slb-tag.t-special,
+:root[data-theme="dark"] .slb-tag.t-misc1 { color: #f9a8d4; background: #83184355; }
+:root[data-theme="dark"] .slb-tag.t-new,
+:root[data-theme="dark"] .slb-tag.t-clear { color: #7dd3fc; background: #0c4a6e55; }
+:root[data-theme="dark"] .slb-tag.t-online { color: #6ee7b7; background: #064e3b55; }
+:root[data-theme="dark"] .slb-tag.t-checkin,
+:root[data-theme="dark"] .slb-tag.t-gift,
+:root[data-theme="dark"] .slb-tag.t-fast,
+:root[data-theme="dark"] .slb-tag.t-crypto,
+:root[data-theme="dark"] .slb-tag.t-misc3 { color: #fcd34d; background: #78350f55; }
+:root[data-theme="dark"] .slb-tag.t-pay,
+:root[data-theme="dark"] .slb-tag.t-pure,
+:root[data-theme="dark"] .slb-tag.t-misc2 { color: #5eead4; background: #134e4a55; }
+:root[data-theme="dark"] .slb-tag.t-invite { color: #fda4af; background: #88133755; }
+:root[data-theme="dark"] .slb-tag.t-invoice { color: #67e8f9; background: #164e6355; }
+:root[data-theme="dark"] .slb-tag.t-models,
+:root[data-theme="dark"] .slb-tag.t-misc0 { color: #d8b4fe; background: #4c1d9555; }
 .slb-v { font-size: 14px; font-weight: 500; }
 .slb-unit { color: var(--muted); font-size: 13px; }
 .lat-f { color: #15803d; }
@@ -805,8 +864,8 @@ table.rank.list tbody tr:hover .slb-mic { border-color: #fafafa; }
 .slb-fav { color: #d4d4d8; padding: 2px; line-height: 0; }
 .slb-fav.on { color: #f0a020; }
 .slb-fav.on svg { fill: currentColor; }
-.rank-jump { position: relative; display: inline-flex; align-items: center; max-width: 100%; color: inherit; font-weight: 650; font-size: 15px; }
-.rank-jump span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rank-jump { position: relative; display: inline-flex; align-items: center; width: fit-content; max-width: 9em; color: inherit; font-weight: 650; font-size: 15px; }
+.rank-jump span { display: block; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .rank-jump .st-arrow { position: absolute; top: 50%; left: 100%; margin: -6px 0 0 3px; opacity: 0; color: #4d7c0f; }
 .rank-jump:hover { color: #4d7c0f; }
 .rank-jump:hover .st-arrow { opacity: 1; }

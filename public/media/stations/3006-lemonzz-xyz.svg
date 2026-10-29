@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" fill="none">
+  <!-- 柠檬叶子 -->
+  <path d="M38 18C38 18 42 10 52 10C52 20 44 24 44 24" stroke="#4CAF50" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" fill="#81C784"/>
+  <!-- 柠檬主体 -->
+  <path d="M18 22C12 32 16 46 28 52C40 58 52 48 54 36C56 24 44 14 34 14C24 14 20 18 18 22Z" fill="#FFEB3B" stroke="#FBC02D" stroke-width="3" stroke-linejoin="round"/>
+  <!-- 柠檬高光切片感/细节点缀 -->
+  <path d="M26 28C28 26 34 26 38 30" stroke="#FFF59D" stroke-width="2.5" stroke-linecap="round"/>
+</svg>

@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" fill="none">
+  <defs>
+    <linearGradient id="codexGrad" x1="120" y1="60" x2="330" y2="470" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#A08CFD"/>
+      <stop offset="0.45" stop-color="#5B63FA"/>
+      <stop offset="1" stop-color="#2135EF"/>
+    </linearGradient>
+  </defs>
+
+  <g stroke="url(#codexGrad)" stroke-width="26" stroke-linecap="round" stroke-linejoin="round">
+    <!-- 外圈 -->
+    <circle cx="256" cy="256" r="176"/>
+    <!-- 提示符 > -->
+    <path d="M186 201 L229 256 L186 311"/>
+    <!-- 光标 _ -->
+    <path d="M273 311 L336 311"/>
+  </g>
+</svg>

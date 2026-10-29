@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
+  <title id="title">Aegisy</title>
+  <desc id="desc">Aegisy interlocking S mark for creative model routing.</desc>
+  <rect x="16" y="16" width="480" height="480" rx="92" fill="#101513"/>
+  <rect x="17" y="17" width="478" height="478" rx="91" fill="none" stroke="#FFFFFF" stroke-opacity=".12" stroke-width="2"/>
+  <g transform="translate(52 52) scale(17)" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.72">
+    <path stroke="#D7FF68" d="m19.25 7.65-2.55-3.2a1.33 1.33 0 0 0-1.03-.5H8.58c-.34 0-.67.13-.91.37L4.15 7.65c-.93.88-.6 1.52.65 2.3l9.55 5.97"/>
+    <path stroke="#EEF5F1" d="m4.75 16.35 2.55 3.2c.25.31.63.5 1.03.5h7.09c.34 0 .67-.13.91-.37l3.52-3.33c.93-.88.6-1.52-.65-2.3L9.65 8.08"/>
+  </g>
+  <rect x="366" y="354" width="54" height="54" rx="12" fill="#EF5B46"/>
+</svg>

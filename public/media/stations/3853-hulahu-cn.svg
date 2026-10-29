@@ -1,0 +1,77 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
+  <title id="title">hulahu</title>
+  <desc id="desc">A lowercase h whose stem is a raised index finger spinning a hula hoop, representing requests looping through the AI API gateway.</desc>
+  <defs>
+    <linearGradient id="hf-bg" x1="72" y1="44" x2="442" y2="478" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#142B56"/>
+      <stop offset=".52" stop-color="#0A1A39"/>
+      <stop offset="1" stop-color="#061127"/>
+    </linearGradient>
+    <radialGradient id="hf-ambient" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(168 92) rotate(51) scale(342 382)">
+      <stop stop-color="#3E68B0" stop-opacity=".30"/>
+      <stop offset="1" stop-color="#3E68B0" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="hf-ring" x1="-170" y1="0" x2="170" y2="0" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#79F4BD"/>
+      <stop offset=".5" stop-color="#39D9E7"/>
+      <stop offset="1" stop-color="#3875F6"/>
+    </linearGradient>
+    <linearGradient id="hf-ring-back" x1="-170" y1="0" x2="170" y2="0" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#79F4BD" stop-opacity=".5"/>
+      <stop offset=".5" stop-color="#39D9E7" stop-opacity=".5"/>
+      <stop offset="1" stop-color="#3875F6" stop-opacity=".5"/>
+    </linearGradient>
+    <linearGradient id="hf-skin" x1="170" y1="90" x2="340" y2="400" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF"/>
+      <stop offset="1" stop-color="#D3E3FF"/>
+    </linearGradient>
+    <linearGradient id="hf-tail" x1="161.5" y1="8" x2="105.4" y2="35.2" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0"/>
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity=".85"/>
+    </linearGradient>
+    <radialGradient id="hf-dot-glow" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="scale(34)">
+      <stop stop-color="#79F4BD" stop-opacity=".75"/>
+      <stop offset="1" stop-color="#79F4BD" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <rect x="16" y="16" width="480" height="480" rx="120" fill="url(#hf-bg)"/>
+  <rect x="16" y="16" width="480" height="480" rx="120" fill="url(#hf-ambient)"/>
+  <rect x="16.75" y="16.75" width="478.5" height="478.5" rx="119.25" fill="none" stroke="#FFFFFF" stroke-opacity=".08" stroke-width="1.5"/>
+
+  <!-- hoop, back half (behind the fingertip) -->
+  <g transform="translate(210 156) rotate(-24)">
+    <path d="M-183.2 -11.1 A186 64 0 0 1 -93 -55.4" fill="none" stroke="#79F4BD" stroke-opacity=".35" stroke-width="5" stroke-linecap="round"/>
+    <path d="M-164 0 A164 46 0 0 1 164 0" fill="none" stroke="url(#hf-ring-back)" stroke-width="16" stroke-linecap="round"/>
+  </g>
+
+  <!-- curled fingers: the arch and leg of the h -->
+  <path d="M206 318 C206 250 244 224 276 224 C312 224 332 252 332 292 V372"
+        fill="none" stroke="url(#hf-skin)" stroke-width="50" stroke-linecap="round" stroke-linejoin="round"/>
+
+
+  <!-- raised index finger: the stem of the h -->
+  <rect x="178" y="88" width="56" height="308" rx="28" fill="url(#hf-skin)"/>
+  <rect x="190" y="100" width="32" height="42" rx="15" fill="#BFD3F5"/>
+  <rect x="195" y="104" width="12" height="20" rx="6" fill="#FFFFFF" fill-opacity=".7"/>
+  <path d="M193 242 q13 5 26 0" fill="none" stroke="#A9BEE0" stroke-width="4.5" stroke-linecap="round"/>
+  <path d="M193 356 q13 5 26 0" fill="none" stroke="#A9BEE0" stroke-width="4.5" stroke-linecap="round"/>
+
+  <!-- hoop, front half (in front of the fingertip) -->
+  <g transform="translate(210 156) rotate(-24)">
+    <path d="M160.4 9.6 A164 46 0 0 1 -160.4 9.6" fill="none" stroke="#0A1A39" stroke-width="44" stroke-linecap="butt"/>
+    <path d="M164 0 A164 46 0 0 1 -164 0" fill="none" stroke="url(#hf-ring)" stroke-width="28" stroke-linecap="round"/>
+    <!-- comet tail behind the data dot -->
+    <path d="M161.5 8 A164 46 0 0 1 105.4 35.2" fill="none" stroke="url(#hf-tail)" stroke-width="12" stroke-linecap="round"/>
+    <g transform="translate(105.4 35.2)">
+      <circle r="36" fill="url(#hf-dot-glow)"/>
+      <circle r="14" fill="#79F4BD"/>
+      <circle r="5.5" fill="#FFFFFF"/>
+    </g>
+    <!-- motion echoes -->
+    <g fill="none" stroke-linecap="round">
+      <path d="M179.7 16.6 A186 64 0 0 1 48.1 61.8" stroke="#39D9E7" stroke-opacity=".55" stroke-width="6"/>
+      <path d="M202.9 13.9 A206 80 0 0 1 118.2 65.5" stroke="#3875F6" stroke-opacity=".4" stroke-width="4"/>
+    </g>
+  </g>
+</svg>

@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
+  <title id="title">卡拉 Khala</title>
+  <desc id="desc">卡拉 Khala AI API 网关 - 神族灵能风格徽标</desc>
+  <defs>
+    <linearGradient id="khala-bg" x1="72" y1="44" x2="442" y2="478" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#0A0E17"/>
+      <stop offset="1" stop-color="#1a2332"/>
+    </linearGradient>
+    <linearGradient id="khala-gold" x1="96" y1="80" x2="416" y2="432" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#e8d48b"/>
+      <stop offset=".5" stop-color="#c8a45c"/>
+      <stop offset="1" stop-color="#8a6a2f"/>
+    </linearGradient>
+    <radialGradient id="khala-glow" cx=".5" cy=".45" r=".75">
+      <stop stop-color="#4fc3f7" stop-opacity=".35"/>
+      <stop offset="1" stop-color="#4fc3f7" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="soft-glow" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur stdDeviation="14" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+  <rect width="512" height="512" rx="96" fill="url(#khala-bg)"/>
+  <rect width="512" height="512" rx="96" fill="url(#khala-glow)"/>
+  <rect x="30" y="30" width="452" height="452" rx="72" fill="none" stroke="#c8a45c" stroke-opacity=".28" stroke-width="6"/>
+  <!-- 灵能光翼 -->
+  <path d="M256 96 L336 256 L256 416 L176 256 Z" fill="url(#khala-gold)" filter="url(#soft-glow)"/>
+  <path d="M256 128 L316 256 L256 384 L196 256 Z" fill="#0A0E17"/>
+  <!-- 核心晶石 -->
+  <circle cx="256" cy="256" r="56" fill="url(#khala-gold)"/>
+  <circle cx="256" cy="256" r="56" fill="none" stroke="#4fc3f7" stroke-opacity=".45" stroke-width="5"/>
+  <circle cx="256" cy="256" r="30" fill="#0A0E17"/>
+  <text x="256" y="276" font-family="'PingFang SC','Microsoft YaHei','Noto Sans SC',sans-serif" font-size="44" font-weight="900" text-anchor="middle" fill="#c8a45c">卡</text>
+</svg>

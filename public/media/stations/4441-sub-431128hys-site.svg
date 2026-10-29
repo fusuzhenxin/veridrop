@@ -1,0 +1,23 @@
+<svg width="80" height="80" viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg">
+
+  <!-- 宣纸底 -->
+  <circle cx="40" cy="40" r="38" fill="#f7f1e3"></circle>
+
+  <!-- 外圈（极淡墨圈） -->
+  <circle cx="40" cy="40" r="35" fill="none" stroke="#1f1f1f" stroke-opacity="0.5" stroke-width="1"></circle>
+
+  <!-- 云气（很轻） -->
+  <path d="M22 30 Q28 26 34 30" fill="none" stroke="#c8a86b" stroke-width="1" stroke-linecap="round" opacity="0.8"></path>
+
+  <!-- 鸿雁主线（重点：一笔流线风格） -->
+  <path d="M14 44
+           Q30 26 40 38
+           Q50 50 66 34" fill="none" stroke="#1f1f1f" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"></path>
+
+  <!-- 翅尖朱砂点 -->
+  <circle cx="48" cy="36" r="1.6" fill="#b23a2f"></circle>
+
+  <!-- 若鸿（更国风居中） -->
+  <text x="40" y="54" text-anchor="middle" font-size="11" fill="#1a1a1a" font-family="STKaiti, KaiTi, serif" font-weight="600">若鸿</text>
+
+</svg>

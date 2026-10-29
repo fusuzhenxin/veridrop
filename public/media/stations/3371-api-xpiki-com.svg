@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none">
+  <defs>
+    <linearGradient id="plg-bg" x1="0" y1="0" x2="512" y2="512" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#0c1020"/>
+      <stop offset="100%" stop-color="#05060b"/>
+    </linearGradient>
+    <radialGradient id="plg-glow-aura" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#0078FF" stop-opacity="0.25"/>
+      <stop offset="100%" stop-color="#0078FF" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="blueGrad" x1="140" y1="90" x2="370" y2="420" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#22c8ff"/>
+      <stop offset="50%" stop-color="#0078ff"/>
+      <stop offset="100%" stop-color="#0036b8"/>
+    </linearGradient>
+    <linearGradient id="foldGrad" x1="150" y1="230" x2="300" y2="360" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#0056e0"/>
+      <stop offset="100%" stop-color="#001860"/>
+    </linearGradient>
+    <linearGradient id="glossGrad" x1="170" y1="92" x2="448" y2="218" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.8"/>
+      <stop offset="50%" stop-color="#ffffff" stop-opacity="0.15"/>
+      <stop offset="100%" stop-color="#ffffff" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="plg-border" x1="0" y1="0" x2="0" y2="512" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.25"/>
+      <stop offset="40%" stop-color="#ffffff" stop-opacity="0.05"/>
+      <stop offset="100%" stop-color="#ffffff" stop-opacity="0"/>
+    </linearGradient>
+    <filter id="plg-shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="16" stdDeviation="20" flood-color="#000000" flood-opacity="0.4"/>
+    </filter>
+    <filter id="plg-fold-shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="-6" dy="6" stdDeviation="8" flood-color="#000000" flood-opacity="0.5"/>
+    </filter>
+  </defs>
+  <rect width="512" height="512" rx="142" fill="url(#plg-bg)"/>
+  <rect width="512" height="512" rx="142" fill="url(#plg-glow-aura)" style="mix-blend-mode: screen;"/>
+  <rect x="8" y="8" width="496" height="496" rx="134" stroke="url(#plg-border)" stroke-width="6" fill="none"/>
+  
+  <g transform="translate(-46, 0)">
+    <path fill-rule="evenodd" clip-rule="evenodd" d="M168 92 H318 C392 92 448 145 448 218 C448 292 392 342 318 342 H236 V404 C236 418 225 429 211 429 H190 C178 429 168 419 168 407 Z M236 166 V268 H316 C347 268 370 246 370 217 C370 188 347 166 316 166 Z" fill="url(#blueGrad)" filter="url(#plg-shadow)"/>
+    <path d="M168 262 L236 202 V342 H236 V404 C236 418 225 429 211 429 H190 C178 429 168 419 168 407 Z" fill="url(#foldGrad)" filter="url(#plg-fold-shadow)" opacity="0.98"/>
+    <path d="M190 92 H318 C392 92 448 145 448 218 C448 275 410 320 350 335" fill="none" stroke="url(#glossGrad)" stroke-width="12" stroke-linecap="round" opacity="0.7" style="mix-blend-mode: overlay;"/>
+  </g>
+</svg>

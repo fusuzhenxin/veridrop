@@ -1,0 +1,43 @@
+<svg
+  xmlns="http://www.w3.org/2000/svg"
+  width="80"
+  height="80"
+  viewBox="0 0 80 80"
+  fill="none"
+  aria-label="arcadecode favicon"
+  role="img"
+>F7F9FC" />#F7F9FC" />
+  <path
+    d="M40 18V37"
+    stroke="#4B5568"
+    stroke-width="5"
+    stroke-linecap="round"
+  />
+  <circle cx="40" cy="15" r="7" fill="#00C2A8" stroke="#4B5568" stroke-width="3" />
+  <path
+    d="M27 49.5C27 44.8056 30.8056 41 35.5 41H44.5C49.1944 41 53 44.8056 53 49.5V53C53 57.6944 49.1944 61.5 44.5 61.5H35.5C30.8056 61.5 27 57.6944 27 53V49.5Z"
+    stroke="#4B5568"
+    stroke-width="5"
+    stroke-linejoin="round"
+  />
+  <path
+    d="M23 61.5H57"
+    stroke="#4B5568"
+    stroke-width="5"
+    stroke-linecap="round"
+  />
+  <path
+    d="M31 49L36 54L31 59"
+    stroke="#FF8A3D"
+    stroke-width="4"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+  />
+  <path
+    d="M49 49L44 54L49 59"
+    stroke="#FF8A3D"
+    stroke-width="4"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+  />
+</svg>

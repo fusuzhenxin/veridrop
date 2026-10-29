@@ -9,5 +9,16 @@ Thumbs.db
 data/community.json
 data/community.json.tmp
 data/community.json.lock
+data/station-facts.json
+data/station-facts.json.tmp
+data/station-web.json
+data/station-web.json.tmp
+data/station-blurbs.json
+data/station-blurbs.json.tmp
+data/station-nav-blurbs.json
+data/station-nav-blurbs.json.tmp
+data/logo-sidecar.json
+data/blurb-sidecar.json
+data/model-list-progress.json
 __pycache__/
 *.pyc

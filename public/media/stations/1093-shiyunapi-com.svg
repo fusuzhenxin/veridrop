@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="TokenRiver">
+  <defs>
+    <linearGradient id="tokenriver-icon-surface" x1="8" y1="4" x2="58" y2="61" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#eff6ff"/>
+      <stop offset="0.55" stop-color="#dbeafe"/>
+      <stop offset="1" stop-color="#ecfeff"/>
+    </linearGradient>
+    <linearGradient id="tokenriver-icon-river" x1="14" y1="13" x2="51" y2="51" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#1d4ed8"/>
+      <stop offset="0.45" stop-color="#2563eb"/>
+      <stop offset="1" stop-color="#0891b2"/>
+    </linearGradient>
+  </defs>
+  <rect x="5" y="5" width="54" height="54" rx="16" fill="url(#tokenriver-icon-surface)"/>
+  <rect x="5.75" y="5.75" width="52.5" height="52.5" rx="15.25" fill="none" stroke="#ffffff" stroke-width="1.5"/>
+  <path d="M15 20C22 15 30.5 14.8 37.5 20C42 23.4 47.2 23.2 52.5 18.9" stroke="url(#tokenriver-icon-river)" stroke-width="4" stroke-linecap="round" fill="none" opacity="0.72"/>
+  <path d="M11.5 32C19 25 28.2 24.6 36 31.7C41.7 36.9 48 36.5 54 30.2" stroke="url(#tokenriver-icon-river)" stroke-width="5.4" stroke-linecap="round" fill="none"/>
+  <path d="M12.5 44.6C20.2 38.7 29.6 39 37.1 44.7C42.6 48.9 48.5 48.3 52.8 43.6" stroke="url(#tokenriver-icon-river)" stroke-width="4" stroke-linecap="round" fill="none" opacity="0.64"/>
+  <circle cx="24" cy="17.4" r="3.35" fill="url(#tokenriver-icon-river)" stroke="#dbeafe" stroke-width="0.9"/>
+  <circle cx="32.5" cy="29.4" r="3.55" fill="url(#tokenriver-icon-river)" stroke="#dbeafe" stroke-width="0.9"/>
+  <circle cx="41" cy="46.5" r="3.35" fill="url(#tokenriver-icon-river)" stroke="#dbeafe" stroke-width="0.9"/>
+</svg>

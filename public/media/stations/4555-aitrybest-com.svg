@@ -1,0 +1,20 @@
+<svg width="80" height="80" viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title desc">
+  <title id="title">Aitry Logo Light</title>
+  <desc id="desc">A refined geometric A mark for Aitry on light backgrounds.</desc>
+  <defs>
+    <linearGradient id="mark" x1="18" y1="13" x2="62" y2="67" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#111827"/>
+      <stop offset="0.55" stop-color="#070A0F"/>
+      <stop offset="1" stop-color="#475569"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="33" y1="41" x2="48" y2="55" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#5EEAD4"/>
+      <stop offset="1" stop-color="#11B7A4"/>
+    </linearGradient>
+  </defs>
+  <rect width="80" height="80" rx="20" fill="#F8FAFC"/>
+  <path d="M40 12L66 68H55.2L50.35 57.15H29.65L24.8 68H14L40 12ZM34.05 47.1H45.95L40 32.85L34.05 47.1Z" fill="url(#mark)"/>
+  <circle cx="40" cy="51.6" r="7.8" fill="#F8FAFC"/>
+  <circle cx="40" cy="51.6" r="5.25" fill="url(#accent)"/>
+  <path d="M54.2 20.8H66.2V32.8" stroke="#11B7A4" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
