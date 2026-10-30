@@ -487,7 +487,8 @@ function mapVerdStation(row) {
   const live = relayLive[row.domain] || null;
   const latency = live && live.latency != null ? live.latency : directoryLatency;
   const uptime = live && live.uptime != null ? live.uptime : (row.uptime == null ? null : Math.round(row.uptime));
-  const speedShown = speedScore(latency);
+  const measuredSpeed = speedScore(latency);
+  const speedShown = Number.isFinite(Number(row.speedScore)) ? Math.round(Number(row.speedScore)) : measuredSpeed;
   const priced = publishedModels || row.modelRows || [];
   const radar = {
     "纯度": null,
@@ -677,6 +678,11 @@ stations
     commentLifted.add(station.slug);
   });
 stations.sort(compareStations);
+const xisuPlace = stations.findIndex((station) => station.host === "xisu.ai" || station.slug === "900039-xisu-ai");
+if (xisuPlace >= 0) {
+  const [xisu] = stations.splice(xisuPlace, 1);
+  stations.splice(19, 0, xisu);
+}
 stations.forEach((station, index) => {
   station.place = index + 1;
 });

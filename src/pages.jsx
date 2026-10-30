@@ -2044,6 +2044,26 @@ function cacheText(row) {
   return `${unitOf(row)}${money(row.cache)}`;
 }
 
+function apiEndpoints(station) {
+  const items = [];
+  const seen = new Set();
+  function add(name, url, desc) {
+    const text = String(url || "").trim();
+    if (!text || seen.has(text)) return;
+    seen.add(text);
+    items.push({ name, url: text, desc: desc || "调用地址" });
+  }
+  if (station.baseUrl) add("API 端点", station.baseUrl, "调用地址");
+  for (const link of station.links || []) {
+    const url = String(link?.url || "");
+    if (!url || url === station.site || url === station.baseUrl) continue;
+    if (/\/(library|rates|resources|billing|docs|doc)\b|announcement|model-square|price\.newcli|status\./i.test(url)) continue;
+    if (/官网|文档|公告|价格|验模|计费|退款|教程|折算/.test(String(link?.name || ""))) continue;
+    add(link.name || "API 端点", url, link.desc);
+  }
+  return items;
+}
+
 function historyClock(iso) {
   const parts = Object.fromEntries(new Intl.DateTimeFormat("en-GB", {
     timeZone: "Asia/Shanghai",
@@ -2592,18 +2612,18 @@ export function StationPage() {
 
           <div className="h-block" id="api">
             <h2>接口链接</h2>
-            {(station.links || []).length ? station.links.map((link) => (
+            {apiEndpoints(station).length ? apiEndpoints(station).map((link) => (
               <div key={link.url} className="link-card">
                 <div className="link-top">
                   <b>{link.name}</b>
                   <a href={link.url} target="_blank" rel="noreferrer">{link.url}</a>
                 </div>
                 <div className="link-sub">
-                  <span>{link.desc || station.host}</span>
+                  <span>{link.desc || "调用地址"}</span>
                   <button type="button" onClick={() => navigator.clipboard?.writeText(link.url)}>复制</button>
                 </div>
               </div>
-            )) : <p>官网：<a href={official} target="_blank" rel="noreferrer">{official}</a></p>}
+            )) : <p>还没有公开的 API 端点。</p>}
           </div>
 
           <div className="h-block" id="compare">
