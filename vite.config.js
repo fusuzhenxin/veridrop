@@ -123,9 +123,9 @@ function localProbe() {
       const payload = JSON.parse(await readBody(req, 1_500_000));
       const url = await publicUrl(payload.url);
       const headers = {};
-      const allow = new Set(["authorization", "x-api-key", "anthropic-version", "content-type", "accept"]);
+      const allow = new Set(["authorization", "x-api-key", "anthropic-version", "content-type", "accept", "anthropic-beta", "user-agent", "x-stainless-lang", "x-stainless-os", "x-stainless-runtime", "x-stainless-runtime-version", "x-stainless-package-version"]);
       for (const [key, value] of Object.entries(payload.headers || {})) {
-        if (allow.has(key.toLowerCase()) && typeof value === "string" && value.length < 8000) headers[key] = value;
+        if (allow.has(key.toLowerCase()) && typeof value === "string" && value.length < 8000 && !/[\r\n]/.test(value)) headers[key] = value;
       }
       const method = payload.method === "GET" ? "GET" : "POST";
       const controller = new AbortController();
@@ -142,6 +142,8 @@ function localProbe() {
       res.setHeader("content-type", "application/octet-stream");
       res.setHeader("x-upstream-status", String(upstream.status));
       res.setHeader("cache-control", "no-store");
+      res.setHeader("x-accel-buffering", "no");
+      if (typeof res.flushHeaders === "function") res.flushHeaders();
       if (!upstream.body) {
         res.end();
         return;

@@ -515,7 +515,7 @@ function mapVerdStation(row) {
     meanLatency: latencyLabel(latency),
     blurb: row.description || "",
     lineup: lineup ? `支持 ${lineup}` : "",
-    links: [],
+    links: row.url ? [{ name: "官网", url: row.url, desc: row.domain || "" }] : [],
     events: [],
     announcements: published?.notice ? [{ id: `${row.id}-notice`, title: "公告", content: plainNotice(published.notice), date: "" }] : [],
     models: publishedModels || row.modelRows || [],

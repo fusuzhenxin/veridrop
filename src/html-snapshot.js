@@ -487,6 +487,7 @@ export function injectSnapshot(html, page) {
   <meta name="description" content="${esc(page.description)}">
   <meta name="robots" content="${esc(page.robots)}">
   <link rel="canonical" href="${esc(page.canonical)}">
+  <link rel="alternate" type="application/rss+xml" title="维渡 AI 站点动态" href="/feed.xml">
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="维渡 AI">
   <meta property="og:title" content="${esc(page.title)}">

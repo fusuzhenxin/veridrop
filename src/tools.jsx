@@ -386,12 +386,13 @@ const SPEED_FAQ = [
   ["什么是 AI API 测试工具？", "AI API 测试工具会向目标接口发起真实请求，检测首字延迟（TTFT）、生成速度、请求成功率、并发处理能力和缓存命中情况。它既可以测试模型厂商的官方 API，也可以测试兼容相应协议的中转站接口。"],
   ["支持哪些大模型 API 和接口协议？", "目前支持 Anthropic Messages API 和 OpenAI Responses API。工具不限制模型厂商，只要目标服务支持对应协议，就可以测试 Claude、GPT、DeepSeek、Qwen、GLM 等模型或模型别名。"],
   ["可以测试大模型 API 中转站吗？", "可以。填写中转站提供的完整接口地址、API Key 和模型名称，即可测试该线路的响应速度、请求成功率和缓存能力。检测结果只代表本次测试时使用的模型、线路、参数和网络环境，不代表该服务在所有时间和地区的表现。"],
-  ["Messages API 和 Responses API 有什么区别？", "Messages API 使用 Anthropic Messages 协议，接口地址通常以 /v1/messages 结尾；Responses API 使用 OpenAI Responses 协议，接口地址通常以 /v1/responses 结尾。协议的选择取决于服务商提供的接口格式，不取决于模型名称。"],
+  ["Messages API 和 Responses API 有什么区别？", "Messages API 使用 Anthropic Messages 协议，接口地址通常以 /v1/messages 结尾；Responses API 使用 OpenAI Responses 协议，接口地址通常以 /v1/responses 结尾。协议看服务商的接口格式，不看模型名字。非 Claude 模型也可能走 Messages，非 OpenAI 模型也可能走 Responses。"],
   ["测试会消耗 API 额度或产生费用吗？", "会。测速过程中会向目标接口发送真实请求，因此可能消耗 token、请求次数或账户余额。并发数、请求数、输出长度、缓存采样次数和长对话轮数越高，通常消耗越多。开始测试前应确认服务商的计费规则和账户余额。"],
   ["测试需要多长时间？", "检测时间取决于请求数量、并发数、缓存采样时间、长对话轮数以及目标接口本身的速度。响应较快的接口通常会更早完成；如果接口排队、限流、超时或频繁断开，检测时间会明显增加。"],
-  ["并发数和请求数分别是什么意思？", "并发数表示同一时间最多有多少个请求正在进行；请求数表示本轮一共发送多少个请求。例如，并发数为 5、请求数为 10，性能测试会最多同时保持 5 个请求，某个请求结束后再补充下一个，直到完成全部 10 个请求。"],
-  ["报告里的 TTFT、生成速度、缓存命中率是什么意思？", "TTFT（Time To First Token）是从发出请求到收到第一个字的时间，越短说明响应越快；生成速度是首字之后每秒输出的 token 数，越高说明输出越流畅；请求成功率是全部请求中正常返回的比例；缓存命中率是重复前缀被服务端缓存复用的比例。"],
-  ["这个工具收费吗？", "这个本地复刻不收取检测费用。未登录每天可检测 3 次，登录后每天可检测 30 次，次数只记在这台浏览器里。密钥只发给你填写的接口，不会发给维渡 AI，也不会被保存。"],
+  ["并发数和请求数分别是什么意思？", "并发数表示同一时间最多有多少个请求正在进行；请求数表示本轮一共发送多少个请求。例如，并发数为 5、请求数为 10，性能测试会最多同时保持 5 个请求，某个请求结束后再补充下一个，直到完成全部 10 个请求。缓存采样和长对话按顺序发送，不使用同样的并发。"],
+  ["报告里的 TTFT、生成速度、缓存命中率是什么意思？", "TTFT（Time To First Token）是从发出请求到收到第一个字的时间，越短说明响应越快。生成速度是首字之后每秒输出的 token 数。请求成功率是正常返回的比例。缓存命中率看同一段前缀会不会被复用。增量命中率看后加进去的对话有没有也进缓存，长对话费不费钱主要看这个。"],
+  ["有开源的命令行版本吗？", "有。同一套测法的两个脚本在 MIT 协议下开源：https://github.com/Okkmass/api-bench 。这个页面在浏览器里跑同样的三步：首字压测、缓存持久性、长对话。密钥只发给你填写的接口。"],
+  ["这个工具收费吗？", "不收取检测费用。未登录每天可检测 3 次，登录后每天可检测 30 次，次数只记在这台浏览器里。密钥只发给你填写的接口，不会发给维渡 AI，也不会被保存。测试本身会消耗目标接口的额度。"],
 ].map(([q, a]) => ({ q, a }));
 
 function estimate(form) {
@@ -406,11 +407,6 @@ function estimate(form) {
   const a = Math.max(1, Math.round(low / 60));
   const b = Math.max(a, Math.round(high / 60));
   return a === b ? `约 ${a} 分钟` : `${a} 到 ${b} 分钟`;
-}
-
-function seconds(ms) {
-  if (ms == null) return "—";
-  return `${(ms / 1000).toFixed(ms < 10000 ? 2 : 1)}s`;
 }
 
 const EMPTY_FORM = {
@@ -436,10 +432,14 @@ export function SpeedPage() {
   const [advanced, setAdvanced] = useState(false);
   const [suggest, setSuggest] = useState(false);
   const [models, setModels] = useState([]);
+  const [modelOpen, setModelOpen] = useState(false);
+  const [modelBusy, setModelBusy] = useState(false);
   const [modelNote, setModelNote] = useState("");
   const [error, setError] = useState("");
   const [progress, setProgress] = useState(null);
   const [report, setReport] = useState(null);
+  const [runAt, setRunAt] = useState(0);
+  const [now, setNow] = useState(0);
   const stopRef = useRef(null);
   const limits = quotaState().logged ? LIMITS.user : LIMITS.guest;
   const quota = quotaState();
@@ -470,6 +470,12 @@ export function SpeedPage() {
     }));
     if (full) setReport(full);
   }, [params]);
+  useEffect(() => {
+    if (!progress) return undefined;
+    setNow(Date.now());
+    const timer = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(timer);
+  }, [progress]);
   const patch = (key, value) => setForm((current) => {
     const next = { ...current, [key]: value };
     if (key === "protocol" || key === "profile") {
@@ -518,7 +524,18 @@ export function SpeedPage() {
     takeQuota();
     const controller = new AbortController();
     stopRef.current = controller;
-    setProgress({ phase: "正在检测", done: 0, total: Number(form.requests) });
+    setRunAt(Date.now());
+    setProgress({
+      id: "preflight",
+      sent: 0,
+      planned: 1 + Number(form.requests) + Number(form.cache_samples) + (Number(form.roll_turns) >= 2 ? Number(form.roll_turns) : 0),
+      phases: {
+        preflight: { done: 0, total: 1 },
+        load: { done: 0, total: Number(form.requests) },
+        cache: { done: 0, total: Number(form.cache_samples) },
+        roll: { done: 0, total: Number(form.roll_turns) >= 2 ? Number(form.roll_turns) : 0 },
+      },
+    });
     const result = await runBenchmark(form, { signal: controller.signal, onProgress: setProgress });
     setProgress(null);
     stopRef.current = null;
@@ -530,145 +547,462 @@ export function SpeedPage() {
       setError(result.error);
       return;
     }
-    localStorage.setItem(`okk-speed-report:${result.report.id}`, JSON.stringify(result.report));
     setReport(result.report);
     if (result.report.ok > 0) grant("detect", 3, "每日检测", "day");
   }
+  const shownModels = models.filter((item) => !form.model.trim() || item.toLowerCase().includes(form.model.trim().toLowerCase())).slice(0, 80);
   return (
     <div className="wrap tool-page">
-      <div className="tool-hd">
-        <div>
-          <h1>AI API 测试工具</h1>
-          <p>测试 AI 大模型 API 与中转站的响应速度、并发、生成速度、请求成功率和缓存能力，兼容 Messages 与 Responses 协议的接口，免费使用。</p>
-        </div>
-      </div>
-      <form className="speed-card" onSubmit={(event) => { event.preventDefault(); start(); }}>
-        <h2>连接信息</h2>
-        <label>API 地址
-          <input value={form.url} placeholder="https://api.example.com" onFocus={() => setSuggest(true)} onChange={(event) => { patch("url", event.target.value); setSuggest(true); }} />
-        </label>
-        {suggest && matches.length ? (
-          <div className="speed-suggest">
-            {matches.map((item) => (
-              <button type="button" key={item.slug} onClick={() => { patch("url", item.baseUrl); setSuggest(false); }}>
-                <img src={logoUrl(item.img)} alt="" />
-                <span>{item.name}</span>
-                <em>{item.baseUrl}</em>
-              </button>
-            ))}
+      {progress || report ? null : (
+        <div className="tool-hd">
+          <div>
+            <h1>AI API 测试工具</h1>
+            <p>测试 AI 大模型 API 与中转站的响应速度、并发、生成速度、请求成功率和缓存能力，兼容 Messages 与 Responses 协议的接口，免费使用。</p>
           </div>
-        ) : null}
-        <label>API KEY
-          <span className="speed-key">
-            <input type={showKey ? "text" : "password"} value={form.key} placeholder="sk-..." autoComplete="off" onChange={(event) => patch("key", event.target.value)} />
-            <button type="button" onClick={() => setShowKey((value) => !value)}>{showKey ? "隐藏" : "显示"}</button>
-          </span>
-        </label>
-        <label>模型
-          <span className="speed-model">
-            <input list="speed-models" value={form.model} placeholder="输入要测试的模型名称" onChange={(event) => patch("model", event.target.value)} />
-            <button type="button" onClick={async () => {
-              setModelNote("正在获取模型列表，最多等待 15 秒。");
-              const result = await listModels(form.url, form.key.trim());
-              if (result.error) setModelNote(result.error);
-              else {
-                setModels(result.models);
-                setModelNote(`已获取 ${result.models.length} 个模型，点模型框选择。`);
-              }
-            }}>获取模型列表</button>
-          </span>
-        </label>
-        <datalist id="speed-models">{models.map((item) => <option key={item} value={item} />)}</datalist>
-        {modelNote ? <p className="mini">{modelNote}</p> : null}
-        <div className="speed-label">协议</div>
-        <div className="ab-seg">
-          {["messages", "responses"].map((item) => (
-            <button type="button" key={item} className={form.protocol === item ? "on" : ""} onClick={() => patch("protocol", item)}>{item === "messages" ? "Messages" : "Responses"}</button>
-          ))}
         </div>
-        <p className="mini">{form.protocol === "messages" ? "支持所有兼容 Messages API 的模型服务。" : "支持所有兼容 Responses API 的模型服务。"}</p>
-        <h2>测试规模</h2>
-        <div className="speed-scale">
-          <label>并发数 <input value={form.concurrency} onChange={(event) => patch("concurrency", event.target.value)} /></label>
-          <label>请求数 <input value={form.requests} onChange={(event) => patch("requests", event.target.value)} /></label>
-        </div>
-        <p className="mini">未登录最多并发 {LIMITS.guest.concurrency}、请求 {LIMITS.guest.requests}；登录后最多 {LIMITS.user.concurrency} 和 {LIMITS.user.requests}。</p>
-        <button type="button" className="linkish" onClick={() => setAdvanced((value) => !value)}>高级设置 {advanced ? "▴" : "▾"}</button>
-        {advanced ? (
-          <div className="speed-advanced">
-            <p>缓存与长对话参数，一般保持默认即可</p>
-            <div className="speed-label">请求画像</div>
+      )}
+      {progress ? (
+        <SpeedRun
+          progress={progress}
+          model={form.model}
+          host={hostOf(form.url)}
+          elapsed={runAt ? now - runAt : 0}
+          onStop={() => stopRef.current?.abort()}
+        />
+      ) : report ? (
+        <SpeedReport report={report} onAgain={() => setReport(null)} />
+      ) : (
+        <form className="speed-card" onSubmit={(event) => { event.preventDefault(); start(); }}>
+          <h2>连接信息</h2>
+          <label className="speed-field">API 地址
+            <span className="speed-input">
+              <SearchIcon />
+              <input value={form.url} placeholder="https://api.example.com" onFocus={() => setSuggest(true)} onChange={(event) => { patch("url", event.target.value); setSuggest(true); }} />
+              {form.url ? <button type="button" className="speed-x" onClick={() => patch("url", "")} aria-label="清空地址">×</button> : null}
+            </span>
+          </label>
+          {suggest && matches.length ? (
+            <div className="speed-suggest">
+              {matches.map((item) => (
+                <button type="button" key={item.slug} onClick={() => { patch("url", item.baseUrl); setSuggest(false); }}>
+                  <img src={logoUrl(item.img)} alt="" />
+                  <span>{item.name}</span>
+                  <em>{item.baseUrl}</em>
+                </button>
+              ))}
+            </div>
+          ) : null}
+          <label className="speed-field">API KEY
+            <span className="speed-input">
+              <KeyIcon />
+              <input type={showKey ? "text" : "password"} value={form.key} placeholder="sk-..." autoComplete="off" onChange={(event) => patch("key", event.target.value)} />
+              {form.key ? <button type="button" className="speed-x" onClick={() => patch("key", "")} aria-label="清空密钥">×</button> : null}
+              <button type="button" className="speed-eye" onClick={() => setShowKey((value) => !value)} aria-label={showKey ? "隐藏密钥" : "显示密钥"}><EyeIcon off={showKey} /></button>
+            </span>
+          </label>
+          <div className="speed-field">模型
+            <div className="speed-model">
+              <span className="speed-input">
+                <input value={form.model} placeholder="输入要测试的模型名称" onFocus={() => setModelOpen(true)} onChange={(event) => { patch("model", event.target.value); setModelOpen(true); }} />
+                <button type="button" className="speed-chev" onClick={() => setModelOpen((value) => !value)} aria-label="展开模型">▾</button>
+              </span>
+              <button type="button" className="speed-fetch" disabled={modelBusy} onClick={async () => {
+                setModelBusy(true);
+                setModelNote("正在获取模型列表，最多等待 15 秒。");
+                const result = await listModels(form.url, form.key.trim(), form.protocol);
+                setModelBusy(false);
+                if (result.error) {
+                  setModelNote(result.error);
+                  setModelOpen(false);
+                } else {
+                  setModels(result.models);
+                  setModelOpen(true);
+                  setModelNote(`已获取 ${result.models.length} 个模型，点模型框选择。`);
+                }
+              }}>{modelBusy ? "获取中" : "获取模型列表"}</button>
+            </div>
+          </div>
+          {modelOpen && shownModels.length ? (
+            <div className="speed-models">
+              {shownModels.map((item) => (
+                <button type="button" key={item} onClick={() => { patch("model", item); setModelOpen(false); }}>{item}</button>
+              ))}
+            </div>
+          ) : null}
+          {modelNote ? <p className="speed-note"><InfoIcon />{modelNote}</p> : null}
+          <div className="speed-field">协议
             <div className="ab-seg">
-              <button type="button" className={form.profile === "generic" ? "on" : ""} onClick={() => patch("profile", "generic")}>通用</button>
-              <button type="button" className={form.profile === "claude-code" ? "on" : ""} onClick={() => patch("profile", "claude-code")}>Claude Code</button>
+              {["messages", "responses"].map((item) => (
+                <button type="button" key={item} className={form.protocol === item ? "on" : ""} onClick={() => patch("protocol", item)}>{item === "messages" ? "Messages" : "Responses"}</button>
+              ))}
             </div>
-            <p className="mini">{form.profile === "generic" ? "标准请求，不带客户端特征。" : "加上编码助手系统提示，并把最大输出调到 2048。不会伪造 Claude Code 的私有请求头。"}</p>
-            <div className="speed-scale">
-              <label>缓存采样次数 <input value={form.cache_samples} onChange={(event) => patch("cache_samples", event.target.value)} /></label>
-              <label>缓存采样间隔（秒） <input value={form.cache_interval} onChange={(event) => patch("cache_interval", event.target.value)} /></label>
-              <label>长对话轮数 <input value={form.roll_turns} onChange={(event) => patch("roll_turns", event.target.value)} /></label>
-              <label>前缀 token 数 <input value={form.prefix_tokens} onChange={(event) => patch("prefix_tokens", event.target.value)} /></label>
-              <label>最大输出 <input value={form.max_tokens} onChange={(event) => patch("max_tokens", event.target.value)} /></label>
-            </div>
+            <p className="speed-hint">{form.protocol === "messages" ? "支持所有兼容 Messages API 的模型服务。" : "支持所有兼容 Responses API 的模型服务。"}</p>
           </div>
-        ) : null}
-        {error ? <p className="review-error">{error}</p> : null}
-        {progress ? <p>正在检测 · {progress.phase} {progress.done}/{progress.total}。进度结束后统一给指标。</p> : null}
-        <div className="speed-go">
-          <span>预计等待 {estimate(form)}，{quota.logged ? "" : "未登录"}每天可检测 {quota.cap} 次。</span>
-          {progress ? <button type="button" className="ghost-btn" onClick={() => stopRef.current?.abort()}>停止检测</button> : <button className="go" type="submit">开始检测</button>}
-        </div>
-      </form>
+          <h2>测试规模</h2>
+          <div className="speed-scale">
+            <label className="speed-field"><span className="speed-lab">并发数 <InfoIcon title="同一时间最多有多少个请求在进行" /></span>
+              <input value={form.concurrency} onChange={(event) => patch("concurrency", event.target.value)} />
+              <span className="speed-hint">最多 {limits.concurrency}。</span>
+            </label>
+            <label className="speed-field"><span className="speed-lab">请求数 <InfoIcon title="这一轮一共发送多少个请求" /></span>
+              <input value={form.requests} onChange={(event) => patch("requests", event.target.value)} />
+              <span className="speed-hint">最多 {limits.requests}。</span>
+            </label>
+          </div>
+          <button type="button" className="speed-advanced-toggle" onClick={() => setAdvanced((value) => !value)}>
+            <span><b>高级设置</b><em>缓存与长对话参数，一般保持默认即可</em></span>
+            <i>{advanced ? "▴" : "▾"}</i>
+          </button>
+          {advanced ? (
+            <div className="speed-advanced">
+              <div className="speed-field">请求画像
+                <div className="ab-seg">
+                  <button type="button" className={form.profile === "generic" ? "on" : ""} onClick={() => patch("profile", "generic")}>通用</button>
+                  <button type="button" className={form.profile === "claude-code" ? "on" : ""} onClick={() => patch("profile", "claude-code")}>Claude Code</button>
+                </div>
+                <p className="speed-hint">{form.profile === "generic" ? "标准请求，不带编码客户端的特征。" : "按 Claude Code 的请求形态发送系统提示、缓存断点和公开客户端头。Responses 协议不使用这套头。"}</p>
+              </div>
+              <div className="speed-scale">
+                <label className="speed-field">缓存采样次数
+                  <input value={form.cache_samples} onChange={(event) => patch("cache_samples", event.target.value)} />
+                  <span className="speed-hint">未登录 0 到 {LIMITS.guest.cache_samples} 次，登录后最多 {LIMITS.user.cache_samples} 次。</span>
+                </label>
+                <label className="speed-field">缓存采样间隔（秒）
+                  <input value={form.cache_interval} onChange={(event) => patch("cache_interval", event.target.value)} />
+                  <span className="speed-hint">范围 {LIMITS.cache_interval[0]} 到 {LIMITS.cache_interval[1]} 秒。</span>
+                </label>
+                <label className="speed-field">长对话轮数
+                  <input value={form.roll_turns} onChange={(event) => patch("roll_turns", event.target.value)} />
+                  <span className="speed-hint">填 0 跳过，或至少 2 轮。最多 {limits.roll_turns} 轮。</span>
+                </label>
+                <label className="speed-field">前缀 token 数
+                  <input value={form.prefix_tokens} onChange={(event) => patch("prefix_tokens", event.target.value)} />
+                  <span className="speed-hint">范围 {LIMITS.prefix_tokens[0]} 到 {LIMITS.prefix_tokens[1]}。</span>
+                </label>
+                <label className="speed-field">最大输出
+                  <input value={form.max_tokens} onChange={(event) => patch("max_tokens", event.target.value)} />
+                  <span className="speed-hint">范围 {LIMITS.max_tokens[0]} 到 {LIMITS.max_tokens[1]}。缓存和长对话最多输出 128。</span>
+                </label>
+              </div>
+            </div>
+          ) : null}
+          {error ? <p className="review-error">{error}</p> : null}
+          <div className="speed-go">
+            <span>预计等待 {estimate(form)}，{quota.logged ? "" : "未登录"}每天可检测 {quota.cap} 次。</span>
+            <button className="go" type="submit">开始检测</button>
+          </div>
+        </form>
+      )}
+      {error && (progress || report) ? <p className="review-error">{error}</p> : null}
       <div className="hdcap">
         <span>为保障账户安全，建议优先使用测试专用 KEY。密钥只发给上面的地址，不保存。</span>
         <Link to="/history">检测历史</Link>
       </div>
-      {report ? <SpeedReport report={report} /> : null}
       <Faq items={SPEED_FAQ} />
     </div>
   );
 }
 
-function SpeedReport({ report }) {
-  const conclusion = report.ok === 0
-    ? "没有拿到可用的回答。先检查密钥、模型名和账户余额。"
-    : report.rate < 0.7
-      ? "失败率过高，不建议直接使用。可以降低并发后重新检测。"
-      : report.ttftMs != null && report.ttftMs < 2000
-        ? "当前并发下响应及时、请求稳定。可以接入使用，上线前建议按真实并发再测一次。"
-        : "有需要留意的地方。对延迟敏感的业务，请预留超时和重试。";
+function hostOf(url) {
+  try {
+    return new URL(String(url).includes("://") ? url : `https://${url}`).host;
+  } catch {
+    return String(url || "");
+  }
+}
+
+function runClock(ms) {
+  const total = Math.max(0, Math.floor(Number(ms) / 1000));
+  return `${String(Math.floor(total / 60)).padStart(2, "0")}:${String(total % 60).padStart(2, "0")}`;
+}
+
+function elapsedWords(ms) {
+  if (ms == null || !Number.isFinite(Number(ms))) return "";
+  const seconds = Math.max(0, Math.round(Number(ms) / 1000));
+  const minutes = Math.floor(seconds / 60);
+  const rest = seconds % 60;
+  if (!minutes) return `${rest} 秒`;
+  return `${minutes} 分 ${rest} 秒`;
+}
+
+function speedStamp(iso) {
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return "—";
+  return new Intl.DateTimeFormat("sv-SE", {
+    timeZone: "Asia/Shanghai",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  }).format(date);
+}
+
+function dur(ms) {
+  if (ms == null || !Number.isFinite(Number(ms))) return "—";
+  return `${Math.round(Number(ms))} ms`;
+}
+
+function durTable(ms) {
+  if (ms == null || !Number.isFinite(Number(ms))) return "—";
+  const value = Number(ms);
+  if (value < 1000) return `${value < 10 ? value.toFixed(1) : Math.round(value)}ms`;
+  return `${(value / 1000).toFixed(1)}s`;
+}
+
+function speedText(value) {
+  if (value == null || !Number.isFinite(Number(value))) return "—";
+  const number = Number(value);
+  return number < 10 ? number.toFixed(2) : String(Math.round(number));
+}
+
+function SearchIcon() {
+  return <svg className="speed-ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6" /><path d="M16 16l4 4" /></svg>;
+}
+
+function KeyIcon() {
+  return <svg className="speed-ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="8" cy="12" r="3" /><path d="M11 12h9M17 12v3M14 12v2" /></svg>;
+}
+
+function EyeIcon({ off }) {
+  return off
+    ? <svg className="speed-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3l18 18M10 10.5A3 3 0 0 0 13.5 14M7 7.5C4.5 9 3 12 3 12s3 6 9 6c1.5 0 2.8-.4 4-1M10 6.2A9 9 0 0 1 12 6c6 0 9 6 9 6a15 15 0 0 1-2.2 3" /></svg>
+    : <svg className="speed-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z" /><circle cx="12" cy="12" r="3" /></svg>;
+}
+
+function InfoIcon({ title }) {
+  return <i className="speed-info" title={title || ""}>i</i>;
+}
+
+const RUN_PHASES = [
+  ["preflight", "连接预检"],
+  ["load", "首字压测"],
+  ["cache", "缓存稳定性"],
+  ["roll", "长对话增量缓存"],
+];
+
+function phaseView(id, phases, current) {
+  const item = phases?.[id] || { done: 0, total: 0 };
+  if (!item.total) return { text: "未测试", pct: 0, mode: "wait" };
+  if (item.done >= item.total) return { text: "已完成", pct: 100, mode: "done" };
+  if (id === current || item.done > 0) return { text: `${item.done} / ${item.total}`, pct: Math.min(100, (item.done / item.total) * 100), mode: "run" };
+  return { text: "等待中", pct: 0, mode: "wait" };
+}
+
+function SpeedRun({ progress, model, host, elapsed, onStop }) {
+  const sent = progress.sent || 0;
+  const planned = progress.planned || 0;
   return (
-    <section className="speed-report">
-      <div className="sec-h">
-        <h2>检测报告</h2>
-        <div>
-          <button type="button" className="ghost-btn" onClick={() => navigator.clipboard.writeText(`${location.origin}/tools/api-speed?job=${report.id}`)}>复制报告链接</button>
-          <button type="button" className="ghost-btn" onClick={() => {
-            const blob = new Blob([JSON.stringify(report, null, 2)], { type: "application/json" });
-            const link = document.createElement("a");
-            link.href = URL.createObjectURL(blob);
-            link.download = `${report.id}.json`;
-            link.click();
-          }}>下载 JSON</button>
+    <section className="speed-card speed-run">
+      <div className="speed-run-hd">
+        <span className="speed-spin" />
+        <b>正在检测</b>
+        {model ? <em>{model}</em> : null}
+      </div>
+      <p className="speed-run-sub">{host}，已运行 {runClock(elapsed)}</p>
+      <div className="speed-phases">
+        {RUN_PHASES.map(([id, name]) => {
+          const view = phaseView(id, progress.phases, progress.id);
+          return (
+            <div key={id} className={`speed-phase is-${view.mode}`}>
+              <span>{name}</span>
+              <strong>{view.text}</strong>
+              <i><b style={{ width: `${view.pct}%` }} /></i>
+            </div>
+          );
+        })}
+      </div>
+      <div className="speed-overall">
+        <div><strong>{sent} / {planned}</strong> 次请求</div>
+        <div className="speed-progress-bar"><i style={{ width: `${planned ? Math.min(100, Math.round((sent / planned) * 100)) : 0}%` }} /></div>
+        <p>进度每隔几秒刷新，指标在检测完成后统一给出。</p>
+      </div>
+      <div className="speed-stop">
+        <button type="button" onClick={onStop}>停止检测</button>
+        <span>停止后，已发出的请求无法撤回，额度不退回。</span>
+      </div>
+    </section>
+  );
+}
+
+function num(value) {
+  if (value == null || !Number.isFinite(Number(value))) return "—";
+  return Math.round(Number(value)).toLocaleString("zh-CN");
+}
+
+function errorLine(errors) {
+  return (errors || []).map((item) => (typeof item === "string" ? item : `${item.text}${item.count > 1 ? ` ×${item.count}` : ""}`)).join("、");
+}
+
+function tableCell(value, key, count) {
+  if (key === "p99" && (count == null || count < 20)) return "样本不足";
+  return durTable(value);
+}
+
+function StatTable({ rows, count }) {
+  const keys = ["p50", "p90", "p99", "mean", "min", "max"];
+  return (
+    <table className="speed-table">
+      <thead><tr><th>指标</th><th>p50</th><th>p90</th><th>p99</th><th>mean</th><th>min</th><th>max</th></tr></thead>
+      <tbody>
+        {rows.map((row) => (
+          <tr key={row.name}>
+            <td>{row.name}</td>
+            {keys.map((key) => <td key={key}>{tableCell(row.pack?.[key], key, count)}</td>)}
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  );
+}
+
+function RollChart({ rows }) {
+  const width = 480;
+  const height = 220;
+  const pad = { l: 52, r: 12, t: 16, b: 28 };
+  const innerW = width - pad.l - pad.r;
+  const innerH = height - pad.t - pad.b;
+  const ymax = Math.max(...rows.map((item) => item.total || 0), 1) * 1.12;
+  const x = (index) => pad.l + (rows.length === 1 ? innerW / 2 : (innerW * index) / (rows.length - 1));
+  const y = (value) => pad.t + innerH * (1 - value / ymax);
+  const line = (key) => rows.map((item, index) => `${x(index).toFixed(1)},${y(item[key] || 0).toFixed(1)}`).join(" ");
+  const ticks = [0, 0.25, 0.5, 0.75, 1];
+  return (
+    <svg className="speed-chart" viewBox={`0 0 ${width} ${height}`}>
+      <text className="yt" x="8" y="12">输入 token 数</text>
+      {ticks.map((tick) => (
+        <g key={tick}>
+          <line x1={pad.l} y1={y(ymax * tick)} x2={width - pad.r} y2={y(ymax * tick)} />
+          <text x={pad.l - 6} y={y(ymax * tick) + 3}>{num(ymax * tick)}</text>
+        </g>
+      ))}
+      <polyline className="total" points={line("total")} />
+      <polyline className="read" points={line("read")} />
+      {rows.map((item, index) => <circle key={`t${item.turn}`} className="open" cx={x(index)} cy={y(item.total || 0)} r="3" />)}
+      {rows.map((item, index) => <circle key={item.turn} cx={x(index)} cy={y(item.read || 0)} r="3" />)}
+      {rows.map((item, index) => <text key={`x${item.turn}`} className="xl" x={x(index)} y={height - 8}>{item.turn}</text>)}
+    </svg>
+  );
+}
+
+function CacheChart({ points }) {
+  const width = 520;
+  const height = 220;
+  const pad = { l: 36, r: 10, t: 22, b: 36 };
+  const innerW = width - pad.l - pad.r;
+  const innerH = height - pad.t - pad.b;
+  const seconds = points.map((item) => (item.ttftMs == null ? 0 : item.ttftMs / 1000));
+  const ymax = Math.max(1, Math.ceil(Math.max(...seconds, 0)));
+  const gap = innerW / Math.max(points.length, 1);
+  const barW = Math.max(8, Math.min(28, gap * 0.62));
+  const y = (value) => pad.t + innerH * (1 - value / ymax);
+  const step = Math.max(1, Math.ceil(points.length / 8));
+  const ticks = [];
+  for (let tick = 0; tick <= ymax; tick += 1) ticks.push(tick);
+  return (
+    <svg className="speed-chart" viewBox={`0 0 ${width} ${height}`}>
+      <text className="yt" x="4" y="12">首字等待（秒）</text>
+      {ticks.map((tick) => (
+        <g key={tick}>
+          <line x1={pad.l} y1={y(tick)} x2={width - pad.r} y2={y(tick)} />
+          <text x={pad.l - 6} y={y(tick) + 3}>{tick}</text>
+        </g>
+      ))}
+      {points.map((item, index) => {
+        const heightPx = Math.max(item.ttftMs ? 3 : 2, innerH * ((item.ttftMs || 0) / 1000) / ymax);
+        const x = pad.l + gap * index + (gap - barW) / 2;
+        return <rect key={index} className={item.kind || (item.hit ? "hit" : "miss")} x={x} y={pad.t + innerH - heightPx} width={barW} height={heightPx} rx="2" />;
+      })}
+      {points.map((item, index) => (index % step === 0 ? <text key={`x${index}`} className="xl" x={pad.l + gap * index + gap / 2} y={height - 16}>{item.t ?? index}</text> : null))}
+      <text className="xl axis" x={pad.l + innerW / 2} y={height - 2}>时间（秒）</text>
+    </svg>
+  );
+}
+
+function SpeedReport({ report, onAgain }) {
+  const bench = report.bench;
+  const cache = report.cache;
+  const roll = report.rollSummary;
+  const total = report.ok + report.fail;
+  const level = report.ok === 0 || report.rate < 0.7 ? "bad" : report.ttftMs != null && report.ttftMs < 2000 && report.rate >= 0.9 ? "ok" : "warn";
+  const headline = report.ok === 0
+    ? "没有拿到可用的回答"
+    : report.rate < 0.7
+      ? "失败比较多"
+      : report.ttftMs != null && report.ttftMs < 2000 && report.rate >= 0.9
+        ? "当前并发下响应及时"
+        : "有需要留意的地方";
+  const tokenRate = cache?.tokenHitRate == null ? "—" : `${Math.round(cache.tokenHitRate * 100)}%`;
+  return (
+    <section className="speed-result">
+      <div className="speed-result-hd">
+        <h2 className={level}><i />{headline}</h2>
+        <button type="button" className="ghost-btn" onClick={onAgain}>再测一次</button>
+      </div>
+      <div className="speed-meta">
+        <span>{report.host}</span>
+        <span>{report.model}</span>
+        <span>{report.protocol === "responses" ? "Responses" : "Messages"}</span>
+        <span>{speedStamp(report.at)}</span>
+        {report.elapsedMs ? <span>{elapsedWords(report.elapsedMs)}</span> : null}
+        <button type="button" onClick={() => navigator.clipboard.writeText(`${location.origin}/tools/api-speed?job=${report.id}`)}>复制链接</button>
+        <button type="button" onClick={() => {
+          const blob = new Blob([JSON.stringify(report, null, 2)], { type: "application/json" });
+          const link = document.createElement("a");
+          link.href = URL.createObjectURL(blob);
+          link.download = `${report.id}.json`;
+          link.click();
+        }}>下载 JSON</button>
+      </div>
+      <div className="speed-kpis">
+        <div><span>首字等待</span><strong>{report.ttftMs == null ? "—" : dur(report.ttftMs)}</strong><em>p90 {dur(report.p90)}</em></div>
+        <div><span>生成速度</span><strong>{speedText(report.speed)}</strong><em>tok/s 平均请求</em></div>
+        <div><span>请求成功率</span><strong>{total ? `${Math.round(report.rate * 100)}%` : "—"}</strong><em>{total} 次请求，失败 {report.fail} 次</em></div>
+        <div><span>缓存命中率</span><strong>{report.cacheHit == null ? "—" : `${Math.round(report.cacheHit * 100)}%`}</strong><em>{cache ? `${cache.hits}/${cache.n} 请求，token 口径 ${tokenRate}` : "未测试"}</em></div>
+        <div><span>增量命中率</span><strong>{roll?.capture == null ? "—" : `${Math.round(roll.capture * 100)}%`}</strong><em>{roll?.rows?.length ? `${roll.rows.length} 轮滚动，累计省下 ${Math.round(roll.saved || 0)}%` : "未测试"}</em></div>
+      </div>
+      <div className="speed-split">
+        <div className="speed-panel">
+          <h3>首字压测</h3>
+          {bench ? <StatTable count={bench.n} rows={[{ name: "TTFT 首字", pack: bench.ttft }, { name: "TPOT/token", pack: bench.tpot }, { name: "总耗时", pack: bench.total }]} /> : <p className="mini">P50 {durTable(report.ttftMs)} · P90 {durTable(report.p90)}</p>}
+          {bench ? <p className="mini">请求吞吐 {bench.reqPerSec.toFixed(2)} req/s　输出吞吐 {Math.round(bench.tokPerSec)} tok/s　总墙钟 {durTable(bench.wallMs)}</p> : null}
+          {report.errors?.length ? <p className="review-error">失败原因：{errorLine(report.errors)}</p> : null}
+        </div>
+        <div className="speed-panel">
+          <h3>缓存持久性</h3>
+          {cache?.points?.length ? (
+            <>
+              <CacheChart points={cache.points} />
+              <div className="speed-legend"><i className="hit" />命中<i className="partial" />部分<i className="miss" />未命中<i className="cold" />冷启动<i className="err" />错误</div>
+              <p className="mini">请求 {cache.n ? `${Math.round((cache.hits / cache.n) * 100)}%` : "—"} / token {tokenRate}，首次命中 {cache.firstHit == null ? "无" : `${cache.firstHit}s`}</p>
+            </>
+          ) : <p className="mini">这次没有做缓存采样。</p>}
         </div>
       </div>
-      <p>{conclusion}</p>
-      <div className="kpis">
-        <div className="kpi"><div className="k">首字等待</div><div className="v">{seconds(report.ttftMs)}</div><div className="s">{report.ttftWord}</div></div>
-        <div className="kpi"><div className="k">生成速度</div><div className="v">{report.speed == null ? "—" : `${report.speed}`}</div><div className="s">tok/s</div></div>
-        <div className="kpi"><div className="k">请求成功率</div><div className="v">{Math.round(report.rate * 100)}%</div><div className="s">{report.rateWord} · {report.ok}/{report.ok + report.fail}</div></div>
-        <div className="kpi"><div className="k">缓存命中率</div><div className="v">{report.cacheHit == null ? "—" : `${Math.round(report.cacheHit * 100)}%`}</div><div className="s">{report.samples.length ? `${report.samples.filter((item) => item.hit).length}/${report.samples.length} 次` : "未测试"}</div></div>
-      </div>
-      <p className="mini">P50 {seconds(report.ttftMs)} · P90 {seconds(report.p90)} · P99 {seconds(report.p99)} · 最快 {seconds(report.min)} · 最慢 {seconds(report.max)} · 平均 {seconds(report.avg)}</p>
-      <div className="speed-bars">
-        {report.shots.map((item, index) => <i key={index} title={item.ok ? seconds(item.ttftMs) : item.error} className={item.ok ? "" : "bad"} style={{ height: item.ttftMs ? Math.min(72, item.ttftMs / 80) : 8 }} />)}
-      </div>
-      {report.errors.length ? <p className="review-error">失败原因：{report.errors.join("、")}</p> : null}
-      {report.roll.length ? (
-        <table className="rank">
-          <thead><tr><th>轮次</th><th>输入</th><th>命中</th></tr></thead>
-          <tbody>{report.roll.map((item) => <tr key={item.turn}><td>第 {item.turn} 轮</td><td>{item.input || "—"}</td><td>{item.read || 0}</td></tr>)}</tbody>
-        </table>
+      {roll?.rows?.length || roll?.verdict || report.roll?.length ? (
+        <div className="speed-panel">
+          <h3>滚动缓存 {roll?.verdict ? <em className={`speed-tag ${roll.level}`}>{roll.verdict}</em> : null}</h3>
+          {roll?.rows?.length ? (
+            <div className="speed-split">
+              <RollChart rows={roll.rows} />
+              <table className="speed-table">
+                <thead><tr><th>轮次</th><th>总输入</th><th>付费input</th><th>命中区</th><th>命中率</th></tr></thead>
+                <tbody>
+                  {roll.rows.map((item) => (
+                    <tr key={item.turn}>
+                      <td>第{item.turn}轮</td>
+                      <td>{num(item.total)}</td>
+                      <td>{num(item.input)}</td>
+                      <td>{num(item.read)}</td>
+                      <td>{item.total ? `${Math.round((item.read / item.total) * 100)}%` : "—"}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : <p className="mini">{roll?.verdict || "这次没有长对话数据。"}</p>}
+        </div>
       ) : null}
     </section>
   );

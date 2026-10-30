@@ -4,13 +4,17 @@
 from __future__ import annotations
 
 import hashlib
+import ipaddress
 import json
 import os
 import secrets
 import smtplib
+import socket
+import ssl
 import time
 from datetime import datetime, timedelta, timezone
 from email.message import EmailMessage
+from http.client import HTTPConnection, HTTPSConnection, HTTPException
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import parse_qs, unquote, urlparse
@@ -419,6 +423,88 @@ def site_file(url_path: str) -> Path | None:
     return None
 
 
+PROBE_HEADERS = {
+    "authorization",
+    "x-api-key",
+    "anthropic-version",
+    "content-type",
+    "accept",
+    "anthropic-beta",
+    "user-agent",
+    "x-stainless-lang",
+    "x-stainless-os",
+    "x-stainless-runtime",
+    "x-stainless-runtime-version",
+    "x-stainless-package-version",
+}
+CGNAT = ipaddress.ip_network("100.64.0.0/10")
+
+
+def _private_ip(value: str) -> bool:
+    try:
+        addr = ipaddress.ip_address(value)
+    except ValueError:
+        return True
+    if addr.is_private or addr.is_loopback or addr.is_link_local or addr.is_multicast or addr.is_reserved or addr.is_unspecified:
+        return True
+    return isinstance(addr, ipaddress.IPv4Address) and addr in CGNAT
+
+
+def _skip_proxy(host: str) -> bool:
+    raw = os.environ.get("no_proxy") or os.environ.get("NO_PROXY") or ""
+    host = host.lower()
+    for item in raw.split(","):
+        name = item.strip().lower().lstrip(".")
+        if not name:
+            continue
+        if name == "*" or host == name or host.endswith("." + name):
+            return True
+    return False
+
+
+def _upstream_connection(parsed, timeout: float):
+    port = parsed.port or (443 if parsed.scheme == "https" else 80)
+    context = ssl.create_default_context()
+    proxy_raw = os.environ.get("https_proxy") or os.environ.get("HTTPS_PROXY") or os.environ.get("http_proxy") or os.environ.get("HTTP_PROXY") or ""
+    proxy = urlparse(proxy_raw) if proxy_raw else None
+    if proxy and proxy.scheme == "http" and proxy.hostname and not _skip_proxy(parsed.hostname):
+        if parsed.scheme == "https":
+            conn = HTTPSConnection(proxy.hostname, proxy.port or 80, timeout=timeout, context=context)
+            conn.set_tunnel(parsed.hostname, port)
+            return conn
+        conn = HTTPConnection(proxy.hostname, proxy.port or 80, timeout=timeout)
+        conn.set_tunnel(parsed.hostname, port)
+        return conn
+    if parsed.scheme == "https":
+        return HTTPSConnection(parsed.hostname, port, timeout=timeout, context=context)
+    return HTTPConnection(parsed.hostname, port, timeout=timeout)
+
+
+def _check_public(url: str):
+    parsed = urlparse(url)
+    if parsed.scheme not in ("http", "https") or not parsed.hostname or parsed.username or parsed.password:
+        raise ValueError("bad")
+    host = parsed.hostname.lower().rstrip(".")
+    if not host or host == "localhost" or host.endswith(".local") or host.endswith(".internal") or host.endswith(".localhost"):
+        raise ValueError("private")
+    try:
+        literal = ipaddress.ip_address(host)
+    except ValueError:
+        literal = None
+    if literal is not None:
+        if _private_ip(host):
+            raise ValueError("private")
+        return parsed
+    try:
+        looked = socket.getaddrinfo(host, parsed.port or (443 if parsed.scheme == "https" else 80), type=socket.SOCK_STREAM)
+    except socket.gaierror as err:
+        raise ValueError("connect") from err
+    addresses = {item[4][0] for item in looked}
+    if not addresses or any(_private_ip(item) for item in addresses):
+        raise ValueError("private")
+    return parsed
+
+
 def public_comment(row: dict) -> dict:
     return {
         "id": row["id"],
@@ -435,6 +521,79 @@ def public_comment(row: dict) -> dict:
 class Handler(BaseHTTPRequestHandler):
     def log_message(self, fmt, *args) -> None:
         return
+
+    def _probe_fail(self, code: int, reason: str) -> None:
+        body = reason.encode("utf-8")
+        self.send_response(code)
+        self.send_header("Content-Type", "text/plain; charset=utf-8")
+        self.send_header("Cache-Control", "no-store")
+        self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
+
+    def _probe(self) -> None:
+        conn = None
+        started = False
+        try:
+            length = int(self.headers.get("Content-Length") or 0)
+            if length <= 0 or length > 1_500_000:
+                self._probe_fail(413 if length > 1_500_000 else 400, "bad")
+                return
+            payload = json.loads(self.rfile.read(length).decode("utf-8"))
+            if not isinstance(payload, dict) or not isinstance(payload.get("headers") or {}, dict):
+                self._probe_fail(400, "bad")
+                return
+            parsed = _check_public(str(payload.get("url") or ""))
+            headers = {}
+            for key, value in (payload.get("headers") or {}).items():
+                name = str(key).lower()
+                if name in PROBE_HEADERS and isinstance(value, str) and len(value) < 8000 and "\r" not in value and "\n" not in value:
+                    headers[name] = value
+            method = "GET" if payload.get("method") == "GET" else "POST"
+            body = payload.get("body") if method == "POST" else None
+            if body is not None and not isinstance(body, str):
+                self._probe_fail(400, "bad")
+                return
+            if isinstance(body, str) and len(body) > 1_500_000:
+                self._probe_fail(413, "large")
+                return
+            timeout = min(max(int(payload.get("timeoutMs") or 60000), 1000), 90000) / 1000
+            path = parsed.path or "/"
+            if parsed.query:
+                path += "?" + parsed.query
+            conn = _upstream_connection(parsed, timeout)
+            raw = body.encode("utf-8") if isinstance(body, str) else None
+            conn.request(method, path, body=raw, headers=headers)
+            upstream = conn.getresponse()
+            self.send_response(200)
+            self.send_header("Content-Type", "application/octet-stream")
+            self.send_header("X-Upstream-Status", str(upstream.status))
+            self.send_header("Cache-Control", "no-store")
+            self.send_header("X-Accel-Buffering", "no")
+            self.end_headers()
+            started = True
+            while True:
+                chunk = upstream.read(8192)
+                if not chunk:
+                    break
+                self.wfile.write(chunk)
+                self.wfile.flush()
+        except ssl.SSLError:
+            if not started:
+                self._probe_fail(502, "tls")
+        except (TimeoutError, socket.timeout):
+            if not started:
+                self._probe_fail(502, "timeout")
+        except (HTTPException, OSError, json.JSONDecodeError):
+            if not started:
+                self._probe_fail(502, "connect")
+        except ValueError as err:
+            reason = str(err) if str(err) in ("bad", "private", "connect") else "bad"
+            if not started:
+                self._probe_fail(400 if reason == "bad" else 502, reason)
+        finally:
+            if conn is not None:
+                conn.close()
 
     def _send(self, code: int, payload) -> None:
         body = json.dumps(payload, ensure_ascii=False).encode("utf-8")
@@ -527,6 +686,9 @@ class Handler(BaseHTTPRequestHandler):
     def do_POST(self) -> None:
         parsed = urlparse(self.path)
         path = parsed.path.rstrip("/")
+        if path == "/__probe":
+            self._probe()
+            return
         try:
             body = self._read_json()
             with FileLock(DATA):

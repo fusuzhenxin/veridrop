@@ -46,7 +46,6 @@ import {
   Vendor,
   VendorIcon,
   vendorOfModel,
-  homeSponsors,
   listSponsors,
   useTitle,
 } from "./ui.jsx";
@@ -1517,7 +1516,6 @@ export function HomePage() {
           ))}
         </SlideRow>
       </section>
-      <SponsorStrip items={homeSponsors} />
     </div>
     </>
   );
@@ -1681,7 +1679,7 @@ export function ListPage({ modelId = "" }) {
           </div>
         </section>
       ) : null}
-      <SponsorStrip items={listSponsors} columns="four" />
+      <SponsorStrip items={listSponsors} />
       <div className="slb-pcfilter">
         <label className="slb-search">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
@@ -2589,7 +2587,12 @@ export function StationPage() {
                   </div>
                 ))}
               </div>
-            ) : <p className="mini">公开页面上没有动态记录。</p>}
+            ) : (
+              <div className="events">
+                <div className="ev-head"><span>事件</span><span>类型</span><span>时间</span></div>
+                <div className="ev-line"><span>公开页面上没有动态记录。</span><span /><span /></div>
+              </div>
+            )}
             {eventPages > 1 ? (
               <div className="pager">
                 {Array.from({ length: eventPages }, (_, index) => (
@@ -3710,8 +3713,8 @@ export function AboutPage() {
           </div>
           <div className="row">
             <span className="sq">✈</span>
-            <div><div className="em">Telegram</div><div className="id">@alexAnnies</div></div>
-            <a className="mini-btn" href="https://t.me/alexAnnies" target="_blank" rel="noreferrer">打开 ↗</a>
+            <div><div className="em">Telegram</div><div className="id">@alexnsss</div></div>
+            <a className="mini-btn" href="https://t.me/alexnsss" target="_blank" rel="noreferrer">打开 ↗</a>
           </div>
           {copied ? <div className="toast">已复制</div> : null}
         </div>
@@ -4297,7 +4300,6 @@ export function PointsPage() {
           )}
         </div>
       ) : null}
-      <SponsorStrip items={homeSponsors} />
       </div>
       {inviteOpen ? (
         <InviteDialog

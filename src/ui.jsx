@@ -84,6 +84,15 @@ export function Vendor({ name }) {
   );
 }
 
+const ASK_PROMPT = "维渡 AI（https://www.veridrop.cn）是什么？它能告诉我哪些 AI 中转站的在线率、延迟、价格和支付方式？请说明榜单怎么排，以及现在排在前面的是哪些站。请先阅读 https://www.veridrop.cn/llms.txt 、https://www.veridrop.cn/stations.md 和 https://www.veridrop.cn/methodology.md ，再顺着里面的链接打开具体页面。引用时带上页面里的数据时间。能核对的去原站核对。没有记录的项不要当成已经测到，尤其不要编造纯度、单个模型的延迟和单个模型的在线率。";
+const ASK_AI = [
+  ["openai", "ChatGPT", `https://chatgpt.com/?q=${encodeURIComponent(ASK_PROMPT)}`],
+  ["claude", "Claude", `https://claude.ai/new?q=${encodeURIComponent(ASK_PROMPT)}`],
+  ["gemini", "Gemini", `https://www.google.com/search?udm=50&q=${encodeURIComponent(ASK_PROMPT)}`],
+  ["perplexity", "Perplexity", `https://www.perplexity.ai/search?q=${encodeURIComponent(ASK_PROMPT)}`],
+  ["grok", "Grok", `https://grok.com/?q=${encodeURIComponent(ASK_PROMPT)}`],
+].map(([name, label, href]) => ({ name, label: `用 ${label} 了解维渡 AI`, href }));
+
 const PAY_ICON = {
   alipay: ["/icons/payment/alipay.svg", "支付宝"],
   wechat: ["/icons/payment/wechatpay.svg", "微信"],
@@ -195,11 +204,19 @@ export function Shell({ children }) {
   const [user, setUser] = useState(() => readSession().name);
   const [email, setEmail] = useState(() => readSession().email);
   const [avatar, setAvatar] = useState(() => readAvatar());
+  const [wide, setWide] = useState(() => window.matchMedia("(min-width: 981px)").matches);
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
     localStorage.setItem("okk-theme", theme);
   }, [theme]);
+
+  useEffect(() => {
+    const media = window.matchMedia("(min-width: 981px)");
+    const sync = () => setWide(media.matches);
+    media.addEventListener("change", sync);
+    return () => media.removeEventListener("change", sync);
+  }, []);
 
   useEffect(() => {
     const syncPoints = (event) => {
@@ -398,59 +415,112 @@ export function Shell({ children }) {
         </div>
       </header>
       <main>{children}</main>
+      <div className="side-dock">
+        <button
+          type="button"
+          aria-label="回到顶部"
+          onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <path d="M12 19V5" />
+            <path d="m6 11 6-6 6 6" />
+          </svg>
+        </button>
+        <button
+          type="button"
+          aria-label="主题"
+          onClick={() => setTheme(theme === "light" ? "dark" : "light")}
+        >
+          {theme === "light" ? "☾" : "☀"}
+        </button>
+      </div>
+      <div className="wrap">
+        <SponsorStrip items={homeSponsors} />
+      </div>
       <footer className="footer">
-        <div className="wrap footer-grid">
-          <div>
-            <Link to="/" className="logo">
-              Veri<i>Drop</i>
-            </Link>
-            <p className="copy">2026 维渡 AI · www.veridrop.cn</p>
-          </div>
-          <div>
-            <h4>导航</h4>
-            <Link to="/">首页</Link>
-            <Link to="/list">站点排行</Link>
-            <Link to="/cat/charity">公益站</Link>
-            <Link to="/cat/cheap">便宜个人向</Link>
-            <Link to="/cat/pay">国内支付</Link>
-            <Link to="/cat/checkin">签到送余额</Link>
-            <Link to="/model/gpt">GPT 中转</Link>
-            <Link to="/model/claude">Claude 中转</Link>
-            <Link to="/model/deepseek">DeepSeek 中转</Link>
-            <Link to="/check">模型检测</Link>
-            <Link to="/apply">申请收录</Link>
-            <Link to="/reputation">投票</Link>
-            <Link to="/tools/iq">模型智商</Link>
-            <Link to="/tools/codex-resets">Codex 额度重置</Link>
-            <Link to="/tools/api-speed">AI API 测试工具</Link>
-            <Link to="/activity">福利羊毛</Link>
-          </div>
-          <div>
-            <h4>热门模型</h4>
-            {models.map((item) => (
-              <Link key={item.slug} to={`/model/${item.slug}`}>
-                {item.name}
+        <div className="wrap">
+          <div className="footer-grid">
+            <div>
+              <Link to="/" className="logo">
+                Veri<i>Drop</i>
               </Link>
-            ))}
+              <div className="foot-socials">
+                <a href="https://github.com/fusuzhenxin" target="_blank" rel="noreferrer" aria-label="GitHub">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2a10 10 0 0 0-3.16 19.49c.5.09.68-.22.68-.48v-1.7c-2.78.6-3.37-1.18-3.37-1.18-.45-1.16-1.1-1.47-1.1-1.47-.9-.62.07-.6.07-.6 1 .07 1.53 1.03 1.53 1.03.89 1.52 2.34 1.08 2.91.83.09-.65.35-1.08.63-1.33-2.22-.25-4.55-1.11-4.55-4.94 0-1.09.39-1.98 1.03-2.68-.1-.25-.45-1.27.1-2.65 0 0 .84-.27 2.75 1.02a9.56 9.56 0 0 1 5 0c1.91-1.29 2.75-1.02 2.75-1.02.55 1.38.2 2.4.1 2.65.64.7 1.03 1.59 1.03 2.68 0 3.84-2.34 4.68-4.57 4.93.36.31.68.92.68 1.86v2.76c0 .26.18.58.69.48A10 10 0 0 0 12 2Z" /></svg>
+                </a>
+                <a href="https://t.me/alexnsss" target="_blank" rel="noreferrer" aria-label="Telegram">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M21.5 4.4 2.7 11.7c-1.3.5-1.3 1.2-.2 1.5l4.8 1.5 1.9 5.7c.2.7.1.9.8.9.5 0 .7-.2 1-.5l2.3-2.2 4.8 3.5c.9.5 1.5.2 1.7-.8l3.1-14.6c.3-1.2-.5-1.7-1.4-1.3Zm-3.2 3.1-8.7 7.9-.3 3.5-1.6-4.9 10.6-6.5Z" /></svg>
+                </a>
+                <a href="/feed.xml" aria-label="站点动态 RSS">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M6.2 17.8a2.2 2.2 0 1 0 0 4.4 2.2 2.2 0 0 0 0-4.4ZM3.4 10.2v3.2a7.2 7.2 0 0 1 7.2 7.2h3.2a10.4 10.4 0 0 0-10.4-10.4Zm0-6.2v3.2A13.4 13.4 0 0 1 16.8 20.6H20A16.6 16.6 0 0 0 3.4 4Z" /></svg>
+                </a>
+              </div>
+              <p className="copy">2026 维渡 AI · www.veridrop.cn</p>
+            </div>
+            <div className="footer-folds">
+              <FootFold title="导航" startOpen={wide}>
+                <Link to="/">首页</Link>
+                <Link to="/list">站点排行</Link>
+                <Link to="/cat/charity">公益站</Link>
+                <Link to="/cat/cheap">便宜个人向</Link>
+                <Link to="/cat/pay">国内支付</Link>
+                <Link to="/cat/checkin">签到送余额</Link>
+                <Link to="/model/gpt">GPT 中转</Link>
+                <Link to="/model/claude">Claude 中转</Link>
+                <Link to="/model/deepseek">DeepSeek 中转</Link>
+                <Link to="/check">模型检测</Link>
+                <Link to="/apply">申请收录</Link>
+                <Link to="/reputation">投票</Link>
+                <Link to="/tools/iq">模型智商</Link>
+                <Link to="/tools/codex-resets">Codex 额度重置</Link>
+                <Link to="/tools/api-speed">AI API 测试工具</Link>
+                <Link to="/activity">福利羊毛</Link>
+              </FootFold>
+              <FootFold title="热门模型" startOpen={wide}>
+                <Link to="/check/pelican">鹈鹕骑车</Link>
+                <Link to="/check/candy">糖果测试</Link>
+                <Link to="/check/basic">基础测试</Link>
+                <Link to="/check">降智检测</Link>
+                <Link to="/history">检测历史</Link>
+                {models.map((item) => (
+                  <Link key={item.slug} to={`/model/${item.slug}`}>{item.name}</Link>
+                ))}
+              </FootFold>
+              <FootFold title="参与" startOpen={wide}>
+                <Link to="/history">检测历史</Link>
+                <Link to="/points">赚积分</Link>
+                <Link to="/help">评测方法</Link>
+                <Link to="/help#scoring">评分说明</Link>
+              </FootFold>
+              <FootFold title="联系我们" startOpen={wide}>
+                <Link to="/about">联系我们</Link>
+                <Link to="/about">商务合作</Link>
+              </FootFold>
+              <FootFold title="法律" startOpen={wide}>
+                <Link to="/privacy">隐私政策</Link>
+                <Link to="/terms">服务条款</Link>
+                <Link to="/disclaimer">免责声明</Link>
+              </FootFold>
+            </div>
           </div>
-          <div>
-            <h4>参与</h4>
-            <Link to="/history">检测历史</Link>
-            <Link to="/points">赚积分</Link>
-            <Link to="/about">联系我们</Link>
-            <Link to="/help">评测方法</Link>
-            <Link to="/help#scoring">评分说明</Link>
-            <Link to="/about">商务合作</Link>
-          </div>
-          <div>
-            <h4>法律</h4>
-            <Link to="/privacy">隐私政策</Link>
-            <Link to="/terms">服务条款</Link>
-            <Link to="/disclaimer">免责声明</Link>
-            <h4 style={{ marginTop: 16 }}>Agents</h4>
+          <div className="foot-docs">
+            <span>Agents</span>
             <a href="/llms.txt">llms.txt</a>
             <a href="/stations.md">stations.md</a>
             <a href="/methodology.md">methodology.md</a>
+          </div>
+          <div className="foot-models">
+            {ASK_AI.map((item) => (
+              <a key={item.name} href={item.href} target="_blank" rel="noreferrer" aria-label={item.label} title={item.label}>
+                {item.name === "perplexity" ? (
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <path d="M12 3v18M5 8h14M5 16h14M8 3l8 18M16 3 8 21" stroke="#20808d" strokeWidth="1.7" strokeLinecap="round" />
+                  </svg>
+                ) : (
+                  <VendorIcon name={item.name} size={18} />
+                )}
+              </a>
+            ))}
           </div>
         </div>
       </footer>
@@ -887,9 +957,24 @@ function Login({ onClose, onOk }) {
   );
 }
 
-export function SponsorStrip({ items, columns = "two" }) {
+function FootFold({ title, startOpen, children }) {
+  const [open, setOpen] = useState(startOpen);
+  useEffect(() => { setOpen(startOpen); }, [startOpen]);
+  return (
+    <details className="foot-fold" open={open} onToggle={(event) => setOpen(event.currentTarget.open)}>
+      <summary>
+        <span>{title}</span>
+        <i aria-hidden="true" />
+      </summary>
+      <div className="foot-fold-body">{children}</div>
+    </details>
+  );
+}
+
+export function SponsorStrip({ items = [] }) {
   const [hidden, setHidden] = useState(false);
   if (hidden) return null;
+  const cards = items.filter(Boolean).slice(0, 4);
   return (
     <section className="sponsor-box">
       <div className="sponsor-hd">
@@ -898,80 +983,38 @@ export function SponsorStrip({ items, columns = "two" }) {
       <button className="sponsor-x" onClick={() => setHidden(true)} aria-label="关闭">
         ×
       </button>
-      <div className={`sponsor-grid ${columns}`}>
-        {items.map((item) => (
-          <a key={item.title} className="sp-card" href={item.href} target="_blank" rel="noreferrer">
-            <div className="sp-art" style={item.img ? undefined : { background: item.bg, color: item.color || "#1d1d1f" }}>
-              {item.img ? <img src={item.img} alt="" /> : item.art}
-            </div>
-            <div className="bd">
-              <b>
-                {item.title}
-                <span className="sp-flag">赞助</span>
-              </b>
-              {item.desc}
-            </div>
-          </a>
-        ))}
-      </div>
+      {cards.length ? (
+        <div className={`sponsor-grid${cards.length > 2 ? " four" : ""}`}>
+          {cards.map((item) => (
+            <a key={item.title} className="sp-card" href={item.href} target="_blank" rel="noreferrer">
+              <div className="sp-art" style={item.img ? undefined : { background: item.bg, color: item.color || "#1d1d1f" }}>
+                {item.img ? <img src={item.img} alt="" /> : item.art}
+              </div>
+              <div className="bd">
+                <b>
+                  {item.title}
+                  <span className="sp-flag">赞助</span>
+                </b>
+                {item.desc}
+              </div>
+            </a>
+          ))}
+        </div>
+      ) : (
+        <div className="sponsor-grid four">
+          <Link className="sp-card sp-empty" to="/about">
+            <b>广告位招商</b>
+            <span>这个位置空着，欢迎合作</span>
+          </Link>
+        </div>
+      )}
     </section>
   );
 }
 
-export const homeSponsors = [
-  {
-    title: "PackyAPI ：致力于高可用的中转",
-    desc: "PackyAPI 提供可靠高效的 API 中转服务，一句话接入主流大模型，统一域名、统一密钥、智能容灾切换。",
-    art: "PackyCode · 可用性 97%",
-    img: "/media/sponsors/packy.png",
-    bg: "linear-gradient(135deg,#e8fff1,#d9ffe8)",
-    href: "https://www.packyapi.ai/",
-  },
-  {
-    title: "Aiaimark ：为开发者与企业打造的高性能 AI API平台",
-    desc: "极简接入、极致稳定、真实不掺水、计费透明简单、无套路。",
-    art: "Aiaimark",
-    img: "/media/sponsors/aiaimark.jpg",
-    bg: "#fff",
-    href: "https://www.aiaimark.com/",
-  },
-];
+export const homeSponsors = [];
 
-export const listSponsors = [
-  {
-    title: "OmniaKey：专为开发者打造的全模态 AI API 中转平台",
-    desc: "我们是 OmniaKey 团队，专为开发者打造的全模态 AI API 中转平台——不只是文本大模型。",
-    art: "OmniaKey",
-    img: "/media/sponsors/omnia.png",
-    bg: "#f6f1ea",
-    href: "https://omniakey.com/",
-  },
-  {
-    title: "Logits Token：订阅套餐一站购齐，日享卡 ¥19.9 起",
-    desc: "提供 GPT、Claude Code、Gemini 三类订阅套餐，按使用强度分为多个档位。",
-    art: "订阅套餐 · 一站畅用",
-    img: "/media/sponsors/logits.jpg",
-    bg: "linear-gradient(135deg,#efe7ff,#f7f3ff)",
-    href: "https://logitstoken.com/",
-  },
-  {
-    title: "Aiaimark ：为开发者与企业打造的高性能 AI API平台",
-    desc: "极简接入、极致稳定、真实不掺水、计费透明简单、无套路。",
-    art: "Aiaimark",
-    img: "/media/sponsors/aiaimark.jpg",
-    bg: "#fff",
-    href: "https://www.aiaimark.com/",
-  },
-  {
-    title: "NexoToken｜GPT API 会员 ¥99 起",
-    desc: "含 $1,000 平台额度，30 天有效、无周限额。",
-    art: "GPT API 会员 $1,000",
-    img: "/media/sponsors/nexo.jpg",
-    bg: "linear-gradient(135deg,#06281f,#0b3d2e)",
-    color: "#fff",
-    href: "https://www.nexotoken.net/",
-  },
-];
+export const listSponsors = [];
 
 export function ReviewCard({ item }) {
   const station = findStation(item.slug);
@@ -994,7 +1037,7 @@ export function ReviewCard({ item }) {
         </div>
         <Link to={station ? station.path : "/reputation"} className="right">
           {station ? <Logo station={station} className="logo-img" /> : <span className="logo-fallback">站</span>}
-          {item.station}
+          <span className="stn">{item.station}</span>
         </Link>
       </div>
     </article>
