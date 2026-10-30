@@ -211,7 +211,7 @@ writeFileSync(resolve(root, "src", "verd-index.json"), JSON.stringify({
 }));
 
 function xml(url) {
-  return `  <url><loc>${origin}${url}</loc><lastmod>2026-10-28</lastmod></url>`;
+  return `  <url><loc>${origin}${url}</loc><lastmod>2026-10-30</lastmod></url>`;
 }
 
 const pages = [
@@ -261,7 +261,7 @@ for (const row of attach) {
 
 const pageXml = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${pages.map(xml).join("\n")}\n</urlset>\n`;
 const siteXml = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${siteUrls.map(xml).join("\n")}\n</urlset>\n`;
-const indexXml = `<?xml version="1.0" encoding="UTF-8"?>\n<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n  <sitemap><loc>${origin}/sitemap-pages.xml</loc><lastmod>2026-10-28</lastmod></sitemap>\n  <sitemap><loc>${origin}/sitemap-sites.xml</loc><lastmod>2026-10-28</lastmod></sitemap>\n</sitemapindex>\n`;
+const indexXml = `<?xml version="1.0" encoding="UTF-8"?>\n<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n  <sitemap><loc>${origin}/sitemap-pages.xml</loc><lastmod>2026-10-30</lastmod></sitemap>\n  <sitemap><loc>${origin}/sitemap-sites.xml</loc><lastmod>2026-10-30</lastmod></sitemap>\n</sitemapindex>\n`;
 writeFileSync(resolve(root, "public", "sitemap-pages.xml"), pageXml);
 writeFileSync(resolve(root, "public", "sitemap-sites.xml"), siteXml);
 writeFileSync(resolve(root, "public", "sitemap.xml"), indexXml);

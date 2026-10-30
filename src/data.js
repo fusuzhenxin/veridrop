@@ -575,7 +575,24 @@ function commentRank(station) {
   return Number(station.rating);
 }
 
+function commentLiftEligible(station) {
+  const rating = commentRank(station);
+  return !isDown(station) && station.ratingCount >= 2 && rating != null && rating >= 4;
+}
+
+function compareCommentLift(a, b) {
+  const rating = commentRank(b) - commentRank(a);
+  if (rating) return rating;
+  const count = (b.ratingCount || 0) - (a.ratingCount || 0);
+  if (count) return count;
+  if (hasNumber(a.latency) && hasNumber(b.latency) && a.latency !== b.latency) return a.latency - b.latency;
+  return String(a.name || "").localeCompare(String(b.name || ""), "zh");
+}
+
 function compareOverall(a, b) {
+  const lift = Number(commentLifted.has(b.slug)) - Number(commentLifted.has(a.slug));
+  if (lift) return lift;
+  if (commentLifted.has(a.slug) && commentLifted.has(b.slug)) return compareCommentLift(a, b);
   const uptime = uptimeBand(a) - uptimeBand(b);
   if (uptime) return uptime;
   const latency = latencyBand(a) - latencyBand(b);
@@ -613,7 +630,19 @@ export function compareStations(a, b, mode = "overall") {
   return compareOverall(a, b);
 }
 
-export const stations = [...okkStations, ...(verd.stations || []).map(mapVerdStation)].sort(compareStations);
+export const stations = [...okkStations, ...(verd.stations || []).map(mapVerdStation)];
+const commentLifted = new Set();
+const seenLiftHost = new Set();
+stations
+  .filter(commentLiftEligible)
+  .sort(compareCommentLift)
+  .forEach((station) => {
+    const host = String(station.host || "").replace(/^www\./, "");
+    if (!host || seenLiftHost.has(host) || commentLifted.size >= 8) return;
+    seenLiftHost.add(host);
+    commentLifted.add(station.slug);
+  });
+stations.sort(compareStations);
 stations.forEach((station, index) => {
   station.place = index + 1;
 });

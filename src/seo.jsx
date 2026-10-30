@@ -98,13 +98,20 @@ function ensureProperty(property, content) {
   node.setAttribute("content", content);
 }
 
+const PRIVATE_EXACT = new Set(["/account", "/history", "/submissions", "/cat/fav"]);
+
+function robotsFor(pathname) {
+  if (PRIVATE_EXACT.has(pathname) || pathname.startsWith("/r/d/")) return "noindex,follow";
+  return "index,follow";
+}
+
 export function Seo() {
   const { pathname } = useLocation();
   useEffect(() => {
     const apply = () => {
       const description = describe(pathname);
       ensureMeta("description", description);
-      ensureMeta("robots", "index,follow");
+      ensureMeta("robots", robotsFor(pathname));
       ensureProperty("og:title", document.title);
       ensureProperty("og:description", description);
       ensureProperty("og:type", "website");
