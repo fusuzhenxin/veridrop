@@ -204,7 +204,7 @@ export function Shell({ children }) {
   const [user, setUser] = useState(() => readSession().name);
   const [email, setEmail] = useState(() => readSession().email);
   const [avatar, setAvatar] = useState(() => readAvatar());
-  const [wide, setWide] = useState(() => window.matchMedia("(min-width: 981px)").matches);
+  const [wide, setWide] = useState(() => typeof window !== "undefined" && typeof window.matchMedia === "function" ? window.matchMedia("(min-width: 981px)").matches : true);
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
@@ -212,6 +212,7 @@ export function Shell({ children }) {
   }, [theme]);
 
   useEffect(() => {
+    if (typeof window === "undefined" || typeof window.matchMedia !== "function") return undefined;
     const media = window.matchMedia("(min-width: 981px)");
     const sync = () => setWide(media.matches);
     media.addEventListener("change", sync);

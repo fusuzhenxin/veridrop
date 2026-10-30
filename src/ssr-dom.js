@@ -77,3 +77,4 @@ if (!globalThis.cancelAnimationFrame) globalThis.cancelAnimationFrame = () => {}
 globalThis.scrollTo = globalThis.scrollTo || (() => {});
 globalThis.innerWidth = globalThis.innerWidth || 1280;
 globalThis.innerHeight = globalThis.innerHeight || 800;
+if (typeof globalThis.window === "undefined") globalThis.window = globalThis;
