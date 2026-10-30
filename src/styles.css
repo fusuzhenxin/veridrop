@@ -525,7 +525,8 @@ h1 .g { color: var(--orange); }
 :root[data-theme="dark"] .rank-row:nth-child(2) { background: #1c2610; }
 .rank-row .n { color: var(--faint); }
 .rank-row .sc { font-variant-numeric: tabular-nums; font-weight: 600; }
-.test-row { grid-template-columns: 22px 1fr auto auto; padding: 7px 4px; }
+.test-row { grid-template-columns: 22px minmax(0, 1fr) minmax(0, 9em) auto; padding: 7px 4px; }
+.test-row > span:nth-child(2), .channel { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .channel { color: var(--muted); font-size: 13px; }
 .date { color: var(--faint); font-size: 13px; }
 .kv { grid-template-columns: 1fr auto; color: var(--fg); }

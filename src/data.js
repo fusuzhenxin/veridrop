@@ -90,13 +90,6 @@ export function latestCodex() {
   return { label, day };
 }
 
-export const latestTests = [
-  { model: "claude-opus-4-8", channel: "官方渠道", date: "10-19", vendor: "claude", slug: "queqiaoapi" },
-  { model: "gpt-5.6-terra", channel: "官方渠道", date: "10-19", vendor: "openai", slug: "queqiaoapi" },
-  { model: "gpt-5.5", channel: "混合渠道", date: "10-19", vendor: "cat", slug: "catbeeai" },
-  { model: "claude-opus-4-8", channel: "官方渠道", date: "10-19", vendor: "claude", slug: "catbeeai" },
-];
-
 export const perks = [
   {
     kind: "免费 API",
@@ -704,6 +697,43 @@ for (const station of stations) {
   const key = String(station.name || "").trim().toLowerCase();
   if (key) headingCounts.set(key, (headingCounts.get(key) || 0) + 1);
 }
+
+function vendorFromModel(model) {
+  const family = familyKey(model);
+  if (family === "gpt") return "openai";
+  if (family === "glm") return "zhipu";
+  return family || "";
+}
+
+function monthDay(time) {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: "Asia/Shanghai",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(time);
+  const month = parts.find((part) => part.type === "month")?.value || "";
+  const day = parts.find((part) => part.type === "day")?.value || "";
+  return month && day ? `${month}-${day}` : "";
+}
+
+export const latestTests = stations.flatMap((station) => {
+  const tests = Array.isArray(station.tests) ? station.tests : [];
+  let best = null;
+  for (const test of tests) {
+    const time = Date.parse(test?.at || "");
+    if (!Number.isFinite(time)) continue;
+    if (!best || time > best.time) best = { test, time };
+  }
+  if (!best) return [];
+  return [{
+    station: stationHeading(station),
+    model: best.test.model || best.test.channel || "测试",
+    date: monthDay(best.time),
+    at: best.time,
+    vendor: vendorFromModel(best.test.model),
+    href: best.test.suite === "basic" && best.test.id ? `/b/${best.test.id}` : station.path,
+  }];
+}).sort((a, b) => b.at - a.at);
 
 export function stationHeading(station) {
   const name = String(station?.name || "").trim();

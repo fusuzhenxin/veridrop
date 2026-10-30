@@ -1464,10 +1464,10 @@ export function HomePage() {
             最新实测 <Link className="more" to="/list">查看更多 ›</Link>
           </div>
           {latestTests.slice(0, 3).map((item) => (
-            <Link key={item.model + item.slug} to={stationPath({ slug: item.slug, path: item.path })} className="test-row">
+            <Link key={`${item.href}|${item.model}|${item.at}`} to={item.href} className="test-row">
               <Vendor name={item.vendor} />
-              <span>{item.model}</span>
-              <span className="channel">{item.channel}</span>
+              <span>{item.station}</span>
+              <span className="channel">{item.model}</span>
               <span className="date">{item.date}</span>
             </Link>
           ))}
