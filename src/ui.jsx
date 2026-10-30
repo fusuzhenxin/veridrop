@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, NavLink, useLocation, useNavigate } from "react-router-dom";
-import { activities, findStation, logoUrl, models, perks, reviews, stations } from "./data.js";
+import { activities, findStation, logoUrl, models, perks, reviews, stationTotal, stations } from "./data.js";
 import { clearSession, readAccounts, readAvatar, readSession, writeAvatar, writeSession } from "./account.js";
 import { authToken, loginAccount, pullAccount, registerAccount, requestCode, resetAccount, sendPoints, setAuthToken } from "./community.js";
 import { replacePoints, saveNick } from "./points.js";
@@ -137,7 +137,7 @@ export function useTitle(title, options) {
   const exact = options?.exact === true;
   useEffect(() => {
     if (exact && title) document.title = title;
-    else document.title = title ? `维渡 AI - ${title}` : "维渡 AI - AI 中转站排行与推荐｜收录 4427+ 家中转站实测与价格对比";
+    else document.title = title ? `维渡 AI - ${title}` : `维渡 AI - AI 中转站排行与推荐｜收录 ${stationTotal} 家中转站实测与价格对比`;
   }, [title, exact]);
 }
 

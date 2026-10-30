@@ -40,7 +40,7 @@ function describe(pathname) {
 }
 
 const ORIGIN = "https://www.veridrop.cn";
-const HOME_TITLE = "维渡 AI - AI 中转站排行与推荐｜收录 4427+ 家中转站实测与价格对比";
+const HOME_TITLE = `维渡 AI - AI 中转站排行与推荐｜收录 ${stationTotal} 家中转站实测与价格对比`;
 
 const STATIC = {
   "/": { title: "", heading: "AI 中转站排行与推荐" },
