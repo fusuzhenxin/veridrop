@@ -241,7 +241,7 @@ function modelScore(count) {
 
 function priceScore(models) {
   const ratios = (models || []).map((model) => Number(model.ratio)).filter((ratio) => ratio > 0);
-  if (!ratios.length) return 0;
+  if (!ratios.length) return null;
   return Math.max(0, Math.min(100, Math.round(100 - Math.min(...ratios) * 60)));
 }
 
@@ -439,6 +439,37 @@ function familyKey(name) {
   return "";
 }
 
+function latencySeconds(value) {
+  const text = String(value || "");
+  const seconds = text.match(/(\d+(?:\.\d+)?)\s*s\b/i);
+  if (seconds) return Number(seconds[1]);
+  const millis = text.match(/(\d+(?:\.\d+)?)\s*ms\b/i);
+  if (millis) return Number(millis[1]) / 1000;
+  return null;
+}
+
+function median(values) {
+  const list = values.filter((value) => Number.isFinite(value)).sort((a, b) => a - b);
+  if (!list.length) return null;
+  const mid = Math.floor(list.length / 2);
+  if (list.length % 2) return list[mid];
+  return (list[mid - 1] + list[mid]) / 2;
+}
+
+function familyBalancedSeconds(models) {
+  const groups = new Map();
+  for (const model of models || []) {
+    const seconds = latencySeconds(model.latency);
+    if (seconds == null) continue;
+    const family = familyKey(model.name || model.id);
+    if (!family) continue;
+    if (!groups.has(family)) groups.set(family, []);
+    groups.get(family).push(seconds);
+  }
+  if (groups.size < 2) return null;
+  return median([...groups.values()].map((list) => median(list)));
+}
+
 function mapVerdStation(row) {
   const published = stationPublic.stations?.[String(row.id)] || null;
   const publishedModels = published?.models?.length ? published.models : null;
@@ -452,7 +483,8 @@ function mapVerdStation(row) {
   }
   const familyNames = vendors.map((name) => FAMILY_NAME[name === "zhipu" ? "glm" : name] || name).filter(Boolean);
   const tags = (row.categories || []).map((id) => CAT_LABEL[id]).filter(Boolean).slice(0, 4);
-  const ms = row.avgMs != null ? row.avgMs : row.ms;
+  const balancedSeconds = familyBalancedSeconds(publishedModels);
+  const ms = balancedSeconds != null ? balancedSeconds * 1000 : (row.avgMs != null ? row.avgMs : row.ms);
   const votes = catalogVotes(row.id, row);
   const listedCount = publishedModels
     ? new Set(publishedModels.map((model) => model.name || model.id).filter(Boolean)).size
@@ -465,11 +497,11 @@ function mapVerdStation(row) {
   const speedShown = speedScore(latency);
   const priced = publishedModels || row.modelRows || [];
   const radar = {
-    "纯度": 0,
-    "稳定": uptime == null ? 0 : Math.max(0, Math.min(100, Math.round(Number(uptime)))),
-    "速度": speedShown ?? 0,
+    "纯度": null,
+    "稳定": uptime == null ? null : Math.max(0, Math.min(100, Math.round(Number(uptime)))),
+    "速度": speedShown == null ? null : speedShown,
     "价格": priceScore(priced),
-    "模型": modelScore(modelCount),
+    "模型": modelCount > 0 ? modelScore(modelCount) : null,
   };
   const lineup = publishedModels && familyNames.length ? familyNames.join("、") : (row.modelLabels || "");
   return {
@@ -481,7 +513,7 @@ function mapVerdStation(row) {
     listed: listedDay(row.id, row),
     uptime: uptime == null ? null : Math.round(Number(uptime)),
     latency,
-    min: row.minTopup || "—",
+    min: row.minTopup || row.min || "—",
     promo: row.promo || live?.promo || "",
     pay: row.pay || [],
     paymentText: (row.pay || []).length ? (row.pay || []).join("、") : "—",
@@ -511,22 +543,31 @@ function mapVerdStation(row) {
     week: null,
     month: uptime == null ? null : Math.round(Number(uptime)),
     monthLabel: live?.uptime != null ? "探测在线率" : "可用率",
-    monthNote: live?.uptime != null ? "公开探测到的在线率" : "目录记录的在线率",
+    monthNote: row.uptimeNote || (live?.uptime != null ? "公开探测到的在线率" : "目录记录的在线率"),
+    uptimeNote: row.uptimeNote || "",
+    latencyNote: balancedSeconds != null ? "各家中位数，同一家只算一次" : "",
     meanLatency: latencyLabel(latency),
     blurb: row.description || "",
     lineup: lineup ? `支持 ${lineup}` : "",
-    links: row.url ? [{ name: "官网", url: row.url, desc: row.domain || "" }] : [],
-    events: [],
-    announcements: published?.notice ? [{ id: `${row.id}-notice`, title: "公告", content: plainNotice(published.notice), date: "" }] : [],
+    links: [
+      ...(row.url ? [{ name: "官网", url: row.url, desc: row.domain || "" }] : []),
+      ...(Array.isArray(row.links) ? row.links : []),
+    ],
+    events: Array.isArray(row.events) ? row.events : [],
+    announcements: Array.isArray(row.announcements) && row.announcements.length
+      ? row.announcements
+      : (published?.notice ? [{ id: `${row.id}-notice`, title: "公告", content: plainNotice(published.notice), date: "" }] : []),
     models: publishedModels || row.modelRows || [],
     tests: (externalTests[row.domain] || []).map((test, index) => ({
-      id: `h-${row.id}-${index}`,
+      id: test.id || `h-${row.id}-${index}`,
       at: test.at,
       channel: test.channel,
       model: test.model,
       score: test.score,
+      report: test.report || "",
+      suite: test.suite === "basic" ? "basic" : "",
     })),
-    baseUrl: "",
+    baseUrl: row.baseUrl || "",
     windows: null,
     familiesMenu: null,
     labels: null,

@@ -1,5 +1,6 @@
 import { findStation, modelTotal, stationHeading, stationTotal, stations } from "./data.js";
 import modelRows from "./model-rows.json";
+import publishedBasic from "./published-basic.json";
 import { CAT_SEO, CHECK_PAGES, FAMILY_MODEL_IDS, MODEL_SEO, OFFICIAL_SEO, matchesCategory } from "./verd-meta.js";
 
 function clip(value) {
@@ -25,6 +26,10 @@ function describe(pathname) {
   }
   if (pathname.startsWith("/cat/")) return CAT_SEO[pathname.split("/")[2] || ""]?.desc || "这个分类下的 API 中转站。";
   if (pathname.startsWith("/official/")) return OFFICIAL_SEO[pathname.split("/")[2] || ""]?.desc || "官方状态对照。";
+  if (pathname.startsWith("/b/")) {
+    const kept = publishedBasic[pathname.split("/")[2] || ""];
+    if (kept?.host) return clip(`${kept.host} ${kept.model || ""} 基础测试报告。每一项都是这次接口返回，页面里没有密钥。`);
+  }
   if (pathname === "/check" || pathname.startsWith("/check/")) {
     const id = pathname === "/check" ? "" : pathname.split("/")[2] || "";
     return CHECK_PAGES[id]?.desc || CHECK_PAGES[""].desc;
@@ -284,6 +289,20 @@ function pageFor(pathname, community) {
       status: 200,
     };
   }
+  if (path.startsWith("/b/")) {
+    const id = path.slice("/b/".length).split("/")[0] || "";
+    const kept = publishedBasic[id];
+    if (!kept || kept.id !== id) return null;
+    const lines = Array.isArray(kept.rows) ? kept.rows.map((row) => `<li>${esc(row.label || row.id)} ${esc(row.summary || "")}</li>`).join("") : "";
+    return {
+      path,
+      title: brand(`${kept.host || "基础测试"} ${kept.model || ""} 基础测试报告`),
+      description: describe(path),
+      body: `<h1>${esc(kept.host || "")} 基础测试</h1><p>${esc(kept.model || "")}</p><ol>${lines}</ol>`,
+      robots: "noindex,follow",
+      status: 200,
+    };
+  }
   if (path.startsWith("/r/d/")) {
     const id = decodeURIComponent(path.slice("/r/d/".length).split("/")[0] || "");
     let report = null;
@@ -331,6 +350,7 @@ export function snapshotPaths() {
   for (const id of Object.keys(OFFICIAL_SEO)) paths.push(`/official/${id}`);
   for (const id of Object.keys(CHECK_PAGES)) paths.push(id ? `/check/${id}` : "/check");
   for (const station of stations) paths.push(station.path);
+  for (const id of Object.keys(publishedBasic)) paths.push(`/b/${id}`);
   return [...new Set(paths)];
 }
 

@@ -6,6 +6,13 @@
   <description>中转站收录与公开信息更新</description>
   <language>zh-CN</language>
   <item>
+    <title>收录 犀速AI</title>
+    <link>https://www.veridrop.cn/site/900039-xisu-ai</link>
+    <description>犀速AI 用一个接口接入 GPT、Claude、Gemini、Grok，兼容 OpenAI 与 Anthropic 协议，按 token 实际用量计费，充值积分不过期。支持支付宝、微信，页面写着最低 ¥50 起充。价格页标了官方价约 3 折，¥300 档有充 300 赠 300 </description>
+    <guid isPermaLink="false">900039-xisu-ai-2026-10-30</guid>
+    <pubDate>Fri, 30 Oct 2026 00:00:00 GMT</pubDate>
+  </item>
+  <item>
     <title>收录 0DAI 模型站</title>
     <link>https://www.veridrop.cn/site/900019-ai-0d0d-top</link>
     <description>0DAI 模型站把当前可调用的 6 个模型和 OpenAI 兼容示例直接摆在首页：mimo-v2.5、north-mini-code、minimax-m2.7、gpt-oss、deepseek-v4-flash、mimo-auto 都能在控制台建 Key 后接进去。</description>
@@ -277,13 +284,6 @@
     <description>V-API 公益站是我这两天才摸到的新灶——2026年7月3日刚挂牌，公告、logo、后台启动时间三处戳互证，柴火都还没烧热，LinuxDo 上挂的 CDK 兑换码开张当天就被薅空三轮。</description>
     <guid isPermaLink="false">900017-v-api-de5-net-2026-10-15</guid>
     <pubDate>Thu, 15 Oct 2026 00:00:00 GMT</pubDate>
-  </item>
-  <item>
-    <title>收录 EzAPI</title>
-    <link>https://www.veridrop.cn/site/800001-ezapi-site</link>
-    <description>EzAPI，可用 QQ 邮箱注册，按倍率计费。 🎁 新用户赠额：QQ 群 171280617 加群并绑定 QQ，可领 1 美元测试额度。 🤝 邀请返利：对方加群并绑定后，双方各得 1 美元，邀请人另得对方首充的 5%。 💰 低倍率：付费分组里有 0.04 倍率档。 🤖 模</description>
-    <guid isPermaLink="false">800001-ezapi-site-2026-10-10</guid>
-    <pubDate>Sat, 10 Oct 2026 00:00:00 GMT</pubDate>
   </item>
 </channel>
 </rss>

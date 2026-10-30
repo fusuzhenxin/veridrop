@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import { grant } from "./points.js";
 import { renderBasicPoster } from "./poster-canvas.js";
 import { useTitle } from "./ui.jsx";
+import publishedBasic from "./published-basic.json";
 
 const ACTIVE_KEY = "veridrop-basic-active";
 const REPORT_PREFIX = "veridrop-basic-report:";
@@ -71,13 +72,20 @@ function readActive(id) {
   return job;
 }
 
+function publishedReport(id) {
+  const report = publishedBasic?.[id];
+  if (!report || report.id !== id || report.suite !== "basic" || !Array.isArray(report.rows)) return null;
+  return report;
+}
+
 function readSaved(id) {
   try {
     const report = JSON.parse(localStorage.getItem(reportKey(id)) || "null");
-    return report?.id === id ? report : null;
+    if (report?.id === id) return report;
   } catch {
-    return null;
+    /* a broken local copy falls through to the copy kept on the site */
   }
+  return publishedReport(id);
 }
 
 function blankRows() {
@@ -206,7 +214,7 @@ function posterPayload(run, scored, now) {
       word: row.state === "done" ? (basicWord(row) || "—") : "…",
     })),
     time: run.running ? "检测中" : shanghaiClock(run.finishedAt || run.started),
-    url: window.location.href,
+    url: typeof window !== "undefined" && window.location && typeof window.location.href === "string" ? window.location.href : "",
   };
 }
 

@@ -1757,6 +1757,14 @@ function Meter({ value }) {
   );
 }
 
+function radarScale(name, raw) {
+  const value = Number(raw);
+  const missing = raw == null || raw === "" || !Number.isFinite(value);
+  if (name === "纯度") return missing || value <= 0 ? 1 : Math.max(0, Math.min(100, value)) / 100;
+  if (missing) return 1;
+  return Math.max(0, Math.min(100, value)) / 100;
+}
+
 function RadarChart({ dims }) {
   const order = ["纯度", "稳定", "速度", "价格", "模型"];
   const cx = 120;
@@ -1768,7 +1776,7 @@ function RadarChart({ dims }) {
   };
   const ring = (scale) => order.map((_, index) => point(index, scale).join(",")).join(" ");
   const data = order
-    .map((name, index) => point(index, Math.max(0, Math.min(100, Number(dims?.[name]) || 0)) / 100).join(","))
+    .map((name, index) => point(index, radarScale(name, dims?.[name])).join(","))
     .join(" ");
   return (
     <svg className="radar-svg" viewBox="0 0 240 236" role="img" aria-label="综合对比">
@@ -1884,9 +1892,51 @@ function Spark({ points, height = 20, width = 120 }) {
 }
 
 function Purity({ score, service }) {
-  if (score == null || score === "" || Number.isNaN(Number(score))) return <span className="dash">—</span>;
-  if (service && service !== "cc") return <span className="purity">未测</span>;
+  if (service === "basic" || score == null || score === "" || Number.isNaN(Number(score))) return <span className="purity-miss">未测</span>;
+  if (service && service !== "cc") return <span className="purity-miss">未测</span>;
   return <span className="purity">{Number(score) >= 80 ? "签名通过" : "签名未通过"}</span>;
+}
+
+function agoLabel(ms) {
+  const min = Math.max(0, Math.round((Date.now() - ms) / 60000));
+  if (min < 1) return "刚刚";
+  if (min < 60) return `${min}分钟前`;
+  const hour = Math.round(min / 60);
+  if (hour < 24) return `${hour}小时前`;
+  return `${Math.round(hour / 24)}天前`;
+}
+
+function uptimeNumber(uptime) {
+  const number = parseFloat(uptime);
+  return Number.isFinite(number) ? number : null;
+}
+
+function uptimeText(uptime) {
+  const number = uptimeNumber(uptime);
+  if (number == null) return "";
+  return Number.isInteger(number) ? `${number}%` : `${number.toFixed(0)}%`;
+}
+
+function UpRate({ uptime }) {
+  const text = uptimeText(uptime);
+  if (!text) return <span className="dash">—</span>;
+  return <b className="up-rate">{text}</b>;
+}
+
+function UpTrend({ uptime, points }) {
+  const number = uptimeNumber(uptime);
+  if (number == null) return <span className="dash">—</span>;
+  const latest = Array.isArray(points) && points.length ? points[points.length - 1] : null;
+  const when = latest && latest[0] >= 1e9 ? agoLabel(latest[0] * 1000) : "";
+  const color = heatColor(number);
+  return (
+    <div className="up-trend">
+      <div className="up-trend-top">{when ? <span>{when}</span> : <span />}</div>
+      <div className="up-bars" aria-hidden="true">
+        {Array.from({ length: 16 }, (_, index) => <i key={index} style={{ background: color }} />)}
+      </div>
+    </div>
+  );
 }
 
 function blank(value) {
@@ -1954,7 +2004,8 @@ function derivedGroups(models) {
       latencyMs: null,
       latencyText: rows.find((row) => row.latency && row.latency !== "—")?.latency || "—",
       avail: Number.isFinite(avail) ? avail : null,
-      points: Number.isFinite(avail) ? Array.from({ length: 24 }, (_, index) => [index, avail]) : null,
+      points: rows.find((row) => Array.isArray(row.points) && row.points.length)?.points
+        || (Number.isFinite(avail) ? Array.from({ length: 24 }, (_, index) => [index, avail]) : null),
       currency: rows.find((row) => row.currency)?.currency || "",
       models: rows.map((row) => ({ id: row.id, name: row.name, in: row.input, out: row.output, cache: row.cache, currency: row.currency })),
     };
@@ -2317,9 +2368,9 @@ export function StationPage() {
               {summaryOpen ? (
                 <p>
                   {station.name}支持 {familyText || "尚未列明的模型"}{station.cover ? <> 等 <span className="hl">{station.cover} 个模型</span></> : null}。
-                  {station.upShown == null ? "公开页面还没有在线率数字。" : <>在线率记为 <span className="hl">{station.upShown}%</span>。</>}
+                  {station.upShown == null ? "公开页面还没有在线率数字。" : <>在线率记为 <span className="hl">{station.upShown}%</span>{station.uptimeNote ? `（${station.uptimeNote}）` : ""}。</>}
                   {station.speedShown == null ? "" : <>速度指数 <span className="hl">{station.speedShown}</span>。</>}
-                  {station.latency == null ? "" : <>目录里的延迟是 <span className="hl">{station.latency} 秒</span>。</>}
+                  {station.latency == null ? "" : <>{station.latencyNote ? `${station.latencyNote}，` : "目录里的"}延迟是 <span className="hl">{station.latency} 秒</span>。</>}
                   {station.min && station.min !== "—" ? <>最低充值 <span className="hl">{String(station.min).replace(/[￥¥]/g, "").trim()} 元</span>。</> : null}
                   {station.pay.length ? <>支付方式：{station.paymentText}。</> : null}
                   {station.refund && station.refund !== "—" ? <>{refundBrief}。</> : null}
@@ -2407,9 +2458,11 @@ export function StationPage() {
                     <tbody>
                       {shown.map((row) => (
                         <tr key={`${row.group}|${row.id}`}>
-                          <td className="model-name">
-                            <VendorIcon name={FAMILY_VENDOR[familyOf(row)] || vendorOfModel(row.name)} />
-                            <span>{row.name}</span>
+                          <td>
+                            <div className="model-name">
+                              <VendorIcon name={FAMILY_VENDOR[familyOf(row)] || vendorOfModel(row.name)} />
+                              <span>{row.name}</span>
+                            </div>
                           </td>
                           <td>{row.group || "—"}</td>
                           <td>{row.ratio == null ? "—" : `${row.ratio}x`}</td>
@@ -2417,8 +2470,8 @@ export function StationPage() {
                           <td>{cacheText(row)}</td>
                           <td><Purity score={row.score} service={row.service} /></td>
                           <td>{row.latency || "—"}</td>
-                          <td className="strong">{row.uptime || "—"}</td>
-                          <td className="tr"><Spark points={row.points} /></td>
+                          <td className="up-rate-cell"><UpRate uptime={row.uptime} /></td>
+                          <td className="up-cell"><UpTrend uptime={row.uptime} points={row.points} /></td>
                         </tr>
                       ))}
                     </tbody>
@@ -2462,8 +2515,8 @@ export function StationPage() {
                               <td>{group.startPrice == null ? "—" : `${unitOf(group)}${money(group.startPrice)} 起`}</td>
                               <td><Purity score={group.score} service={group.service} /></td>
                               <td>{latency}</td>
-                              <td className="strong">{avail}</td>
-                              <td className="tr" onClick={(event) => event.stopPropagation()}><Spark points={group.points} width={150} /></td>
+                              <td className="up-rate-cell" onClick={(event) => event.stopPropagation()}><UpRate uptime={group.avail == null ? "" : `${group.avail}%`} /></td>
+                              <td className="up-cell" onClick={(event) => event.stopPropagation()}><UpTrend uptime={group.avail == null ? "" : `${group.avail}%`} points={group.points} /></td>
                             </tr>
                             {open ? (
                               <tr key={`${group.name}-open`} className="gm-exp">
@@ -2527,7 +2580,7 @@ export function StationPage() {
                           <td className="th-c-model">{test.model}</td>
                           <td className="th-c-ep">{hostOf(station.baseUrl) || station.host}</td>
                           <td className="tr"><b>{Number(test.score).toFixed(0)}</b></td>
-                          <td className="th-c-rp">{/^https?:/.test(test.report || "") ? null : test.id ? <Link to={`/r/d/${test.id}`} target="_blank" rel="noreferrer">报告 ↗</Link> : null}</td>
+                          <td className="th-c-rp">{/^https?:/.test(test.report || "") ? null : test.id ? <Link to={test.suite === "basic" ? `/b/${test.id}` : `/r/d/${test.id}`} target="_blank" rel="noreferrer">报告 ↗</Link> : null}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -4627,6 +4680,8 @@ export function ReportPage() {
           <tbody>
             {report.results.map((item) => {
               const passed = item.status === "pass";
+              const skipped = item.status === "skip";
+              const warned = item.status === "warn";
               return (
                 <tr key={item.name}>
                   <td>
@@ -4635,7 +4690,7 @@ export function ReportPage() {
                       <span className="dim-link">{item.label}</span>
                     </span>
                   </td>
-                  <td className={passed ? "probe-pass" : "probe-fail"}>{passed ? "通过" : "未通过"}</td>
+                  <td className={passed ? "probe-pass" : skipped || warned ? "" : "probe-fail"}>{skipped ? "未测" : warned ? "留意" : passed ? "通过" : "未通过"}</td>
                   <td><span className={passed ? "score-pill" : "score-pill fail"}>{item.score}</span></td>
                 </tr>
               );
@@ -4650,7 +4705,7 @@ export function ReportPage() {
         </div>
         {report.slug ? <Link to={stationPath(findStation(report.slug) || { slug: report.slug })}>查看完整档案 →</Link> : null}
       </div>
-      <p className="report-note">{report.results?.length ? "这次检测用的是你填写的地址和 Key，结果只留在这台浏览器。" : "这是记在本站的一条检测记录。"}它不是纯度鉴定，也不代表对任何中转站的推荐。请以你自己的使用为准。</p>
+      <p className="report-note">{report.slug ? "这是记在本站的一条基础测试记录。" : "这次检测用的是你填写的地址和 Key，结果只留在这台浏览器。"}它不是纯度鉴定，也不代表对任何中转站的推荐。请以你自己的使用为准。</p>
       {poster ? (
         <div className="th-overlay" onClick={() => setPoster(false)}>
           <div className="poster-dialog" onClick={(event) => event.stopPropagation()}>

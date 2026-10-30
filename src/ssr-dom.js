@@ -63,6 +63,20 @@ if (!globalThis.document) {
   };
 }
 
+if (!globalThis.location || typeof globalThis.location.href !== "string") {
+  globalThis.location = {
+    href: "https://www.veridrop.cn/",
+    origin: "https://www.veridrop.cn",
+    protocol: "https:",
+    host: "www.veridrop.cn",
+    hostname: "www.veridrop.cn",
+    pathname: "/",
+    search: "",
+    hash: "",
+    assign() {},
+    replace() {},
+  };
+}
 if (!globalThis.navigator) globalThis.navigator = { userAgent: "ssr", clipboard: { writeText() { return Promise.resolve(); } } };
 if (!globalThis.matchMedia) globalThis.matchMedia = () => ({ matches: false, addEventListener() {}, removeEventListener() {} });
 if (!globalThis.IntersectionObserver) {

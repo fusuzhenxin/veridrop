@@ -142,8 +142,10 @@ export function useTitle(title, options) {
 }
 
 function purityOf(station) {
-  const value = station.radar ? Number(station.radar["纯度"]) : NaN;
-  return Number.isFinite(value) ? Math.round(value) : "—";
+  const raw = station.radar ? station.radar["纯度"] : null;
+  const value = Number(raw);
+  if (raw == null || raw === "" || !Number.isFinite(value) || value <= 0) return "未测";
+  return Math.round(value);
 }
 
 function IconSearch() {

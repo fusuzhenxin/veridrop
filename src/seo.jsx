@@ -4,6 +4,7 @@ import { findReport, findStation, modelTotal, stationHeading, stationTotal } fro
 import { getOfficialSnapshot } from "./official-store.js";
 import modelRows from "./model-rows.json";
 import { CAT_SEO, CHECK_PAGES, MODEL_SEO, OFFICIAL_SEO } from "./verd-meta.js";
+import publishedBasic from "./published-basic.json";
 
 const ORIGIN = String(import.meta.env.VITE_SITE_ORIGIN || "https://www.veridrop.cn").replace(/\/$/, "");
 
@@ -68,7 +69,12 @@ export function describe(pathname) {
     if (!row) return `${slug} 的中转价格页暂无这份模型记录。可从模型排行按名称查找。`;
     return clip(`${row.title} 中转站排行。按分组对照输入价、输出价、缓存价、在线率和延迟。数字来自各站公开分组，会变动，充值前以对方控制台为准。`);
   }
-  if (pathname.startsWith("/b/")) return "基础测试、糖果测试或鹈鹕骑车的报告。密钥不在链接里，另一台浏览器打不开这份记录。";
+  if (pathname.startsWith("/b/")) {
+    const id = decodeURIComponent(pathname.split("/")[2] || "");
+    const kept = publishedBasic[id];
+    if (kept?.id === id) return clip(`${kept.host || ""} ${kept.model || ""} 的基础测试报告。每一项都是这次接口返回，页面里没有密钥。`);
+    return "基础测试、糖果测试或鹈鹕骑车的报告。密钥不在链接里，另一台浏览器打不开这份记录。";
+  }
   if (pathname.startsWith("/r/d/")) {
     const report = findReport(decodeURIComponent(pathname.split("/")[3] || ""));
     if (!report) return "没有找到这份检测报告快照。它不在本地目录里。";
