@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import modelRows from "./model-rows.json";
-import { models, stationPath, stations } from "./data.js";
+import { models, stationHeading, stationPath, stations } from "./data.js";
 import { useTitle } from "./ui.jsx";
 
 const SORTS = [
@@ -33,6 +33,111 @@ function publicHref(url) {
   } catch {
     return "";
   }
+}
+
+const FAMILY_ID = {
+  Claude: "claude",
+  ChatGPT: "gpt",
+  Gemini: "gemini",
+  Grok: "grok",
+  GLM: "glm",
+  DeepSeek: "deepseek",
+  Kimi: "kimi",
+  千问: "qwen",
+  MiniMax: "minimax",
+  MiMo: "mimo",
+  混元: "hunyuan",
+  Meta: "meta",
+  豆包: "doubao",
+  TypeSafe: "typesafe",
+};
+
+function familyFromSlug(slug) {
+  const text = String(slug || "").toLowerCase();
+  if (/claude|fable|opus|sonnet|haiku/.test(text)) return "claude";
+  if (text.includes("gemini")) return "gemini";
+  if (text.includes("grok")) return "grok";
+  if (/gpt|codex|openai|chatgpt/.test(text)) return "gpt";
+  if (text.includes("deepseek")) return "deepseek";
+  if (/kimi|moonshot/.test(text)) return "kimi";
+  if (/qwen|千问/.test(text)) return "qwen";
+  if (/glm|zhipu|chatglm/.test(text)) return "glm";
+  if (/doubao|豆包/.test(text)) return "doubao";
+  if (/mimo|xiaomi/.test(text)) return "mimo";
+  if (/hunyuan|混元/.test(text)) return "hunyuan";
+  if (text.includes("minimax")) return "minimax";
+  if (/meta|llama/.test(text)) return "meta";
+  return "";
+}
+
+function hostOf(url) {
+  try {
+    return new URL(url).hostname.replace(/^www\./, "").toLowerCase();
+  } catch {
+    return "";
+  }
+}
+
+function sameModel(model, slug) {
+  const id = String(model?.id || "").toLowerCase();
+  const name = String(model?.name || "").toLowerCase();
+  const key = String(slug || "").toLowerCase();
+  if (!key) return false;
+  return id === key || name === key || id.replace(/\./g, "-") === key || name.replace(/\./g, "-") === key;
+}
+
+function groupFrom(model, fallback) {
+  return {
+    name: model?.group || model?.name || fallback || "—",
+    in: numberOrNull(model?.input ?? model?.in),
+    out: numberOrNull(model?.output ?? model?.out),
+    cache: numberOrNull(model?.cache),
+    avail: null,
+    latencyMs: null,
+    points: Array.isArray(model?.points) ? model.points : [],
+  };
+}
+
+function catalogRows(slug, familyId, taken) {
+  if (!familyId) return [];
+  const rows = [];
+  for (const station of stations) {
+    const listed = station.models || [];
+    const exact = listed.filter((model) => sameModel(model, slug));
+    const tagged = (station.modelIds || []).includes(familyId);
+    if (!exact.length && !tagged) continue;
+    const slugKey = station.slug || "";
+    const nameKey = normName(stationHeading(station));
+    const host = hostOf(station.site) || String(station.host || "").replace(/^www\./, "").toLowerCase();
+    if ((slugKey && taken.slugs.has(slugKey)) || (nameKey && taken.names.has(nameKey)) || (host && taken.hosts.has(host))) continue;
+    const familyRows = listed.filter((model) => String(model.id || model.name || "").toLowerCase() === familyId);
+    const chosen = exact.length ? exact : familyRows;
+    const familyLabel = { claude: "Claude", gpt: "GPT", gemini: "Gemini", grok: "Grok", deepseek: "DeepSeek", kimi: "Kimi", qwen: "千问", glm: "GLM", image: "生图" }[familyId] || familyId;
+    const groups = (chosen.length ? chosen : [{ name: familyLabel }]).map((model) => groupFrom(model, familyLabel));
+    groups.sort((left, right) => {
+      if (left.in == null && right.in == null) return 0;
+      if (left.in == null) return 1;
+      if (right.in == null) return -1;
+      return left.in - right.in;
+    });
+    const [main, ...others] = groups;
+    const avail = numberOrNull(station.upShown);
+    const latencyMs = numberOrNull(station.latency) == null ? null : Math.round(Number(station.latency) * 1000);
+    if (main.avail == null) main.avail = avail;
+    if (main.latencyMs == null) main.latencyMs = latencyMs;
+    rows.push({
+      slug: slugKey || host || nameKey,
+      name: stationHeading(station),
+      own: true,
+      usd: chosen.some((model) => model.currency === "USD"),
+      cnDown: Boolean(station.issue) || station.online === false,
+      href: station.site || "",
+      logo: station.img || "",
+      main,
+      others,
+    });
+  }
+  return rows;
 }
 
 const stationBySlug = new Map();
@@ -305,13 +410,23 @@ export function ModelBoard({ slug }) {
   const desc = board?.desc || "";
   const filtered = useMemo(() => {
     const text = query.trim().toLowerCase();
-    const rows = (board?.rows || []).map((item, index) => ({ ...item, order: index })).filter((item) => {
+    const crawled = board?.rows || [];
+    const taken = {
+      slugs: new Set(crawled.map((item) => item.slug).filter(Boolean)),
+      names: new Set(crawled.map((item) => normName(item.name)).filter(Boolean)),
+      hosts: new Set(crawled.map((item) => hostOf(item.href)).filter(Boolean)),
+    };
+    const familyId = FAMILY_ID[row?.family] || familyFromSlug(slug);
+    const rows = [...crawled, ...catalogRows(slug, familyId, taken)].map((item, index) => ({ ...item, order: index })).filter((item) => {
       if (!text) return true;
       const groups = [item.main?.name, ...(item.others || []).map((group) => group.name)].join(" ");
       return `${item.name} ${groups}`.toLowerCase().includes(text);
     });
-    return [...rows].sort((a, b) => compareRows(sort, a, b));
-  }, [board, query, sort]);
+    return [...rows].sort((a, b) => {
+      if (Boolean(a.own) !== Boolean(b.own)) return a.own ? -1 : 1;
+      return compareRows(sort, a, b);
+    });
+  }, [board, query, sort, row, slug]);
   const visible = filtered.slice(0, shown);
   const moreRows = modelRows.filter((item) => {
     const text = moreQuery.trim().toLowerCase();
@@ -475,9 +590,8 @@ export function ModelBoard({ slug }) {
           </tbody>
         </table>
       </div>
-      {board === undefined ? <p className="mini mb-empty">正在读取站点列表。</p> : null}
-      {board && !filtered.length ? <p className="mini mb-empty">没有符合条件的站点。</p> : null}
-      {board === null ? <p className="mini mb-empty">这份快照里没有这款模型的站点列表。</p> : null}
+      {board === undefined && !filtered.length ? <p className="mini mb-empty">正在读取站点列表。</p> : null}
+      {board !== undefined && !filtered.length ? <p className="mini mb-empty">没有符合条件的站点。</p> : null}
       {visible.length < filtered.length ? (
         <div className="pager"><button type="button" className="step" onClick={() => setShown((value) => value + 20)}>加载更多</button></div>
       ) : null}
