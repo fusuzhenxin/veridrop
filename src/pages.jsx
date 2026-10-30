@@ -14,6 +14,7 @@ import {
   perks,
   reviews,
   stationTotal,
+  stationHeading,
   stations,
   headlineModels,
   stationPath,
@@ -807,10 +808,11 @@ function stationSite(item) {
 
 function StationJump({ item }) {
   const href = stationSite(item);
-  if (!href) return <div className="site-name">{item.name}</div>;
+  const label = stationHeading(item);
+  if (!href) return <div className="site-name" title={label}>{label}</div>;
   return (
     <a className="rank-jump" href={href} target="_blank" rel="noreferrer" onClick={(event) => event.stopPropagation()}>
-      <span title={item.name}>{item.name}</span>
+      <span title={label}>{label}</span>
       <svg className="st-arrow" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
         <path d="M7 17 17 7M8 7h9v9" />
       </svg>
@@ -2062,7 +2064,7 @@ export function StationPage() {
   const routeParams = useParams();
   const slug = routeParams.slug || routeParams.token || "";
   const station = findStation(slug);
-  useTitle(station ? `${station.name} 中转站详情｜在线率、延迟、公开价格和评价` : "没有找到这个中转站｜回到排行榜按名称搜索");
+  useTitle(station ? `${stationHeading(station)} 中转站详情｜在线率、延迟、公开价格和评价` : "没有找到这个中转站｜回到排行榜按名称搜索");
   const [part, setPart] = useState("score");
   const [modelOpen, setModelOpen] = useState(() => Boolean(globalThis.__VERD_STATIC__));
   const [summaryOpen, setSummaryOpen] = useState(true);
@@ -2249,12 +2251,12 @@ export function StationPage() {
   };
   return (
     <div className="wrap">
-      <div className="crumb station-crumb">榜单 › {station.name}</div>
+      <div className="crumb station-crumb">榜单 › {stationHeading(station)}</div>
       <div className="layout station-layout">
         <aside className="side station-side">
           <div className="station-logo">
             <Logo station={station} />
-            <div className="nm">{station.name}</div>
+            <div className="nm">{stationHeading(station)}</div>
           </div>
           {SIDE_NAV.map(([id, label]) => (
             <button key={id} className={part === id ? "on" : ""} onClick={() => jump(id)}><NavGlyph id={id} />{label}</button>
@@ -2264,7 +2266,7 @@ export function StationPage() {
           <div className="station-head">
             <div className="station-main">
               <div className="st-title">
-                <h1>{station.name}</h1>
+                <h1>{stationHeading(station)}</h1>
                 {average != null ? (
                   <span className="score-pill"><span className="star">★</span> {average.toFixed(1)} {rated.length}条评价</span>
                 ) : <span className="score-pill">暂无评分</span>}

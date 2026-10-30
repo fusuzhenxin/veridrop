@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, NavLink, useLocation, useNavigate } from "react-router-dom";
-import { activities, findStation, logoUrl, models, perks, reviews, stationTotal, stations } from "./data.js";
+import { activities, findStation, logoUrl, models, perks, reviews, stationHeading, stationTotal, stations } from "./data.js";
 import { clearSession, readAccounts, readAvatar, readSession, writeAvatar, writeSession } from "./account.js";
 import { authToken, loginAccount, pullAccount, registerAccount, requestCode, resetAccount, sendPoints, setAuthToken } from "./community.js";
 import { replacePoints, saveNick } from "./points.js";
@@ -565,7 +565,7 @@ export function Shell({ children }) {
               {hits.map((row, index) => row.kind === "station" ? (
                 <Link key={row.key} to={row.to} className={index === pick ? "cmd-hit on" : "cmd-hit"} onMouseEnter={() => setPick(index)} onClick={() => setSearch(false)}>
                   <span className="cmd-ico"><Logo station={row.item} className="cmd-logo" /></span>
-                  <span className="cmd-main"><b>{row.item.name}</b><small>{row.item.host || row.item.slug}</small></span>
+                  <span className="cmd-main"><b>{stationHeading(row.item)}</b>{row.item.host && stationHeading(row.item) !== row.item.host ? <small>{row.item.host}</small> : null}</span>
                   <span className="cmd-meta"><span>模型 <b>{row.item.cover ?? row.item.modelsHome ?? "—"}</b></span><span>纯度 <b>{purityOf(row.item)}</b></span></span>
                 </Link>
               ) : null)}

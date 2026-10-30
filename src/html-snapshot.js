@@ -1,4 +1,4 @@
-import { findStation, modelTotal, stationTotal, stations } from "./data.js";
+import { findStation, modelTotal, stationHeading, stationTotal, stations } from "./data.js";
 import modelRows from "./model-rows.json";
 import { CAT_SEO, CHECK_PAGES, FAMILY_MODEL_IDS, MODEL_SEO, OFFICIAL_SEO, matchesCategory } from "./verd-meta.js";
 
@@ -18,7 +18,7 @@ function describe(pathname) {
   if (pathname.startsWith("/site/")) {
     const station = findStation(pathname.split("/")[2] || "");
     if (!station) return "没有找到这个中转站。地址可能已变更，可回到排行榜按名称搜索。";
-    const lead = `${station.name} 中转站详情。目录在线率 ${station.uptime ?? "—"}%，平均延迟 ${station.latency ?? "—"} 秒。`;
+    const lead = `${stationHeading(station)} 中转站详情。目录在线率 ${station.uptime ?? "—"}%，平均延迟 ${station.latency ?? "—"} 秒。`;
     const blurb = plain(station.blurb);
     const text = blurb ? `${lead}${blurb}` : lead;
     return text.length <= 150 ? text : clip(lead);
@@ -96,7 +96,7 @@ function money(value, currency) {
 function stationItem(station) {
   const up = station.uptime == null ? "" : `在线率 ${station.uptime}%`;
   const delay = station.latency == null ? "" : `延迟 ${station.latency} 秒`;
-  return `<li><a href="${esc(station.path)}">${esc(station.name)}</a> ${esc([up, delay].filter(Boolean).join("，"))}</li>`;
+  return `<li><a href="${esc(station.path)}">${esc(stationHeading(station))}</a> ${esc([up, delay].filter(Boolean).join("，"))}</li>`;
 }
 
 function modelTable(station) {
@@ -178,7 +178,7 @@ function stationDocument(station, community) {
 <h3>${esc(item.title || "公告")}</h3>
 <p>${esc(plain(item.content))}</p>
 </article>`);
-  return `<h1>${esc(station.name)}</h1>
+  return `<h1>${esc(stationHeading(station))}</h1>
 <p>${esc(rank)}，赞 ${counts.up}，踩 ${counts.down}，${esc(scoreText(station, community))}</p>
 ${station.blurb ? `<p>${esc(plain(station.blurb))}</p>` : ""}
 <h2>基本信息</h2>
@@ -234,7 +234,7 @@ function pageFor(pathname, community) {
     if (!station) return null;
     return {
       path: station.path,
-      title: brand(`${station.name} 中转站详情｜在线率、延迟、公开价格和评价`),
+      title: brand(`${stationHeading(station)} 中转站详情｜在线率、延迟、公开价格和评价`),
       description: describe(station.path),
       body: stationDocument(station, community),
       robots: "index,follow",

@@ -599,7 +599,7 @@ table.rank.home .c-tag { width: 18%; }
 table.rank.home .c-rate { width: 14%; }
 table.rank.home .c-mod { width: 16%; }
 table.rank.home .site-name,
-table.rank.home .rank-jump { max-width: 9em; }
+table.rank.home .rank-jump { max-width: 100%; }
 table.rank.home .site-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 table.rank.home .rank-jump { display: inline-flex; width: fit-content; min-width: 0; padding-right: 14px; vertical-align: bottom; }
 table.rank.home .rank-jump span { display: block; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -872,7 +872,7 @@ table.rank.list tbody tr:hover .slb-mic { border-color: #fafafa; }
 .slb-fav { color: #d4d4d8; padding: 2px; line-height: 0; }
 .slb-fav.on { color: #f0a020; }
 .slb-fav.on svg { fill: currentColor; }
-.rank-jump { position: relative; display: inline-flex; align-items: center; width: fit-content; max-width: 9em; color: inherit; font-weight: 650; font-size: 15px; }
+.rank-jump { position: relative; display: inline-flex; align-items: center; width: fit-content; max-width: 100%; color: inherit; font-weight: 650; font-size: 15px; }
 .rank-jump span { display: block; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .rank-jump .st-arrow { position: absolute; top: 50%; left: 100%; margin: -6px 0 0 3px; opacity: 0; color: #4d7c0f; }
 .rank-jump:hover { color: #4d7c0f; }

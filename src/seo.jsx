@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { useLocation } from "react-router-dom";
-import { findReport, findStation, modelTotal, stationTotal } from "./data.js";
+import { findReport, findStation, modelTotal, stationHeading, stationTotal } from "./data.js";
 import { getOfficialSnapshot } from "./official-store.js";
 import modelRows from "./model-rows.json";
 import { CAT_SEO, CHECK_PAGES, MODEL_SEO, OFFICIAL_SEO } from "./verd-meta.js";
@@ -43,7 +43,7 @@ export function describe(pathname) {
     const key = decodeURIComponent(pathname.split("/")[2] || "");
     const station = findStation(key);
     if (!station) return "没有找到这个中转站。地址可能已变更，可回到排行榜按名称搜索。";
-    const lead = `${station.name} 中转站详情。目录在线率 ${station.uptime ?? "—"}%，平均延迟 ${station.latency ?? "—"} 秒。价格来自公开页面，投票和评价另行标出。不构成充值建议。`;
+    const lead = `${stationHeading(station)} 中转站详情。目录在线率 ${station.uptime ?? "—"}%，平均延迟 ${station.latency ?? "—"} 秒。价格来自公开页面，投票和评价另行标出。不构成充值建议。`;
     const blurb = String(station.blurb || "").replace(/\s+/g, " ").trim();
     const withBlurb = blurb ? `${lead}${blurb}` : lead;
     return withBlurb.length <= 150 ? withBlurb : clip(lead);

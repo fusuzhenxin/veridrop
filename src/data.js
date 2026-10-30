@@ -658,6 +658,22 @@ voteRanked.forEach((station, index) => {
 
 export const stationTotal = stations.length;
 
+const headingCounts = new Map();
+for (const station of stations) {
+  const key = String(station.name || "").trim().toLowerCase();
+  if (key) headingCounts.set(key, (headingCounts.get(key) || 0) + 1);
+}
+
+export function stationHeading(station) {
+  const name = String(station?.name || "").trim();
+  const host = String(station?.host || "").trim();
+  if (!name) return host || "中转站";
+  const labels = new Set(host.toLowerCase().split(".").filter((part) => part && part !== "www"));
+  const shared = (headingCounts.get(name.toLowerCase()) || 0) > 1;
+  if (host && (shared || labels.has(name.toLowerCase()))) return host;
+  return name;
+}
+
 const stationByKey = new Map();
 for (const station of stations) {
   stationByKey.set(station.slug, station);
