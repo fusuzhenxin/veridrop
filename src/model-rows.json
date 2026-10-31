@@ -4,7 +4,7 @@
     "title": "Claude Opus 5.5",
     "icon": "/icons/vendor/claude.svg",
     "family": "Claude",
-    "stations": 55,
+    "stations": 1014,
     "iq": 96,
     "mods": [
       "text",
@@ -28,7 +28,7 @@
     "title": "Claude Fable 5.1",
     "icon": "/icons/vendor/claude.svg",
     "family": "Claude",
-    "stations": 53,
+    "stations": 909,
     "iq": 92,
     "mods": [
       "text",
@@ -52,7 +52,7 @@
     "title": "Claude Sonnet 5.5",
     "icon": "/icons/vendor/claude.svg",
     "family": "Claude",
-    "stations": 49,
+    "stations": 882,
     "iq": 94,
     "mods": [
       "text",
@@ -76,7 +76,7 @@
     "title": "GPT 6 Astra",
     "icon": "/icons/vendor/openai.svg",
     "family": "ChatGPT",
-    "stations": 61,
+    "stations": 1152,
     "iq": 91,
     "mods": [
       "file",
@@ -100,7 +100,7 @@
     "title": "GPT 6.1 Sol",
     "icon": "/icons/vendor/openai.svg",
     "family": "ChatGPT",
-    "stations": 58,
+    "stations": 1070,
     "iq": 81,
     "mods": [
       "file",
@@ -124,7 +124,7 @@
     "title": "Gemini 3.1 Pro",
     "icon": "/icons/vendor/gemini.svg",
     "family": "Gemini",
-    "stations": 23,
+    "stations": 481,
     "iq": null,
     "mods": [
       "audio",
@@ -150,7 +150,7 @@
     "title": "DeepSeek V4.1 Flash",
     "icon": "/icons/vendor/deepseek.svg",
     "family": "DeepSeek",
-    "stations": 27,
+    "stations": 681,
     "iq": null,
     "mods": [
       "text",
@@ -168,7 +168,7 @@
     "title": "Gemini 4 Argon",
     "icon": "/icons/vendor/gemini.svg",
     "family": "Gemini",
-    "stations": 15,
+    "stations": 488,
     "iq": null,
     "mods": [
       "audio",
@@ -194,7 +194,7 @@
     "title": "Claude Haiku 5.5",
     "icon": "/icons/vendor/claude.svg",
     "family": "Claude",
-    "stations": 35,
+    "stations": 612,
     "iq": null,
     "mods": [
       "text",
@@ -218,7 +218,7 @@
     "title": "Gemini Nano Banana 2.1",
     "icon": "/icons/vendor/gemini.svg",
     "family": "Gemini",
-    "stations": 8,
+    "stations": 229,
     "iq": null,
     "mods": [
       "image",
@@ -236,7 +236,7 @@
     "title": "GPT 6 Luna",
     "icon": "/icons/vendor/openai.svg",
     "family": "ChatGPT",
-    "stations": 36,
+    "stations": 677,
     "iq": 92,
     "mods": [
       "file",
@@ -260,7 +260,7 @@
     "title": "GPT 6 Sol",
     "icon": "/icons/vendor/openai.svg",
     "family": "ChatGPT",
-    "stations": 60,
+    "stations": 1071,
     "iq": 90,
     "mods": [
       "file",
@@ -284,7 +284,7 @@
     "title": "Grok 4.7",
     "icon": "/icons/vendor/grok.svg",
     "family": "Grok",
-    "stations": 39,
+    "stations": 660,
     "iq": null,
     "mods": [
       "text",
@@ -308,7 +308,7 @@
     "title": "Mimo V2.6 Flash",
     "icon": "/icons/vendor/xiaomi-mimo.svg",
     "family": "MiMo",
-    "stations": 7,
+    "stations": 145,
     "iq": null,
     "mods": [
       "text",
@@ -328,7 +328,7 @@
     "title": "Mimo V2.6 Pro",
     "icon": "/icons/vendor/xiaomi-mimo.svg",
     "family": "MiMo",
-    "stations": 6,
+    "stations": 143,
     "iq": null,
     "mods": [
       "text",
@@ -348,7 +348,7 @@
     "title": "GLM 5.3 Flashx",
     "icon": "/icons/vendor/zhipu.svg",
     "family": "GLM",
-    "stations": 10,
+    "stations": 160,
     "iq": null,
     "mods": [
       "text",
@@ -367,7 +367,7 @@
     "title": "Jev",
     "icon": "/icons/vendor/typesafe.png",
     "family": "TypeSafe",
-    "stations": 6,
+    "stations": 9,
     "iq": null,
     "mods": [
       "text"
@@ -384,7 +384,7 @@
     "title": "DeepSeek Flash",
     "icon": "/icons/vendor/deepseek.svg",
     "family": "DeepSeek",
-    "stations": 9,
+    "stations": 174,
     "iq": null,
     "mods": [
       "text",
@@ -402,7 +402,7 @@
     "title": "Qwen3.8 Max",
     "icon": "/icons/vendor/qwen.svg",
     "family": "千问",
-    "stations": 15,
+    "stations": 355,
     "iq": null,
     "mods": [
       "text",
@@ -421,7 +421,7 @@
     "title": "Gemini 3.8 Flash",
     "icon": "/icons/vendor/gemini.svg",
     "family": "Gemini",
-    "stations": 27,
+    "stations": 603,
     "iq": 88,
     "mods": [
       "text",
@@ -447,7 +447,7 @@
     "title": "Gemini 3.8 Flash Tiered",
     "icon": "/icons/vendor/gemini.svg",
     "family": "Gemini",
-    "stations": 6,
+    "stations": 68,
     "iq": null,
     "mods": [
       "text",
@@ -468,7 +468,7 @@
     "title": "Muse Spark 1.3",
     "icon": "/icons/vendor/meta.svg",
     "family": "Meta",
-    "stations": 4,
+    "stations": 27,
     "iq": null,
     "mods": [
       "text",
@@ -488,7 +488,7 @@
     "title": "Claude Fable 5.1",
     "icon": "/icons/vendor/claude.svg",
     "family": "Claude",
-    "stations": 8,
+    "stations": 84,
     "iq": null,
     "mods": [
       "text",
@@ -512,7 +512,7 @@
     "title": "Hy4 Preview",
     "icon": "/icons/vendor/hunyuan.svg",
     "family": "混元",
-    "stations": 6,
+    "stations": 108,
     "iq": null,
     "mods": [
       "text"
@@ -529,7 +529,7 @@
     "title": "GLM 5.3 Flash",
     "icon": "/icons/vendor/zhipu.svg",
     "family": "GLM",
-    "stations": 25,
+    "stations": 605,
     "iq": null,
     "mods": [
       "text",
@@ -548,7 +548,7 @@
     "title": "Qwen3.8 Flash",
     "icon": "/icons/vendor/qwen.svg",
     "family": "千问",
-    "stations": 12,
+    "stations": 259,
     "iq": null,
     "mods": [
       "text",
@@ -567,7 +567,7 @@
     "title": "GLM 5.3",
     "icon": "/icons/vendor/zhipu.svg",
     "family": "GLM",
-    "stations": 29,
+    "stations": 644,
     "iq": 89,
     "mods": [
       "text"
@@ -584,7 +584,7 @@
     "title": "Gemini 3.7 Flash",
     "icon": "/icons/vendor/gemini.svg",
     "family": "Gemini",
-    "stations": 22,
+    "stations": 442,
     "iq": null,
     "mods": [
       "text",
@@ -610,7 +610,7 @@
     "title": "Gemini 3.7 Flash Tiered",
     "icon": "/icons/vendor/gemini.svg",
     "family": "Gemini",
-    "stations": 4,
+    "stations": 45,
     "iq": null,
     "mods": [
       "text",
@@ -631,7 +631,7 @@
     "title": "DeepSeek V4 Pro",
     "icon": "/icons/vendor/deepseek.svg",
     "family": "DeepSeek",
-    "stations": 28,
+    "stations": 669,
     "iq": 89,
     "mods": [
       "text"
@@ -653,7 +653,7 @@
     "title": "Grok 4.6",
     "icon": "/icons/vendor/grok.svg",
     "family": "Grok",
-    "stations": 38,
+    "stations": 744,
     "iq": null,
     "mods": [
       "text",
@@ -672,7 +672,7 @@
     "title": "DeepSeek V4 Flash",
     "icon": "/icons/vendor/deepseek.svg",
     "family": "DeepSeek",
-    "stations": 30,
+    "stations": 569,
     "iq": 93,
     "mods": [
       "text"
@@ -694,7 +694,7 @@
     "title": "Claude Opus 5",
     "icon": "/icons/vendor/claude.svg",
     "family": "Claude",
-    "stations": 56,
+    "stations": 1078,
     "iq": 89,
     "mods": [
       "text",
@@ -718,7 +718,7 @@
     "title": "Gemini 3.5 Flash Lite",
     "icon": "/icons/vendor/gemini.svg",
     "family": "Gemini",
-    "stations": 14,
+    "stations": 278,
     "iq": 87,
     "mods": [
       "text",
@@ -744,7 +744,7 @@
     "title": "Gemini 3.6 Flash",
     "icon": "/icons/vendor/gemini.svg",
     "family": "Gemini",
-    "stations": 21,
+    "stations": 432,
     "iq": null,
     "mods": [
       "text",
@@ -770,7 +770,7 @@
     "title": "Gemini 3.6 Flash Tiered",
     "icon": "/icons/vendor/gemini.svg",
     "family": "Gemini",
-    "stations": 4,
+    "stations": 49,
     "iq": null,
     "mods": [
       "text",
@@ -791,7 +791,7 @@
     "title": "Kimi K3",
     "icon": "/icons/vendor/moonshot.svg",
     "family": "Kimi",
-    "stations": 29,
+    "stations": 652,
     "iq": 90,
     "mods": [
       "text",
@@ -810,7 +810,7 @@
     "title": "GPT 5.6",
     "icon": "/icons/vendor/openai.svg",
     "family": "ChatGPT",
-    "stations": 25,
+    "stations": 262,
     "iq": null,
     "mods": [
       "text",
@@ -834,7 +834,7 @@
     "title": "GPT 5.6 Luna",
     "icon": "/icons/vendor/openai.svg",
     "family": "ChatGPT",
-    "stations": 49,
+    "stations": 855,
     "iq": 93,
     "mods": [
       "file",
@@ -858,7 +858,7 @@
     "title": "GPT 5.6 Sol",
     "icon": "/icons/vendor/openai.svg",
     "family": "ChatGPT",
-    "stations": 60,
+    "stations": 1203,
     "iq": 93,
     "mods": [
       "file",
@@ -882,7 +882,7 @@
     "title": "GPT 5.6 Terra",
     "icon": "/icons/vendor/openai.svg",
     "family": "ChatGPT",
-    "stations": 60,
+    "stations": 1148,
     "iq": 89,
     "mods": [
       "file",
@@ -906,7 +906,7 @@
     "title": "Grok 4.5",
     "icon": "/icons/vendor/grok.svg",
     "family": "Grok",
-    "stations": 38,
+    "stations": 722,
     "iq": null,
     "mods": [
       "text",
@@ -925,7 +925,7 @@
     "title": "Hy3",
     "icon": "/icons/vendor/hunyuan.svg",
     "family": "混元",
-    "stations": 8,
+    "stations": 124,
     "iq": null,
     "mods": [
       "text"
@@ -942,7 +942,7 @@
     "title": "Claude Sonnet 5",
     "icon": "/icons/vendor/claude.svg",
     "family": "Claude",
-    "stations": 55,
+    "stations": 1064,
     "iq": 92,
     "mods": [
       "text",
@@ -966,7 +966,7 @@
     "title": "Doubao Seed 2.1 Pro",
     "icon": "/icons/vendor/doubao.svg",
     "family": "豆包",
-    "stations": 3,
+    "stations": 15,
     "iq": null,
     "mods": [
       "text",
@@ -985,7 +985,7 @@
     "title": "Doubao Seed 2.1 Turbo",
     "icon": "/icons/vendor/doubao.svg",
     "family": "豆包",
-    "stations": 3,
+    "stations": 19,
     "iq": null,
     "mods": [
       "text",
@@ -1004,7 +1004,7 @@
     "title": "GLM 5.2",
     "icon": "/icons/vendor/zhipu.svg",
     "family": "GLM",
-    "stations": 26,
+    "stations": 561,
     "iq": null,
     "mods": [
       "text"
@@ -1021,7 +1021,7 @@
     "title": "Kimi K2.7 Code",
     "icon": "/icons/vendor/moonshot.svg",
     "family": "Kimi",
-    "stations": 16,
+    "stations": 332,
     "iq": 86,
     "mods": [
       "text",
@@ -1039,7 +1039,7 @@
     "title": "Claude Fable 5",
     "icon": "/icons/vendor/claude.svg",
     "family": "Claude",
-    "stations": 54,
+    "stations": 1020,
     "iq": null,
     "mods": [
       "text",
@@ -1063,7 +1063,7 @@
     "title": "Qwen3.7 Plus",
     "icon": "/icons/vendor/qwen.svg",
     "family": "千问",
-    "stations": 12,
+    "stations": 182,
     "iq": null,
     "mods": [
       "text",
@@ -1081,7 +1081,7 @@
     "title": "MiniMax M3",
     "icon": "/icons/vendor/minimax.svg",
     "family": "MiniMax",
-    "stations": 16,
+    "stations": 307,
     "iq": null,
     "mods": [
       "text",
@@ -1100,7 +1100,7 @@
     "title": "Claude Opus 4.8",
     "icon": "/icons/vendor/claude.svg",
     "family": "Claude",
-    "stations": 55,
+    "stations": 1102,
     "iq": 78,
     "mods": [
       "text",
@@ -1124,7 +1124,7 @@
     "title": "Claude Opus 4.8",
     "icon": "/icons/vendor/claude.svg",
     "family": "Claude",
-    "stations": 6,
+    "stations": 83,
     "iq": null,
     "mods": [
       "text",
@@ -1143,7 +1143,7 @@
     "title": "Qwen3.7 Max",
     "icon": "/icons/vendor/qwen.svg",
     "family": "千问",
-    "stations": 11,
+    "stations": 265,
     "iq": null,
     "mods": [
       "text"
@@ -1160,7 +1160,7 @@
     "title": "Grok Build",
     "icon": "/icons/vendor/grok.svg",
     "family": "Grok",
-    "stations": 5,
+    "stations": 33,
     "iq": null,
     "mods": [
       "text",
@@ -1179,7 +1179,7 @@
     "title": "Grok Build 0.1",
     "icon": "/icons/vendor/grok.svg",
     "family": "Grok",
-    "stations": 11,
+    "stations": 185,
     "iq": null,
     "mods": [
       "text",
@@ -1198,7 +1198,7 @@
     "title": "Gemini 3.5 Flash",
     "icon": "/icons/vendor/gemini.svg",
     "family": "Gemini",
-    "stations": 25,
+    "stations": 425,
     "iq": null,
     "mods": [
       "text",
@@ -1242,7 +1242,7 @@
     "title": "Grok Composer 2.5 Fast",
     "icon": "/icons/vendor/grok.svg",
     "family": "Grok",
-    "stations": 9,
+    "stations": 90,
     "iq": null,
     "mods": [
       "text",
@@ -1260,7 +1260,7 @@
     "title": "Gemini 3.1 Flash Lite",
     "icon": "/icons/vendor/gemini.svg",
     "family": "Gemini",
-    "stations": 14,
+    "stations": 353,
     "iq": null,
     "mods": [
       "text",
@@ -1286,7 +1286,7 @@
     "title": "Grok 4.3",
     "icon": "/icons/vendor/grok.svg",
     "family": "Grok",
-    "stations": 12,
+    "stations": 235,
     "iq": null,
     "mods": [
       "text",
@@ -1305,7 +1305,7 @@
     "title": "Qwen3.5 Plus",
     "icon": "/icons/vendor/qwen.svg",
     "family": "千问",
-    "stations": 5,
+    "stations": 90,
     "iq": null,
     "mods": [
       "text",
@@ -1324,7 +1324,7 @@
     "title": "GPT 5.5",
     "icon": "/icons/vendor/openai.svg",
     "family": "ChatGPT",
-    "stations": 50,
+    "stations": 810,
     "iq": 82,
     "mods": [
       "file",
@@ -1348,7 +1348,7 @@
     "title": "Mimo V2.5",
     "icon": "/icons/vendor/xiaomi-mimo.svg",
     "family": "MiMo",
-    "stations": 10,
+    "stations": 132,
     "iq": null,
     "mods": [
       "text",
@@ -1368,7 +1368,7 @@
     "title": "Mimo V2.5 Pro",
     "icon": "/icons/vendor/xiaomi-mimo.svg",
     "family": "MiMo",
-    "stations": 10,
+    "stations": 136,
     "iq": null,
     "mods": [
       "text"
@@ -1385,7 +1385,7 @@
     "title": "Kimi K2.6",
     "icon": "/icons/vendor/moonshot.svg",
     "family": "Kimi",
-    "stations": 15,
+    "stations": 314,
     "iq": null,
     "mods": [
       "text",
@@ -1403,7 +1403,7 @@
     "title": "Claude Opus 4.7",
     "icon": "/icons/vendor/claude.svg",
     "family": "Claude",
-    "stations": 54,
+    "stations": 1071,
     "iq": 75,
     "mods": [
       "text",
@@ -1427,7 +1427,7 @@
     "title": "Claude Opus 4.7",
     "icon": "/icons/vendor/claude.svg",
     "family": "Claude",
-    "stations": 6,
+    "stations": 61,
     "iq": null,
     "mods": [
       "text",
@@ -1451,7 +1451,7 @@
     "title": "GLM 5.1",
     "icon": "/icons/vendor/zhipu.svg",
     "family": "GLM",
-    "stations": 14,
+    "stations": 318,
     "iq": null,
     "mods": [
       "text"
@@ -1468,7 +1468,7 @@
     "title": "Qwen3.6 Plus",
     "icon": "/icons/vendor/qwen.svg",
     "family": "千问",
-    "stations": 7,
+    "stations": 123,
     "iq": null,
     "mods": [
       "text",
@@ -1487,7 +1487,7 @@
     "title": "Grok 4.20 0309 Non Reasoning",
     "icon": "/icons/vendor/grok.svg",
     "family": "Grok",
-    "stations": 11,
+    "stations": 146,
     "iq": null,
     "mods": [
       "text",
@@ -1506,7 +1506,7 @@
     "title": "Grok 4.20 0309 Reasoning",
     "icon": "/icons/vendor/grok.svg",
     "family": "Grok",
-    "stations": 11,
+    "stations": 143,
     "iq": null,
     "mods": [
       "text",
@@ -1525,7 +1525,7 @@
     "title": "Grok 4.20 Multi Agent",
     "icon": "/icons/vendor/grok.svg",
     "family": "Grok",
-    "stations": 4,
+    "stations": 25,
     "iq": null,
     "mods": [
       "text",
@@ -1544,7 +1544,7 @@
     "title": "Grok 4.20 Non Reasoning",
     "icon": "/icons/vendor/grok.svg",
     "family": "Grok",
-    "stations": 5,
+    "stations": 34,
     "iq": null,
     "mods": [
       "text",
@@ -1563,7 +1563,7 @@
     "title": "Grok 4.20 Reasoning",
     "icon": "/icons/vendor/grok.svg",
     "family": "Grok",
-    "stations": 5,
+    "stations": 32,
     "iq": null,
     "mods": [
       "text",
@@ -1582,7 +1582,7 @@
     "title": "MiniMax M2.7",
     "icon": "/icons/vendor/minimax.svg",
     "family": "MiniMax",
-    "stations": 11,
+    "stations": 212,
     "iq": null,
     "mods": [
       "text"
@@ -1599,7 +1599,7 @@
     "title": "MiniMax M2.7 Highspeed",
     "icon": "/icons/vendor/minimax.svg",
     "family": "MiniMax",
-    "stations": 5,
+    "stations": 100,
     "iq": null,
     "mods": [
       "text"
@@ -1616,7 +1616,7 @@
     "title": "GPT 5.4 Mini",
     "icon": "/icons/vendor/openai.svg",
     "family": "ChatGPT",
-    "stations": 29,
+    "stations": 459,
     "iq": null,
     "mods": [
       "file",
@@ -1640,7 +1640,7 @@
     "title": "GPT 5.4 Nano",
     "icon": "/icons/vendor/openai.svg",
     "family": "ChatGPT",
-    "stations": 6,
+    "stations": 169,
     "iq": null,
     "mods": [
       "file",
@@ -1659,7 +1659,7 @@
     "title": "GPT 5.4",
     "icon": "/icons/vendor/openai.svg",
     "family": "ChatGPT",
-    "stations": 31,
+    "stations": 558,
     "iq": null,
     "mods": [
       "text",
@@ -1683,7 +1683,7 @@
     "title": "GPT 5.4 Pro",
     "icon": "/icons/vendor/openai.svg",
     "family": "ChatGPT",
-    "stations": 5,
+    "stations": 129,
     "iq": null,
     "mods": [
       "text",
@@ -1707,7 +1707,7 @@
     "title": "Gemini 3.1 Flash Lite Preview",
     "icon": "/icons/vendor/gemini.svg",
     "family": "Gemini",
-    "stations": 8,
+    "stations": 233,
     "iq": null,
     "mods": [
       "text",
@@ -1733,7 +1733,7 @@
     "title": "Gemini 3.1 Pro Preview CustomTools",
     "icon": "/icons/vendor/gemini.svg",
     "family": "Gemini",
-    "stations": 7,
+    "stations": 86,
     "iq": null,
     "mods": [
       "text",
@@ -1759,7 +1759,7 @@
     "title": "Qwen3.5 Flash",
     "icon": "/icons/vendor/qwen.svg",
     "family": "千问",
-    "stations": 4,
+    "stations": 58,
     "iq": null,
     "mods": [
       "text",
@@ -1778,7 +1778,7 @@
     "title": "GPT 5.3 Codex",
     "icon": "/icons/vendor/openai.svg",
     "family": "ChatGPT",
-    "stations": 9,
+    "stations": 249,
     "iq": null,
     "mods": [
       "text",
@@ -1802,7 +1802,7 @@
     "title": "Gemini 3.1 Pro",
     "icon": "/icons/vendor/gemini.svg",
     "family": "Gemini",
-    "stations": 6,
+    "stations": 163,
     "iq": null,
     "mods": [
       "audio",
@@ -1823,7 +1823,7 @@
     "title": "Claude Sonnet 4.6",
     "icon": "/icons/vendor/claude.svg",
     "family": "Claude",
-    "stations": 53,
+    "stations": 1058,
     "iq": 78,
     "mods": [
       "text",
@@ -1847,7 +1847,7 @@
     "title": "Claude Sonnet 4.6",
     "icon": "/icons/vendor/claude.svg",
     "family": "Claude",
-    "stations": 5,
+    "stations": 44,
     "iq": null,
     "mods": [
       "text",
@@ -1866,7 +1866,7 @@
     "title": "MiniMax M2.5",
     "icon": "/icons/vendor/minimax.svg",
     "family": "MiniMax",
-    "stations": 8,
+    "stations": 150,
     "iq": null,
     "mods": [
       "text"
@@ -1883,7 +1883,7 @@
     "title": "GLM 5",
     "icon": "/icons/vendor/zhipu.svg",
     "family": "GLM",
-    "stations": 7,
+    "stations": 135,
     "iq": null,
     "mods": [
       "text"
@@ -1900,7 +1900,7 @@
     "title": "GPT 5.3 Codex Spark",
     "icon": "/icons/vendor/openai.svg",
     "family": "ChatGPT",
-    "stations": 23,
+    "stations": 253,
     "iq": null,
     "mods": [
       "text",
@@ -1924,7 +1924,7 @@
     "title": "Claude Opus 4.6",
     "icon": "/icons/vendor/claude.svg",
     "family": "Claude",
-    "stations": 54,
+    "stations": 1063,
     "iq": 73,
     "mods": [
       "text",
@@ -1948,7 +1948,7 @@
     "title": "Claude Opus 4.6",
     "icon": "/icons/vendor/claude.svg",
     "family": "Claude",
-    "stations": 8,
+    "stations": 73,
     "iq": null,
     "mods": [
       "text",
@@ -1972,7 +1972,7 @@
     "title": "Kimi K2.5",
     "icon": "/icons/vendor/moonshot.svg",
     "family": "Kimi",
-    "stations": 10,
+    "stations": 152,
     "iq": null,
     "mods": [
       "text",
@@ -1990,7 +1990,7 @@
     "title": "GLM 4.7",
     "icon": "/icons/vendor/zhipu.svg",
     "family": "GLM",
-    "stations": 4,
+    "stations": 70,
     "iq": null,
     "mods": [
       "text"
@@ -2007,7 +2007,7 @@
     "title": "Gemini 3 Flash",
     "icon": "/icons/vendor/gemini.svg",
     "family": "Gemini",
-    "stations": 15,
+    "stations": 289,
     "iq": null,
     "mods": [
       "text",
@@ -2033,7 +2033,7 @@
     "title": "Gemini 3 Flash Preview",
     "icon": "/icons/vendor/gemini.svg",
     "family": "Gemini",
-    "stations": 20,
+    "stations": 383,
     "iq": null,
     "mods": [
       "text",
@@ -2059,7 +2059,7 @@
     "title": "GPT 5.2",
     "icon": "/icons/vendor/openai.svg",
     "family": "ChatGPT",
-    "stations": 13,
+    "stations": 288,
     "iq": null,
     "mods": [
       "file",
@@ -2083,7 +2083,7 @@
     "title": "GPT 5.2 Pro",
     "icon": "/icons/vendor/openai.svg",
     "family": "ChatGPT",
-    "stations": 6,
+    "stations": 113,
     "iq": null,
     "mods": [
       "image",
@@ -2107,7 +2107,7 @@
     "title": "Claude Opus 4.5",
     "icon": "/icons/vendor/claude.svg",
     "family": "Claude",
-    "stations": 35,
+    "stations": 344,
     "iq": null,
     "mods": [
       "file",
@@ -2131,7 +2131,7 @@
     "title": "Claude Opus 4.5",
     "icon": "/icons/vendor/claude.svg",
     "family": "Claude",
-    "stations": 5,
+    "stations": 52,
     "iq": null,
     "mods": [
       "file",
@@ -2150,7 +2150,7 @@
     "title": "Gemini 3 Pro Preview",
     "icon": "/icons/vendor/gemini.svg",
     "family": "Gemini",
-    "stations": 16,
+    "stations": 227,
     "iq": null,
     "mods": [
       "text",
@@ -2176,7 +2176,7 @@
     "title": "Claude Haiku 4.5",
     "icon": "/icons/vendor/claude.svg",
     "family": "Claude",
-    "stations": 50,
+    "stations": 539,
     "iq": null,
     "mods": [
       "text",
@@ -2200,7 +2200,7 @@
     "title": "Claude Sonnet 4.5",
     "icon": "/icons/vendor/claude.svg",
     "family": "Claude",
-    "stations": 34,
+    "stations": 362,
     "iq": null,
     "mods": [
       "text",
@@ -2224,7 +2224,7 @@
     "title": "Claude Sonnet 4.5",
     "icon": "/icons/vendor/claude.svg",
     "family": "Claude",
-    "stations": 4,
+    "stations": 57,
     "iq": null,
     "mods": [
       "text",
@@ -2243,7 +2243,7 @@
     "title": "GPT 5",
     "icon": "/icons/vendor/openai.svg",
     "family": "ChatGPT",
-    "stations": 4,
+    "stations": 173,
     "iq": null,
     "mods": [
       "text",
@@ -2267,7 +2267,7 @@
     "title": "Claude Opus 4.1",
     "icon": "/icons/vendor/claude.svg",
     "family": "Claude",
-    "stations": 10,
+    "stations": 41,
     "iq": null,
     "mods": [
       "image",
@@ -2286,7 +2286,7 @@
     "title": "Gemini 2.5 Flash Lite",
     "icon": "/icons/vendor/gemini.svg",
     "family": "Gemini",
-    "stations": 13,
+    "stations": 290,
     "iq": null,
     "mods": [
       "text",
@@ -2312,7 +2312,7 @@
     "title": "Gemini 2.5 Flash",
     "icon": "/icons/vendor/gemini.svg",
     "family": "Gemini",
-    "stations": 18,
+    "stations": 398,
     "iq": null,
     "mods": [
       "file",
@@ -2338,7 +2338,7 @@
     "title": "Gemini 2.5 Pro",
     "icon": "/icons/vendor/gemini.svg",
     "family": "Gemini",
-    "stations": 15,
+    "stations": 281,
     "iq": null,
     "mods": [
       "text",
@@ -2364,7 +2364,7 @@
     "title": "Grok 3 Mini",
     "icon": "/icons/vendor/grok.svg",
     "family": "Grok",
-    "stations": 6,
+    "stations": 50,
     "iq": null,
     "mods": [
       "text"
@@ -2381,7 +2381,7 @@
     "title": "Grok 3 Mini Fast",
     "icon": "/icons/vendor/grok.svg",
     "family": "Grok",
-    "stations": 5,
+    "stations": 32,
     "iq": null,
     "mods": [
       "text"
@@ -2398,7 +2398,7 @@
     "title": "Claude Opus 4",
     "icon": "/icons/vendor/claude.svg",
     "family": "Claude",
-    "stations": 10,
+    "stations": 22,
     "iq": null,
     "mods": [
       "text",
@@ -2417,7 +2417,7 @@
     "title": "Claude Sonnet 4",
     "icon": "/icons/vendor/claude.svg",
     "family": "Claude",
-    "stations": 13,
+    "stations": 73,
     "iq": null,
     "mods": [
       "image",
@@ -2436,7 +2436,7 @@
     "title": "Claude 3.7 Sonnet",
     "icon": "/icons/vendor/claude.svg",
     "family": "Claude",
-    "stations": 7,
+    "stations": 14,
     "iq": null,
     "mods": [
       "text",
@@ -2455,7 +2455,7 @@
     "title": "Gemini 2.0 Flash",
     "icon": "/icons/vendor/gemini.svg",
     "family": "Gemini",
-    "stations": 4,
+    "stations": 40,
     "iq": null,
     "mods": [
       "text",
@@ -2476,7 +2476,7 @@
     "title": "GPT 4o",
     "icon": "/icons/vendor/openai.svg",
     "family": "ChatGPT",
-    "stations": 7,
+    "stations": 217,
     "iq": null,
     "mods": [
       "text",
@@ -2500,7 +2500,7 @@
     "title": "Claude 3.5 Haiku",
     "icon": "/icons/vendor/claude.svg",
     "family": "Claude",
-    "stations": 8,
+    "stations": 14,
     "iq": null,
     "mods": [
       "text",
@@ -2518,7 +2518,7 @@
     "title": "GPT 4o Mini",
     "icon": "/icons/vendor/openai.svg",
     "family": "ChatGPT",
-    "stations": 7,
+    "stations": 203,
     "iq": null,
     "mods": [
       "text",
@@ -2542,7 +2542,7 @@
     "title": "Claude 3.5 Sonnet",
     "icon": "/icons/vendor/claude.svg",
     "family": "Claude",
-    "stations": 8,
+    "stations": 17,
     "iq": null,
     "mods": [
       "text",
@@ -2561,7 +2561,7 @@
     "title": "Claude Haiku 4.5",
     "icon": "/icons/vendor/claude.svg",
     "family": "Claude",
-    "stations": 4,
+    "stations": 76,
     "iq": null,
     "mods": [],
     "priceIn": null,
@@ -2576,7 +2576,7 @@
     "title": "Claude Opus 5.5",
     "icon": "/icons/vendor/claude.svg",
     "family": "Claude",
-    "stations": 4,
+    "stations": 85,
     "iq": null,
     "mods": [],
     "priceIn": null,
@@ -2596,7 +2596,7 @@
     "title": "Codex auto review",
     "icon": "/icons/vendor/openai.svg",
     "family": "ChatGPT",
-    "stations": 5,
+    "stations": 18,
     "iq": null,
     "mods": [],
     "priceIn": null,
@@ -2616,7 +2616,7 @@
     "title": "Gemini 3 Flash Agent",
     "icon": "/icons/vendor/gemini.svg",
     "family": "Gemini",
-    "stations": 4,
+    "stations": 27,
     "iq": null,
     "mods": [],
     "priceIn": null,
@@ -2631,7 +2631,7 @@
     "title": "GPT 6",
     "icon": "/icons/vendor/openai.svg",
     "family": "ChatGPT",
-    "stations": 15,
+    "stations": 112,
     "iq": null,
     "mods": [
       "text",
@@ -2655,7 +2655,7 @@
     "title": "Grok",
     "icon": "/icons/vendor/grok.svg",
     "family": "Grok",
-    "stations": 5,
+    "stations": 182,
     "iq": null,
     "mods": [
       "text",
@@ -2674,7 +2674,7 @@
     "title": "Grok 4.7 Build Fast",
     "icon": "/icons/vendor/grok.svg",
     "family": "Grok",
-    "stations": 8,
+    "stations": 103,
     "iq": null,
     "mods": [
       "text"
@@ -2691,7 +2691,7 @@
     "title": "Grok Composer",
     "icon": "/icons/vendor/grok.svg",
     "family": "Grok",
-    "stations": 5,
+    "stations": 29,
     "iq": null,
     "mods": [
       "text",
