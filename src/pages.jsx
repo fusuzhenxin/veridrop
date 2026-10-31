@@ -2065,7 +2065,7 @@ function apiEndpoints(station) {
     const url = String(link?.url || "");
     if (!url || url === station.site || url === station.baseUrl) continue;
     if (/\/(library|rates|resources|billing|docs|doc)\b|announcement|model-square|price\.newcli|status\./i.test(url)) continue;
-    if (/官网|文档|公告|价格|验模|计费|退款|教程|折算/.test(String(link?.name || ""))) continue;
+    if (/官网|文档|公告|价格|验模|计费|退款|教程|折算|状态/.test(String(link?.name || ""))) continue;
     add(link.name || "API 端点", url, link.desc);
   }
   return items;
