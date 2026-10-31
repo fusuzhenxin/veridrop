@@ -1300,6 +1300,7 @@ function RankCats({ current, onPick }) {
               );
             })}
           </div>
+          {row.label === "类型" ? <Link to="/apply" className="outline rc-apply">申请收录</Link> : null}
         </div>
       ))}
     </div>
@@ -1422,6 +1423,12 @@ export function HomePage() {
                   <path d="M6 19V11M12 19V6M18 19v-6" />
                 </svg>
                 投票可对照
+              </Link>
+              <Link to="/apply">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
+                  <path d="M12 5v14M5 12h14" />
+                </svg>
+                申请收录
               </Link>
             </div>
           </div>

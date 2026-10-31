@@ -564,6 +564,7 @@ h1 .g { color: var(--orange); }
 
 .rank-cats { display: flex; flex-direction: column; gap: 2px; margin: 0 0 14px; }
 .rc-line { display: flex; align-items: center; gap: 6px; min-height: 42px; }
+.rc-apply { margin-left: auto; }
 .rc-lab { width: 40px; flex: none; font-size: 14px; color: var(--muted); }
 .rc-set { display: flex; align-items: center; flex-wrap: wrap; gap: 2px; }
 .rank-cats .chip {
