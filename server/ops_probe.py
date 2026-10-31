@@ -37,7 +37,7 @@ def _error_type(err: Exception) -> str:
     return "connect"
 
 
-def fetch(url: str, method: str = "GET", headers: dict | None = None, body: bytes | None = None, timeout: float = 8, proxy: str = "") -> dict:
+def fetch(url: str, method: str = "GET", headers: dict | None = None, body: bytes | None = None, timeout: float = 8, proxy: str = "", read_limit: int = 200000) -> dict:
     started = time.perf_counter()
     handlers = [_Track()]
     if proxy:
@@ -46,7 +46,7 @@ def fetch(url: str, method: str = "GET", headers: dict | None = None, body: byte
     request = urllib.request.Request(url, data=body, headers=headers or {}, method=method)
     try:
         with opener.open(request, timeout=timeout) as response:
-            payload = response.read(200000)
+            payload = response.read(read_limit)
             return {
                 "ok": 200 <= response.status < 400,
                 "status": response.status,
@@ -56,7 +56,7 @@ def fetch(url: str, method: str = "GET", headers: dict | None = None, body: byte
                 "error_type": "",
             }
     except urllib.error.HTTPError as err:
-        payload = err.read(20000)
+        payload = err.read(min(read_limit, 20000))
         kind = "auth" if err.code in (401, 403) else "http"
         return {
             "ok": False,

@@ -17,8 +17,16 @@
       <a-button :loading="importing" @click="importCatalog">从目录导入</a-button>
       <a-button @click="runDue">跑到期任务</a-button>
     </div>
+    <p class="muted">渠道状态和「打开站点」只跳到对方的公开页面，不改维渡前台。</p>
     <a-table :columns="columns" :data="rows" :loading="loading" :pagination="pager" row-key="id" @page-change="onPage">
-      <template #mode="{ record }">{{ MODE[record.status_mode] || record.status_mode }}</template>
+      <template #mode="{ record }">
+        <div>{{ MODE[record.status_mode] || record.status_mode }}</div>
+        <a v-if="record.plaza_url && record.status_mode !== 'plaza'" :href="record.plaza_url" target="_blank" rel="noopener">模型广场</a>
+      </template>
+      <template #channel="{ record }">
+        <a v-if="record.channel_status_url" :href="record.channel_status_url" target="_blank" rel="noopener">有</a>
+        <span v-else class="muted">{{ record.pages_checked_at ? "无" : "未核" }}</span>
+      </template>
       <template #tier="{ record }">{{ TIER[record.tier] || record.tier }}</template>
       <template #listed="{ record }">
         <a-tag v-if="record.taken_down" color="red">已下架</a-tag>
@@ -31,6 +39,7 @@
         <span v-else class="muted">未测</span>
       </template>
       <template #ops="{ record }">
+        <a-button type="text" :disabled="!record.url" @click="openSite(record)">打开站点</a-button>
         <a-button type="text" @click="router.push('/stations/' + record.id)">编辑</a-button>
         <a-button type="text" :loading="busy === record.id" @click="probe(record)">探测</a-button>
         <a-button type="text" @click="queue(record)">加入下一轮</a-button>
@@ -57,13 +66,14 @@ const columns = [
   { title: "名称", dataIndex: "name", width: 160 },
   { title: "域名", dataIndex: "domain", width: 180 },
   { title: "来源", slotName: "mode", width: 140 },
+  { title: "渠道状态", slotName: "channel", width: 100 },
   { title: "频率", slotName: "tier", width: 140 },
   { title: "收录", slotName: "listed", width: 100 },
   { title: "最近", slotName: "up", width: 90 },
   { title: "模型数", dataIndex: "last_model_count", width: 90 },
   { title: "价格快照", dataIndex: "last_price", width: 120 },
   { title: "Key", dataIndex: "key_hint", width: 90 },
-  { title: "操作", slotName: "ops", width: 320 },
+  { title: "操作", slotName: "ops", width: 390 },
 ];
 
 function params() {
@@ -86,6 +96,10 @@ async function load() {
   } finally {
     loading.value = false;
   }
+}
+
+function openSite(record) {
+  window.open(record.url, "_blank", "noopener");
 }
 
 function search() {

@@ -5,6 +5,7 @@ export const auth = reactive({ me: null, ready: false });
 export const MODE = {
   public: "公开状态页",
   auth: "要登录才看得到",
+  plaza: "模型广场",
   none: "没有状态",
 };
 

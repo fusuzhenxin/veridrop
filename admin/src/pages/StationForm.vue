@@ -22,12 +22,15 @@
             <a-radio-group v-model="form.status_mode">
               <a-radio value="public">公开状态页</a-radio>
               <a-radio value="auth">要登录才看得到</a-radio>
+              <a-radio value="plaza">模型广场</a-radio>
               <a-radio value="none">没有状态</a-radio>
             </a-radio-group>
           </a-form-item>
           <a-form-item v-if="form.status_mode === 'public'" label="状态页地址">
             <a-input v-model="form.status_url" placeholder="留空则用网址下的 /api/status" />
           </a-form-item>
+          <p v-if="form.channel_status_url" class="muted">渠道状态：{{ form.channel_status_url }}</p>
+          <p v-if="form.plaza_url" class="muted">模型广场：{{ form.plaza_url }}</p>
           <p v-if="form.status_mode === 'auth'" class="muted">只在保存了测试 Key 时请求模型和一次便宜调用。不会用账号密码登录对方后台。</p>
           <a-form-item v-if="form.status_mode === 'auth'" label="基础测试模型">
             <a-input v-model="form.test_model" placeholder="留空则用对方模型列表的第一个" />
@@ -131,6 +134,8 @@ const form = reactive({
   url: "",
   status_mode: "none",
   status_url: "",
+  channel_status_url: "",
+  plaza_url: "",
   tier: "longtail",
   test_model: "",
   source_token: "",

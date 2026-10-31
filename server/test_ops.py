@@ -194,6 +194,16 @@ class OpsTest(unittest.TestCase):
         self.assertTrue(any(item["error_type"] == "budget" for item in runs))
         self.client("POST", "/api/settings", {"daily_budget": "5"})
 
+    def test_channel_status_and_plaza_payloads(self):
+        import ops_pages
+
+        channel = b'{"data":{"window_minutes":90,"summary":{"success_rate":96},"groups":[]}}'
+        self.assertTrue(ops_pages.has_channel_status(channel))
+        self.assertFalse(ops_pages.has_channel_status(b'{"success":false}'))
+        pricing = b'{"data":[{"model_name":"gpt-4o"}]}'
+        self.assertTrue(ops_pages.has_model_plaza(pricing))
+        self.assertFalse(ops_pages.has_model_plaza(b'{"data":[]}'))
+
     def test_status_source_uses_known_pages(self):
         public, url = ops_db._classify_status(["https://ezapi.site/api/status"], "auth")
         self.assertEqual(public, "public")

@@ -17,7 +17,7 @@ import ops_crypto
 ROOT = Path(__file__).resolve().parent.parent
 TZ = timezone(timedelta(hours=8))
 LOCK = threading.RLock()
-MODES = {"public", "auth", "none"}
+MODES = {"public", "auth", "none", "plaza"}
 TIERS = {"ad", "featured", "traffic", "longtail"}
 SLOTS = {"sponsor": 2, "list_top": 4, "footer": None}
 SLOT_NAMES = {"sponsor": "全站赞助", "list_top": "列表页顶部", "footer": "全站页脚"}
@@ -269,6 +269,13 @@ def init_schema(conn: sqlite3.Connection) -> None:
     )
     for key, value in DEFAULTS.items():
         conn.execute("INSERT OR IGNORE INTO settings(key, value) VALUES(?, ?)", (key, value))
+    columns = {row["name"] for row in conn.execute("PRAGMA table_info(stations)")}
+    if "channel_status_url" not in columns:
+        conn.execute("ALTER TABLE stations ADD COLUMN channel_status_url TEXT NOT NULL DEFAULT ''")
+    if "plaza_url" not in columns:
+        conn.execute("ALTER TABLE stations ADD COLUMN plaza_url TEXT NOT NULL DEFAULT ''")
+    if "pages_checked_at" not in columns:
+        conn.execute("ALTER TABLE stations ADD COLUMN pages_checked_at TEXT NOT NULL DEFAULT ''")
 
 
 def _tx(fn):
@@ -759,6 +766,28 @@ def import_catalog(conn, path: Path | None = None) -> dict:
         )
         added += 1
     return {"added": added, "skipped": skipped, "updated": updated, "modes": modes}
+
+
+@_tx
+def stations_for_page_scan(conn) -> list[dict]:
+    rows = conn.execute(
+        "SELECT id, url, status_mode, status_url FROM stations WHERE ifnull(pages_checked_at,'')='' ORDER BY id"
+    ).fetchall()
+    return [dict(row) for row in rows]
+
+
+@_tx
+def save_page_notes(conn, station_id: int, channel_url: str, plaza_url: str, mode: str, status_url: str) -> None:
+    if mode not in MODES:
+        raise ValueError("状态来源不对")
+    conn.execute(
+        """
+        UPDATE stations
+        SET channel_status_url=?, plaza_url=?, status_mode=?, status_url=?, pages_checked_at=?, updated_at=?
+        WHERE id=?
+        """,
+        (channel_url[:500], plaza_url[:500], mode, (status_url or "")[:500], now_iso(), now_iso(), station_id),
+    )
 
 
 @_tx
