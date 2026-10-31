@@ -6,7 +6,9 @@
     "dev": "vite",
     "build": "vite build && node scripts/prerender-html.mjs",
     "preview": "vite preview",
-    "serve": "python server/community.py"
+    "serve": "python server/community.py",
+    "ops": "python server/ops_server.py",
+    "ops-ui": "npm run dev --prefix admin"
   },
   "dependencies": {
     "react": "^19.1.0",

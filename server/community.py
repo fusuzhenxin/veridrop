@@ -612,6 +612,44 @@ class Handler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(body)
 
+    def _ops_public(self, path: str) -> None:
+        try:
+            import ops_db
+            body = self._read_json()
+            if path == "/api/collect":
+                if body.get("ad_id"):
+                    ops_db.record_impression(int(body["ad_id"]))
+                else:
+                    ops_db.record_view(str(body.get("path") or "/"), str(body.get("referrer") or ""), self.headers.get("User-Agent") or "")
+                self._send(204, {})
+                return
+            source = str(body.get("source") or "external")
+            if source not in ("main", "external", "replica"):
+                source = "external"
+            saved = ops_db.ingest_submission(source, str(body.get("site_name") or ""), str(body.get("url") or ""), str(body.get("contact") or ""), str(body.get("body") or ""))
+            self._send(200, {"id": saved})
+        except Exception as err:
+            self._send(400, {"error": str(err)})
+
+    def _ops_go(self, path: str) -> None:
+        part = path[len("/go/"):].split("?")[0].strip("/")
+        if not part.isdigit():
+            self._send(404, {"error": "没有这条广告"})
+            return
+        try:
+            import ops_db
+            target = ops_db.record_click(int(part))
+        except Exception:
+            target = None
+        if not target:
+            self._send(404, {"error": "广告不在投放期"})
+            return
+        self.send_response(302)
+        self.send_header("Location", target)
+        self.send_header("Cache-Control", "no-store")
+        self.send_header("Content-Length", "0")
+        self.end_headers()
+
     def _redirect(self, location: str) -> None:
         self.send_response(301)
         self.send_header("Location", location)
@@ -631,6 +669,9 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_GET(self) -> None:
         parsed = urlparse(self.path)
+        if parsed.path.startswith("/go/"):
+            self._ops_go(parsed.path)
+            return
         path = parsed.path.rstrip("/")
         query = parse_qs(parsed.query)
         try:
@@ -686,6 +727,9 @@ class Handler(BaseHTTPRequestHandler):
     def do_POST(self) -> None:
         parsed = urlparse(self.path)
         path = parsed.path.rstrip("/")
+        if path in ("/api/collect", "/api/public/submission"):
+            self._ops_public(path)
+            return
         if path == "/__probe":
             self._probe()
             return
@@ -818,6 +862,11 @@ class Handler(BaseHTTPRequestHandler):
                     profile["submissions"] = profile["submissions"][:50]
                     save_store(store)
                     letter = str(body.get("letter") or "").strip()
+                    try:
+                        import ops_db
+                        ops_db.ingest_submission("main", name, url, user["email"], letter or profile["submissions"][0]["note"], profile["submissions"][0]["id"])
+                    except Exception:
+                        pass
                     if letter:
                         send_mail(
                             os.environ.get("SMTP_USER", ""),

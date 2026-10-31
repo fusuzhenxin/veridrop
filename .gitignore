@@ -22,3 +22,11 @@ data/blurb-sidecar.json
 data/model-list-progress.json
 __pycache__/
 *.pyc
+data/ops.sqlite
+data/ops.sqlite-*
+data/ops-secret.key
+data/admin-bootstrap.txt
+data/ops-snapshot.json
+data/ops-build.log
+admin/dist/
+admin/node_modules/
