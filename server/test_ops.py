@@ -194,6 +194,15 @@ class OpsTest(unittest.TestCase):
         self.assertTrue(any(item["error_type"] == "budget" for item in runs))
         self.client("POST", "/api/settings", {"daily_budget": "5"})
 
+    def test_status_source_uses_known_pages(self):
+        public, url = ops_db._classify_status(["https://ezapi.site/api/status"], "auth")
+        self.assertEqual(public, "public")
+        self.assertEqual(url, "https://ezapi.site/api/status")
+        auth_mode, empty = ops_db._classify_status(["https://ezapi.site/"], "auth")
+        self.assertEqual((auth_mode, empty), ("auth", ""))
+        none_mode, empty = ops_db._classify_status([], "empty")
+        self.assertEqual((none_mode, empty), ("none", ""))
+
     def test_redirect_alert_and_down_age(self):
         status, row = self.client("POST", "/api/stations", {
             "name": "跳转",

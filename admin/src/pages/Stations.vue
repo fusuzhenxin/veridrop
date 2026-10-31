@@ -101,12 +101,13 @@ function onPage(page) {
 function importCatalog() {
   Modal.confirm({
     title: "从现有目录导入？",
-    content: "只补还没有的域名。已导入的站不会被覆盖，也不会立刻全量探测。",
+    content: "只补还没有的域名，不改名称和网址，也不立刻全量探测。原先标成没有状态、但记录里能看出状态来源的，会改成公开状态页或要登录才看得到。",
     onOk: async () => {
       importing.value = true;
       try {
         const result = await api("/api/stations/import", { method: "POST", body: "{}" });
-        Message.success(`新增 ${result.added}，已存在 ${result.skipped}`);
+        const modes = result.modes || {};
+        Message.success(`新增 ${result.added}，补了来源 ${result.updated || 0}。公开状态页 ${modes.public || 0}，要登录 ${modes.auth || 0}，没有状态 ${modes.none || 0}`);
         load();
       } catch (err) {
         Message.error(err.message);

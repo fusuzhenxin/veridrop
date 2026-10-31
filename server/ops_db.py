@@ -655,6 +655,52 @@ def takedown(conn, station_id: int, down: bool) -> dict:
     return _public_station(conn, fresh)
 
 
+def _public_status_url(sources) -> str:
+    for raw in sources or []:
+        text = str(raw or "").strip()
+        if not text:
+            continue
+        parsed = urlparse(text)
+        if parsed.scheme not in ("http", "https") or not parsed.netloc:
+            continue
+        if parsed.path.rstrip("/") == "/api/status":
+            return f"{parsed.scheme}://{parsed.netloc}{parsed.path}"
+    return ""
+
+
+def _classify_status(sources, progress_status: str) -> tuple[str, str]:
+    url = _public_status_url(sources)
+    if url:
+        return "public", url
+    if progress_status == "auth":
+        return "auth", ""
+    return "none", ""
+
+
+def _status_hints() -> dict[str, tuple[str, str]]:
+    web = {}
+    progress = {}
+    web_path = ROOT / "data" / "station-web.json"
+    progress_path = ROOT / "data" / "model-list-progress.json"
+    if web_path.exists():
+        try:
+            web = json.loads(web_path.read_text(encoding="utf-8")).get("checked") or {}
+        except (OSError, json.JSONDecodeError):
+            web = {}
+    if progress_path.exists():
+        try:
+            loaded = json.loads(progress_path.read_text(encoding="utf-8"))
+            progress = loaded if isinstance(loaded, dict) else {}
+        except (OSError, json.JSONDecodeError):
+            progress = {}
+    hints = {}
+    for token in set(web) | set(progress):
+        row = web.get(token) if isinstance(web.get(token), dict) else {}
+        item = progress.get(token) if isinstance(progress.get(token), dict) else {}
+        hints[str(token)] = _classify_status(row.get("sources"), str(item.get("status") or ""))
+    return hints
+
+
 @_tx
 def import_catalog(conn, path: Path | None = None) -> dict:
     file = path or (ROOT / "src" / "verd-index.json")
@@ -663,13 +709,25 @@ def import_catalog(conn, path: Path | None = None) -> dict:
     data = json.loads(file.read_text(encoding="utf-8"))
     added = 0
     skipped = 0
+    updated = 0
+    modes = {"public": 0, "auth": 0, "none": 0}
+    hints = _status_hints()
     current = now_iso()
     for row in data.get("stations") or []:
         domain = _clean_host(str(row.get("domain") or row.get("host") or row.get("url") or ""))
         if not domain:
             continue
-        if conn.execute("SELECT id FROM stations WHERE domain=?", (domain,)).fetchone():
+        mode, status_url = hints.get(str(row.get("token") or ""), ("none", ""))
+        modes[mode] += 1
+        existing = conn.execute("SELECT id, status_mode FROM stations WHERE domain=?", (domain,)).fetchone()
+        if existing:
             skipped += 1
+            if existing["status_mode"] == "none" and mode != "none":
+                conn.execute(
+                    "UPDATE stations SET status_mode=?, status_url=?, updated_at=? WHERE id=?",
+                    (mode, status_url, current, existing["id"]),
+                )
+                updated += 1
             continue
         url = str(row.get("url") or ("https://" + domain))
         try:
@@ -680,14 +738,16 @@ def import_catalog(conn, path: Path | None = None) -> dict:
         conn.execute(
             """
             INSERT INTO stations(
-              name, domain, url, status_mode, listed, tier, enabled, source_token,
+              name, domain, url, status_mode, status_url, listed, tier, enabled, source_token,
               last_up, last_model_count, last_checked_at, created_at, updated_at
-            ) VALUES(?,?,?,'none',1,?,1,?,?,?,?,?,?)
+            ) VALUES(?,?,?,?,?,1,?,1,?,?,?,?,?,?)
             """,
             (
                 str(row.get("name") or domain)[:80],
                 domain,
                 url,
+                mode,
+                status_url,
                 tier,
                 str(row.get("token") or "")[:80],
                 1 if row.get("online") else 0,
@@ -698,7 +758,7 @@ def import_catalog(conn, path: Path | None = None) -> dict:
             ),
         )
         added += 1
-    return {"added": added, "skipped": skipped}
+    return {"added": added, "skipped": skipped, "updated": updated, "modes": modes}
 
 
 @_tx

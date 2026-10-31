@@ -339,7 +339,7 @@ class OpsHandler(BaseHTTPRequestHandler):
     def _start_build(self) -> dict:
         if not BUILD_LOCK.acquire(blocking=False):
             raise RuntimeError("构建还在进行")
-        run_id = ops_db.add_publish("building", "开始构建静态站")
+        run_id = ops_db.add_publish("building", "开始构建静态站，会重写前台 dist")
 
         def work() -> None:
             log = ROOT / "data" / "ops-build.log"
