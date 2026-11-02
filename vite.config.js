@@ -1,4 +1,5 @@
 import fs from "node:fs";
+import { bootFor, readReport, summariesFor } from "./server/basic_report_store.mjs";
 import http from "node:http";
 import path from "node:path";
 import { spawn } from "node:child_process";
@@ -179,7 +180,9 @@ let communityProcess = null;
 
 function ensureCommunity() {
   const socket = net.connect({ host: "127.0.0.1", port: 4175 });
+  socket.unref();
   const giveUp = setTimeout(() => socket.destroy(), 400);
+  giveUp.unref();
   socket.on("connect", () => {
     clearTimeout(giveUp);
     socket.end();
@@ -191,7 +194,9 @@ function ensureCommunity() {
       cwd: fileURLToPath(new URL(".", import.meta.url)),
       stdio: "ignore",
       windowsHide: true,
+      detached: true,
     });
+    communityProcess.unref();
   });
 }
 
@@ -307,17 +312,34 @@ function htmlSnapshot() {
         res.end();
         return;
       }
+      if (path === "/api/basic-reports" || path.startsWith("/api/basic-reports/")) {
+        const id = decodeURIComponent(path.slice("/api/basic-reports/".length).split("/")[0] || "");
+        const url = new URL(req.url || path, "http://127.0.0.1");
+        const payload = id
+          ? (readReport(id) || { error: "没有这份报告" })
+          : { reports: summariesFor(url.searchParams.get("station") || "", url.searchParams.get("host") || "") };
+        const body = JSON.stringify(payload);
+        res.statusCode = id && payload.error ? 404 : 200;
+        res.setHeader("content-type", "application/json; charset=utf-8");
+        res.setHeader("cache-control", "no-store");
+        res.end(body);
+        return;
+      }
       if (path.startsWith("/@") || path.startsWith("/src/") || path.startsWith("/node_modules/") || path.startsWith("/api/")) return next();
       if (/\.[a-zA-Z0-9]+$/.test(path)) return next();
       const accept = req.headers.accept || "";
       if (accept && !accept.includes("text/html") && !accept.includes("*/*")) return next();
       try {
         const mod = await server.ssrLoadModule("/src/html-snapshot.js");
-        const page = mod.renderSnapshot(path, readCommunity());
+        const boot = bootFor(path);
+        const page = mod.renderSnapshot(path, readCommunity(), boot);
         if ((page.status || 200) === 200) {
           try {
             const app = await server.ssrLoadModule("/src/entry-server.jsx");
-            page.markup = app.renderPage(req.url || path);
+            page.markup = app.renderPage(req.url || path, {
+              basicReport: boot.report,
+              basicIndex: boot.index,
+            });
           } catch (error) {
             server.config.logger.error(error);
           }

@@ -6,9 +6,10 @@ import verd from "./verd-index.json";
 import officialBars from "./official-bars.json";
 import voteCounts from "./vote-counts.json";
 import listedDates from "./listed-dates.json";
-import stationPublic from "./station-public.json";
 import externalTests from "./external-tests.json";
 import relayLive from "./relay-live.json";
+import stationDerived from "./station-derived.json";
+import { familyKey } from "./price-summary.js";
 import { CAT_LABEL } from "./verd-meta.js";
 
 export const modelTotal = catalog.modelTotal;
@@ -419,85 +420,32 @@ function plainNotice(value) {
     .trim();
 }
 
-function familyKey(name) {
-  const text = String(name || "").toLowerCase();
-  if (/claude|anthropic/.test(text)) return "claude";
-  if (/gemini/.test(text)) return "gemini";
-  if (/grok/.test(text)) return "grok";
-  if (/deepseek/.test(text)) return "deepseek";
-  if (/glm|chatglm|zhipu/.test(text)) return "glm";
-  if (/kimi|moonshot/.test(text)) return "kimi";
-  if (/qwen|通义|千问/.test(text)) return "qwen";
-  if (/gpt|codex|openai|chatgpt|\bo\d/.test(text)) return "gpt";
-  return "";
-}
-
-function latencySeconds(value) {
-  const text = String(value || "");
-  const seconds = text.match(/(\d+(?:\.\d+)?)\s*s\b/i);
-  if (seconds) return Number(seconds[1]);
-  const millis = text.match(/(\d+(?:\.\d+)?)\s*ms\b/i);
-  if (millis) return Number(millis[1]) / 1000;
-  return null;
-}
-
-function median(values) {
-  const list = values.filter((value) => Number.isFinite(value)).sort((a, b) => a - b);
-  if (!list.length) return null;
-  const mid = Math.floor(list.length / 2);
-  if (list.length % 2) return list[mid];
-  return (list[mid - 1] + list[mid]) / 2;
-}
-
-function familyBalancedSeconds(models) {
-  const groups = new Map();
-  for (const model of models || []) {
-    const seconds = latencySeconds(model.latency);
-    if (seconds == null) continue;
-    const family = familyKey(model.name || model.id);
-    if (!family) continue;
-    if (!groups.has(family)) groups.set(family, []);
-    groups.get(family).push(seconds);
-  }
-  if (groups.size < 2) return null;
-  return median([...groups.values()].map((list) => median(list)));
-}
-
 function mapVerdStation(row) {
-  const published = stationPublic.stations?.[String(row.id)] || null;
-  const publishedModels = published?.models?.length ? published.models : null;
+  const summary = stationDerived[String(row.id)] || null;
   const vendors = [];
-  const sourceIds = publishedModels
-    ? publishedModels.map((model) => familyKey(model.name)).filter(Boolean)
-    : (row.modelIds || []);
+  const sourceIds = summary ? (summary.vendors || []) : (row.modelIds || []);
   for (const id of sourceIds) {
-    const vendor = VENDOR_FROM_MODEL[id] || id;
+    const vendor = summary ? id : (VENDOR_FROM_MODEL[id] || id);
     if (vendor && !vendors.includes(vendor)) vendors.push(vendor);
   }
-  const familyNames = vendors.map((name) => FAMILY_NAME[name === "zhipu" ? "glm" : name] || name).filter(Boolean);
-  const tags = (row.categories || []).map((id) => CAT_LABEL[id]).filter(Boolean).slice(0, 4);
-  const balancedSeconds = familyBalancedSeconds(publishedModels);
-  const ms = balancedSeconds != null ? balancedSeconds * 1000 : (row.avgMs != null ? row.avgMs : row.ms);
+  const tags = (row.categories || []).map((id) => CAT_LABEL[id]).filter(Boolean);
+  const ms = summary && summary.balancedMs != null ? summary.balancedMs : (row.avgMs != null ? row.avgMs : row.ms);
   const votes = catalogVotes(row.id, row);
-  const listedCount = publishedModels
-    ? new Set(publishedModels.map((model) => model.name || model.id).filter(Boolean)).size
-    : 0;
-  const modelCount = Math.max(listedCount, row.modelCount || 0);
+  const modelCount = Math.max(summary ? summary.listedCount || 0 : 0, row.modelCount || 0);
   const directoryLatency = ms == null ? null : Math.round(ms / 100) / 10;
   const live = relayLive[row.domain] || null;
   const latency = live && live.latency != null ? live.latency : directoryLatency;
   const uptime = live && live.uptime != null ? live.uptime : (row.uptime == null ? null : Math.round(row.uptime));
   const measuredSpeed = speedScore(latency);
   const speedShown = Number.isFinite(Number(row.speedScore)) ? Math.round(Number(row.speedScore)) : measuredSpeed;
-  const priced = publishedModels || row.modelRows || [];
   const radar = {
     "纯度": null,
     "稳定": uptime == null ? null : Math.max(0, Math.min(100, Math.round(Number(uptime)))),
     "速度": speedShown == null ? null : speedShown,
-    "价格": priceScore(priced),
+    "价格": summary ? summary.price : priceScore(row.modelRows || []),
     "模型": modelCount > 0 ? modelScore(modelCount) : null,
   };
-  const lineup = publishedModels && familyNames.length ? familyNames.join("、") : (row.modelLabels || "");
+  const lineup = summary?.lineup ? summary.lineup : (row.modelLabels || "");
   return {
     slug: row.token,
     path: `/site/${row.token}`,
@@ -530,7 +478,7 @@ function mapVerdStation(row) {
     speedShown,
     upDelta: null,
     speedDelta: null,
-    socials: [],
+    socials: Array.isArray(row.socials) ? row.socials : [],
     cover: modelCount,
     coverText: row.tag || "",
     familiesText: lineup,
@@ -539,7 +487,7 @@ function mapVerdStation(row) {
     monthLabel: live?.uptime != null ? "探测在线率" : "可用率",
     monthNote: row.uptimeNote || (live?.uptime != null ? "公开探测到的在线率" : "目录记录的在线率"),
     uptimeNote: row.uptimeNote || "",
-    latencyNote: balancedSeconds != null ? "各家中位数，同一家只算一次" : "",
+    latencyNote: summary?.latencyNote || "",
     meanLatency: latencyLabel(latency),
     blurb: row.description || "",
     lineup: lineup ? `支持 ${lineup}` : "",
@@ -548,10 +496,8 @@ function mapVerdStation(row) {
       ...(Array.isArray(row.links) ? row.links : []),
     ],
     events: Array.isArray(row.events) ? row.events : [],
-    announcements: Array.isArray(row.announcements) && row.announcements.length
-      ? row.announcements
-      : (published?.notice ? [{ id: `${row.id}-notice`, title: "公告", content: plainNotice(published.notice), date: "" }] : []),
-    models: publishedModels || row.modelRows || [],
+    announcements: Array.isArray(row.announcements) ? row.announcements : [],
+    models: row.modelRows || [],
     tests: (externalTests[row.domain] || []).map((test, index) => ({
       id: test.id || `h-${row.id}-${index}`,
       at: test.at,
@@ -666,6 +612,45 @@ export function compareStations(a, b, mode = "overall") {
 }
 
 export const stations = [...okkStations, ...(verd.stations || []).map(mapVerdStation)];
+
+const runtimePrices = new Map();
+const fullPrices = new Set();
+
+export function modelsOf(station) {
+  if (!station) return [];
+  const id = station.verdId == null || station.verdId === "" ? "" : String(station.verdId);
+  if (id && runtimePrices.has(id)) return runtimePrices.get(id);
+  return station.models || [];
+}
+
+export function applyStationPrice(station, payload, options = {}) {
+  if (!station || station.verdId == null || station.verdId === "") return;
+  const id = String(station.verdId);
+  const full = Boolean(options.full);
+  if (fullPrices.has(id) && !full) return;
+  const models = Array.isArray(payload) ? payload : (payload?.models || []);
+  runtimePrices.set(id, models);
+  if (full) fullPrices.add(id);
+  const notice = payload && !Array.isArray(payload) ? payload.notice : "";
+  if (full && notice && !(station.announcements || []).length) {
+    station.announcements = [{ id: `${id}-notice`, title: "公告", content: plainNotice(notice), date: "" }];
+  }
+}
+
+export function hasFullStationPrice(station) {
+  const id = station?.verdId == null || station.verdId === "" ? "" : String(station.verdId);
+  return Boolean(id) && fullPrices.has(id);
+}
+
+export function primeAllPrices(book) {
+  const source = book?.stations || {};
+  for (const station of stations) {
+    if (station.verdId == null || station.verdId === "") continue;
+    const published = source[String(station.verdId)];
+    if (!published) continue;
+    applyStationPrice(station, published, { full: true });
+  }
+}
 const commentLifted = new Set();
 const seenLiftHost = new Set();
 stations
@@ -677,12 +662,21 @@ stations
     seenLiftHost.add(host);
     commentLifted.add(station.slug);
   });
-stations.sort(compareStations);
-const xisuPlace = stations.findIndex((station) => station.host === "xisu.ai" || station.slug === "900039-xisu-ai");
-if (xisuPlace >= 0) {
-  const [xisu] = stations.splice(xisuPlace, 1);
-  stations.splice(19, 0, xisu);
+export function pinBoard(list) {
+  const take = (match) => {
+    const index = list.findIndex(match);
+    if (index < 0) return null;
+    return list.splice(index, 1)[0];
+  };
+  const aruhub = take((station) => station.host === "aruhub.com" || station.slug === "1852-aruhub-com" || station.verdId === 1852);
+  const xisu = take((station) => station.host === "xisu.ai" || station.slug === "900039-xisu-ai");
+  if (aruhub) list.splice(Math.min(4, list.length), 0, aruhub);
+  if (xisu) list.splice(Math.min(19, list.length), 0, xisu);
+  return list;
 }
+
+stations.sort(compareStations);
+pinBoard(stations);
 stations.forEach((station, index) => {
   station.place = index + 1;
 });
@@ -733,11 +727,12 @@ export const latestTests = stations.flatMap((station) => {
   if (!best) return [];
   return [{
     station: stationHeading(station),
+    img: station.img || "",
     model: best.test.model || best.test.channel || "测试",
     date: monthDay(best.time),
     at: best.time,
     vendor: vendorFromModel(best.test.model),
-    href: best.test.suite === "basic" && best.test.id ? `/b/${best.test.id}` : station.path,
+    href: best.test.id ? `/b/${best.test.id}` : station.path,
   }];
 }).sort((a, b) => b.at - a.at);
 

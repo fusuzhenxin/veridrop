@@ -1,4 +1,5 @@
-import { findStation, modelTotal, stationHeading, stationTotal, stations } from "./data.js";
+import "./price-prime.js";
+import { findStation, modelTotal, modelsOf, stationHeading, stationTotal, stations } from "./data.js";
 import modelRows from "./model-rows.json";
 import publishedBasic from "./published-basic.json";
 import { CAT_SEO, CHECK_PAGES, FAMILY_MODEL_IDS, MODEL_SEO, OFFICIAL_SEO, matchesCategory } from "./verd-meta.js";
@@ -104,8 +105,31 @@ function stationItem(station) {
   return `<li><a href="${esc(station.path)}">${esc(stationHeading(station))}</a> ${esc([up, delay].filter(Boolean).join("，"))}</li>`;
 }
 
+const historyById = new Map();
+for (const station of stations) {
+  for (const test of station.tests || []) {
+    if (test?.id) historyById.set(test.id, { test, station });
+  }
+}
+
+function historyPage(path, id) {
+  const found = historyById.get(id);
+  if (!found || found.test.suite === "basic") return null;
+  const { test, station } = found;
+  const name = stationHeading(station);
+  const model = test.model || "模型";
+  return {
+    path,
+    title: brand(`${name} ${model} 检测报告`),
+    description: `${name} 的 ${model} 公开榜单分数是 ${test.score}。这是记在本站的总分，没有逐项探针。`,
+    body: `<h1>${esc(name)} ${esc(model)} 检测报告</h1><p>总分 ${esc(test.score)}。时间 ${esc(test.at || "")}。分组 ${esc(test.channel || "")}。</p><p>这是记在本站的公开榜单分数，没有逐项探针。</p><p><a href="${esc(station.path || `/site/${station.slug}`)}">返回${esc(name)}</a></p>`,
+    robots: "noindex,follow",
+    status: 200,
+  };
+}
+
 function modelTable(station) {
-  const rows = station.models || [];
+  const rows = modelsOf(station);
   if (!rows.length) return "<p>这个站点还没有公开的模型价格。</p>";
   const shown = rows.map((row) => {
     const price = row.input == null || row.output == null ? "" : `${money(row.input, row.currency)} / ${money(row.output, row.currency)}`;
@@ -195,7 +219,7 @@ ${notes.length ? notes.join("\n") : "<p>公开页面上没有站点公告。</p>
 ${commentBlock(station, community)}`;
 }
 
-function pageFor(pathname, community) {
+function pageFor(pathname, community, boot = null) {
   const path = decodeURIComponent(String(pathname || "/").split("?")[0]).replace(/\/+$/, "") || "/";
   if (STATIC[path]) {
     const spec = STATIC[path];
@@ -290,14 +314,17 @@ function pageFor(pathname, community) {
     };
   }
   if (path.startsWith("/b/")) {
-    const id = path.slice("/b/".length).split("/")[0] || "";
-    const kept = publishedBasic[id];
-    if (!kept || kept.id !== id) return null;
+    const id = decodeURIComponent(path.slice("/b/".length).split("/")[0] || "");
+    const fromFile = boot?.report?.id === id ? boot.report : null;
+    const kept = publishedBasic[id] || fromFile;
+    if (!kept || kept.id !== id) return historyPage(path, id);
     const lines = Array.isArray(kept.rows) ? kept.rows.map((row) => `<li>${esc(row.label || row.id)} ${esc(row.summary || "")}</li>`).join("") : "";
     return {
       path,
       title: brand(`${kept.host || "基础测试"} ${kept.model || ""} 基础测试报告`),
-      description: describe(path),
+      description: fromFile
+        ? clip(`${fromFile.host || ""} ${fromFile.model || ""} 基础测试报告。每一项都是这次接口返回，页面里没有密钥。`)
+        : describe(path),
       body: `<h1>${esc(kept.host || "")} 基础测试</h1><p>${esc(kept.model || "")}</p><ol>${lines}</ol>`,
       robots: "noindex,follow",
       status: 200,
@@ -327,8 +354,8 @@ function pageFor(pathname, community) {
   return null;
 }
 
-export function renderSnapshot(pathname, community = null) {
-  const page = pageFor(pathname, community);
+export function renderSnapshot(pathname, community = null, boot = null) {
+  const page = pageFor(pathname, community, boot);
   if (!page) {
     return {
       status: 404,
@@ -339,7 +366,8 @@ export function renderSnapshot(pathname, community = null) {
       body: "<h1>页面不存在</h1><p><a href=\"/\">回到首页</a></p>",
     };
   }
-  return { ...page, canonical: `${ORIGIN}${page.path === "/" ? "/" : page.path}` };
+  const basicBoot = boot && (boot.report || (Array.isArray(boot.index) && boot.index.length)) ? boot : null;
+  return { ...page, basicBoot, canonical: `${ORIGIN}${page.path === "/" ? "/" : page.path}` };
 }
 
 export function snapshotPaths() {
@@ -351,6 +379,10 @@ export function snapshotPaths() {
   for (const id of Object.keys(CHECK_PAGES)) paths.push(id ? `/check/${id}` : "/check");
   for (const station of stations) paths.push(station.path);
   for (const id of Object.keys(publishedBasic)) paths.push(`/b/${id}`);
+  for (const [id, found] of historyById) {
+    if (found.test.suite === "basic") continue;
+    paths.push(`/b/${id}`);
+  }
   return [...new Set(paths)];
 }
 
@@ -495,6 +527,13 @@ function pageAssets(template) {
   return { styles: styles.join("\n  "), scripts: [...refresh, ...scripts].join("\n  ") };
 }
 
+function basicBootScript(boot) {
+  if (!boot) return "";
+  const report = boot.report ? JSON.stringify(boot.report).replace(/</g, "\\u003c") : "null";
+  const index = JSON.stringify(boot.index || []).replace(/</g, "\\u003c");
+  return `<script>window.__VD_BASIC_REPORT__=${report};window.__VD_BASIC_INDEX__=${index};</script>`;
+}
+
 export function injectSnapshot(html, page) {
   const assets = pageAssets(html);
   const linked = linkedData(page);
@@ -550,7 +589,9 @@ ${page.body}
       </nav>
     </footer>`}
   </div>
+  ${basicBootScript(page.basicBoot)}
   ${assets.scripts}
+  <script src="/js/visit.js" defer></script>
 </body>
 </html>
 `;

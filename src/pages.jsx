@@ -7,6 +7,7 @@ import {
   findReport,
   latestCodex,
   compareStations,
+  pinBoard,
   findStation,
   iq,
   latestTests,
@@ -32,6 +33,7 @@ import {
   matchesCategory,
 } from "./verd-meta.js";
 import { ModelBoard, ModIcon } from "./model-board.jsx";
+import { useStationModels } from "./prices.js";
 
 import { applyRemoteAccount, fitAvatar, readAvatar, readFavs, readSession, readSubmissions, writeAvatar, writeFavs, writeSession } from "./account.js";
 import { authToken, changePassword, fetchAccount, fetchComments, fetchVotes, saveAvatar, saveFavorite, sendCheckin, sendComment, sendVote, setAuthToken, stationVoteId, updateProfile } from "./community.js";
@@ -986,20 +988,11 @@ function RankTable({ rows, mode }) {
 }
 
 const REC_PICKS = [
+  ["1852-aruhub-com", "aruhub.png", "站长在用", "mine"],
+  ["800003-newapi-gogogogoapp-mom", "gogateway.png", "站长在用", "mine"],
+  ["2825-api-hubway-cc", "hubway.png", "站长在用", "mine"],
   ["3-aicodemirror-ai", "aicodemirror.png", "企业", "biz"],
   ["5-foxcode-rjj-cc", "foxcode.png", "低延迟", "fast"],
-  ["800003-newapi-gogogogoapp-mom", "gogateway.png", "站长在用", "mine"],
-  ["1461-bmapi-020212-xyz", "bm.png", "公益", "ok"],
-  ["1466-api-968api-com", "968.svg", "低倍率", "hot"],
-  ["800001-ezapi-site", "ezapi.jpg", "赠额", "gift"],
-  ["1367-wawazz-xyz", "wawa.png", "发票", "bill"],
-  ["1510-ergouapi-com", "ergou.jpg", "低倍率", "hot"],
-  ["2825-api-hubway-cc", "hubway.png", "站长在用", "mine"],
-  ["1399-mcgrox-top", "mcgrox.png", "公益", "ok"],
-  ["50-anyrouter-top", "anyrouter.png", "公益", "ok"],
-  ["205-deepkey-top", "deepkey.png", "低倍率", "hot"],
-  ["1264-code28-ccwu-cc", "kele.png", "低倍率", "hot"],
-  ["1432-tokenrhythm-studio", "jiyuan.png", "公益", "ok"],
 ];
 
 function recLatency(station) {
@@ -1472,7 +1465,7 @@ export function HomePage() {
           </div>
           {latestTests.slice(0, 3).map((item) => (
             <Link key={`${item.href}|${item.model}|${item.at}`} to={item.href} className="test-row">
-              <Vendor name={item.vendor} />
+              <Logo station={{ img: item.img, name: item.station }} className="logo-img test-logo" />
               <span>{item.station}</span>
               <span className="channel">{item.model}</span>
               <span className="date">{item.date}</span>
@@ -1630,7 +1623,9 @@ export function ListPage({ modelId = "" }) {
       if (invoice === "cond" && !/其他|有条件/.test(String(item.invoice))) return false;
       return true;
     });
-    return [...list].sort((a, b) => compareStations(a, b, sort === "latency" || sort === "uptime" ? sort : "overall"));
+    const sorted = [...list].sort((a, b) => compareStations(a, b, sort === "latency" || sort === "uptime" ? sort : "overall"));
+    const plainBoard = sort !== "latency" && sort !== "uptime" && cat === "all" && !model && !q && pay === "all" && min === "all" && invoice === "all";
+    return plainBoard ? pinBoard(sorted) : sorted;
   }, [q, pay, min, invoice, sort, cat, model]);
   useEffect(() => setPage(1), [q, pay, min, invoice, sort, cat, model]);
 
@@ -2074,6 +2069,35 @@ function apiEndpoints(station) {
   return items;
 }
 
+function serverBasicTest(row) {
+  return {
+    id: row.id,
+    at: row.at,
+    channel: row.channel || "",
+    model: row.model || "",
+    score: row.score,
+    report: "",
+    suite: "basic",
+  };
+}
+
+function serverBasicTests(station) {
+  const rows = globalThis.__VD_BASIC_INDEX__;
+  if (!station || !Array.isArray(rows)) return [];
+  const verd = station.verdId == null ? "" : String(station.verdId);
+  const host = String(station.host || "").replace(/^www\./, "").toLowerCase();
+  return rows.filter((row) => {
+    const rowHost = String(row.host || "").replace(/^www\./, "").toLowerCase();
+    return (verd && String(row.stationId) === verd) || (host && (rowHost === host || rowHost === `api.${host}`));
+  }).map(serverBasicTest);
+}
+
+function mergeBasicTests(current, extra) {
+  const seen = new Set((current || []).map((test) => test.id));
+  const added = (extra || []).filter((test) => test.id && !seen.has(test.id));
+  return [...added, ...(current || [])];
+}
+
 function historyClock(iso) {
   const parts = Object.fromEntries(new Intl.DateTimeFormat("en-GB", {
     timeZone: "Asia/Shanghai",
@@ -2145,6 +2169,7 @@ export function StationPage() {
   const routeParams = useParams();
   const slug = routeParams.slug || routeParams.token || "";
   const station = findStation(slug);
+  const stationModels = useStationModels(station);
   useTitle(station ? `${stationHeading(station)} 中转站详情｜在线率、延迟、公开价格和评价` : "没有找到这个中转站｜回到排行榜按名称搜索");
   const [part, setPart] = useState("score");
   const [modelOpen, setModelOpen] = useState(() => Boolean(globalThis.__VERD_STATIC__));
@@ -2163,9 +2188,24 @@ export function StationPage() {
   const [writing, setWriting] = useState(false);
   const [remoteComments, setRemoteComments] = useState(() => staticComments(station));
   const [liveVote, setLiveVote] = useState(() => staticVote(station));
+  const [serverTests, setServerTests] = useState(() => serverBasicTests(station));
   const voting = useRef(false);
   const voteBoard = useRef(null);
   const [params, setParams] = useSearchParams();
+  useEffect(() => {
+    setServerTests(serverBasicTests(station));
+    if (!station) return undefined;
+    const verd = station.verdId == null ? "" : String(station.verdId);
+    const host = station.host || "";
+    let stop = false;
+    fetch(`/api/basic-reports?station=${encodeURIComponent(verd)}&host=${encodeURIComponent(host)}`)
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (!stop && data && Array.isArray(data.reports)) setServerTests(data.reports.map(serverBasicTest));
+      })
+      .catch(() => {});
+    return () => { stop = true; };
+  }, [slug]);
   useEffect(() => {
     setPart("score");
     setModelOpen(false);
@@ -2228,10 +2268,6 @@ export function StationPage() {
   const shownVotePlace = liveVote?.place || station?.votePlace;
   const castVote = async (side) => {
     if (!station || voting.current) return;
-    if (!authToken()) {
-      window.dispatchEvent(new Event("okk-open-auth"));
-      return;
-    }
     voting.current = true;
     try {
       const result = await sendVote(stationVoteId(station), side);
@@ -2265,7 +2301,7 @@ export function StationPage() {
       </div>
     );
   }
-  const rows = station.models || [];
+  const rows = stationModels;
   const windowKey = params.get("w") === "7d" || params.get("w") === "30d" ? params.get("w") : "24h";
   const view = params.get("view") === "group" ? "group" : "model";
   const sortKey = params.get("sort") === "score" || params.get("sort") === "up" ? params.get("sort") : "price";
@@ -2304,7 +2340,7 @@ export function StationPage() {
     setParams(next, { replace: true });
     setModelOpen(false);
   };
-  const tests = station.tests || [];
+  const tests = mergeBasicTests(station.tests, serverTests);
   const events = station.events || [];
   const eventSize = 8;
   const eventPages = Math.max(1, Math.ceil(events.length / eventSize));
@@ -2362,6 +2398,13 @@ export function StationPage() {
                   <a key={item.name} href={item.url} target="_blank" rel="noreferrer">{item.name}</a>
                 ))}
               </div>
+              {station.tags?.length ? (
+                <div className="slb-tags station-tags">
+                  {station.tags.map((tag) => (
+                    <span key={tag} className={tagTone(tag)}>{tag}</span>
+                  ))}
+                </div>
+              ) : null}
               <p className="blurb">{station.blurb}</p>
             </div>
             <div className="station-actions">
@@ -2494,7 +2537,7 @@ export function StationPage() {
                               <span>{row.name}</span>
                             </div>
                           </td>
-                          <td>{row.group || "—"}</td>
+                          <td title={row.group || ""}>{row.group || "—"}</td>
                           <td>{row.ratio == null ? "—" : `${row.ratio}x`}</td>
                           <td>{ioText(row)}</td>
                           <td>{cacheText(row)}</td>
@@ -2610,7 +2653,7 @@ export function StationPage() {
                           <td className="th-c-model">{test.model}</td>
                           <td className="th-c-ep">{hostOf(station.baseUrl) || station.host}</td>
                           <td className="tr"><b>{Number(test.score).toFixed(0)}</b></td>
-                          <td className="th-c-rp">{/^https?:/.test(test.report || "") ? null : test.id ? <Link to={test.suite === "basic" ? `/b/${test.id}` : `/r/d/${test.id}`} target="_blank" rel="noreferrer">报告 ↗</Link> : null}</td>
+                          <td className="th-c-rp">{test.id ? <Link to={`/b/${test.id}`} target="_blank" rel="noreferrer">报告 ↗</Link> : null}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -3100,11 +3143,6 @@ export function ReputationPage() {
   const visible = ranked.slice(0, shown);
   const cast = async (station, side) => {
     if (voting.current) return;
-    if (!authToken()) {
-      setNote("请先登录再投票");
-      window.dispatchEvent(new Event("okk-open-auth"));
-      return;
-    }
     voting.current = true;
     try {
       const result = await sendVote(stationVoteId(station), side);
@@ -3387,7 +3425,7 @@ export function ActivityPage() {
         )) : <p className="mini">没有符合条件的免费 API。</p>
       ) : (
         promoList.length ? promoList.map((item) => (
-          <article key={item.claimUrl} className="act">
+          <article key={`${item.claimUrl}|${item.station}|${item.activity}`} className="act">
             <div className="act-top promo">
               <div className="act-id">
                 <Logo station={{ img: item.logoUrl, name: item.station }} />
@@ -3760,14 +3798,15 @@ export function HelpPage() {
             <tr><td>输入价、输出价、缓存价</td><td>该站公开的价格接口</td><td>按对方公布的倍率公式换算。没有公开价格，或不是按 token 计价的，价格留空。</td></tr>
             <tr><td>公告</td><td>该站公开的公告接口</td><td>有公告才显示。没有就写公开页面上没有公告。</td></tr>
             <tr><td>最低充值、支付、发票、退款</td><td>目录里已经记下的字段</td><td>目录没有的不补。</td></tr>
-            <tr><td>赞成、反对、点评</td><td>登录账户提交</td><td>记在接口里，其他人打开同一页能看到。</td></tr>
+            <tr><td>赞成、反对</td><td>这台浏览器直接投</td><td>不用登录。每人每站一票，记在接口里，其他人打开同一页能看到。</td></tr>
+            <tr><td>点评</td><td>登录账户提交</td><td>记在接口里，其他人打开同一页能看到。</td></tr>
           </tbody>
         </table>
         <h2 id="blank">留空的字段</h2>
         <p>纯度、单个模型的延迟和单个模型的在线率，本站没有做这套探测，详情页对应格子是空的。浏览器里的基础测试、糖果测试和鹈鹕骑车，用的是你自己的接口地址和 Key，结果只留在这台浏览器，不会写成站内的纯度分。</p>
         <h2 id="scoring">评分说明</h2>
         <p>有人投票时，星级等于赞成除以赞成加反对，再乘以 5。评价条数等于赞成加反对。没有投票、但目录里原来有评价时，沿用那些评价的星级。投票和评价都没有，就显示暂无评分。</p>
-        <p>站点排行把原来的站和后收录的站放在一起。访问异常的排在最后。评论平均分达到 4 星、并且至少 2 条评论的站，最多提拔 8 家排到最前面，按星级和评论条数排列。没有评论的仍按原来的规则：没有在线率数字的排在有数字的后面、异常站前面。在线率按档排：99%–100% 一档，95%–98% 一档，90%–94% 一档，90% 以下一档。同一档里延迟也按档排：1 秒内、1–3 秒、3 秒以上，没有延迟数字的靠后。再往下，公开了模型的排在没有模型的前面；有评论但没达到提拔线的，按评论星级，高的在前。投票不参与这个名次。点「在线率」或「平均延迟」时，按该数字本身排。赞成和反对每人每站一票，再点一次同一边就是取消。</p>
+        <p>站点排行把原来的站和后收录的站放在一起。访问异常的排在最后。评论平均分达到 4 星、并且至少 2 条评论的站，最多提拔 8 家排到最前面，按星级和评论条数排列。没有评论的仍按原来的规则：没有在线率数字的排在有数字的后面、异常站前面。在线率按档排：99%–100% 一档，95%–98% 一档，90%–94% 一档，90% 以下一档。同一档里延迟也按档排：1 秒内、1–3 秒、3 秒以上，没有延迟数字的靠后。再往下，公开了模型的排在没有模型的前面；有评论但没达到提拔线的，按评论星级，高的在前。投票不参与这个名次。点「在线率」或「平均延迟」时，按该数字本身排。赞成和反对不用登录，这台浏览器每人每站一票，再点一次同一边就是取消。登录后投票会计入积分。</p>
       </article>
     </div>
   );
@@ -3798,8 +3837,8 @@ export function AboutPage() {
           </div>
           <div className="row">
             <span className="sq">✈</span>
-            <div><div className="em">Telegram</div><div className="id">@alexnsss</div></div>
-            <a className="mini-btn" href="https://t.me/alexnsss" target="_blank" rel="noreferrer">打开 ↗</a>
+            <div><div className="em">Telegram</div><div className="id">@asAnnie1</div></div>
+            <a className="mini-btn" href="https://t.me/asAnnie1" target="_blank" rel="noreferrer">打开 ↗</a>
           </div>
           {copied ? <div className="toast">已复制</div> : null}
         </div>
@@ -3885,6 +3924,7 @@ export function TermsPage() {
 const DAILY = [
   ["checkin", "每日签到", "登录后每天签到一次，记在账户里", "3~5", "去完成"],
   ["detect", "每日检测", "在首页发起一次基础测试", "3", "去完成"],
+  ["sponsor", "点击赞助商", "点开任意一个赞助商，每天一次", "5", "去完成"],
 ];
 const ADVANCED = [
   ["like", "投票", "在投票页给一家中转站投赞成或反对", "2", "去完成"],
@@ -3900,6 +3940,7 @@ const BASIC = [
 const TRACKED = [
   ["checkin", "day"],
   ["detect", "day"],
+  ["sponsor", "day"],
   ["like", "day"],
   ["review", "day"],
   ["profile", "once"],
@@ -3946,6 +3987,14 @@ function TaskIcon({ id }) {
       <svg {...props}>
         <rect x="3" y="4" width="18" height="12" rx="2" />
         <path d="M8 20h8M12 16v4" />
+      </svg>
+    );
+  }
+  if (id === "sponsor") {
+    return (
+      <svg {...props}>
+        <path d="M4 8h16v9H4z" />
+        <path d="M8 8V6.5A2.5 2.5 0 0 1 10.5 4h3A2.5 2.5 0 0 1 16 6.5V8" />
       </svg>
     );
   }
@@ -4101,6 +4150,7 @@ export function PointsPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const [state, setState] = useState(() => readPoints());
+  const [signedIn, setSignedIn] = useState(() => Boolean(authToken()));
   const [tab, setTab] = useState("tasks");
   const [redeem, setRedeem] = useState("open");
   const [ledgerTab, setLedgerTab] = useState("flow");
@@ -4115,6 +4165,7 @@ export function PointsPage() {
   useEffect(() => {
     const sync = () => {
       setState(readPoints());
+      setSignedIn(Boolean(authToken()));
       setName(localStorage.getItem("okk-user") || "");
     };
     window.addEventListener("okk-points", sync);
@@ -4130,7 +4181,10 @@ export function PointsPage() {
   }, [location.hash]);
 
   useEffect(() => {
-    const sync = () => setState(readPoints());
+    const sync = () => {
+      setState(readPoints());
+      setSignedIn(Boolean(authToken()));
+    };
     window.addEventListener("okk-account", sync);
     return () => window.removeEventListener("okk-account", sync);
   }, []);
@@ -4152,7 +4206,9 @@ export function PointsPage() {
     return undefined;
   }, [editing]);
 
-  const doneCount = TRACKED.filter(([id, scope]) => isDone(id, scope)).length;
+  const doneCount = signedIn ? TRACKED.filter(([id, scope]) => isDone(id, scope)).length : 0;
+  const balance = signedIn ? state.balance : 0;
+  const ledger = signedIn ? state.ledger : [];
 
   function go(id) {
     if (id === "checkin") {
@@ -4177,6 +4233,15 @@ export function PointsPage() {
     }
     if (id === "detect" || id === "first-detect") {
       navigate("/");
+      return;
+    }
+    if (id === "sponsor") {
+      if (!authToken()) {
+        setNote("请先登录，再点赞助商领积分");
+        window.dispatchEvent(new Event("okk-open-auth"));
+        return;
+      }
+      navigate("/list");
       return;
     }
     if (id === "like" || id === "review") {
@@ -4214,8 +4279,8 @@ export function PointsPage() {
     return (
       <div className="pgrid">
         {items.map(([id, title, desc, pts, action]) => {
-          const daily = id === "checkin" || id === "detect" || id === "like" || id === "review";
-          const finished = id !== "community" && id !== "invite" && id !== "profile" && isDone(id, daily ? "day" : "once");
+          const daily = id === "checkin" || id === "detect" || id === "like" || id === "review" || id === "sponsor";
+          const finished = signedIn && id !== "community" && id !== "invite" && id !== "profile" && isDone(id, daily ? "day" : "once");
           const quiet = id === "community" || finished;
           const open = id === "profile" && editing;
           return (
@@ -4303,7 +4368,7 @@ export function PointsPage() {
         <div className="pts-stats">
           <div className="pts-stat">
             <div className="k">当前积分</div>
-            <div className="v olive">{state.balance}</div>
+            <div className="v olive">{balance}</div>
           </div>
           <i className="pts-split" aria-hidden="true" />
           <div className="pts-stat">
@@ -4372,8 +4437,8 @@ export function PointsPage() {
             <button className={`shop-fch${ledgerTab === "flow" ? " on" : ""}`} onClick={() => setLedgerTab("flow")}>积分流水</button>
             <button className={`shop-fch${ledgerTab === "mine" ? " on" : ""}`} onClick={() => setLedgerTab("mine")}>我的兑换</button>
           </div>
-          {ledgerTab === "flow" && state.ledger.length ? (
-            state.ledger.map((item, index) => (
+          {ledgerTab === "flow" && ledger.length ? (
+            ledger.map((item, index) => (
               <div key={item.at + index} className="plog">
                 <div className="pl-date">{new Intl.DateTimeFormat("zh-CN", { timeZone: "Asia/Shanghai", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hour12: false }).format(new Date(item.at)).replace(/\//g, "-")}</div>
                 <div className="pl-reason">{item.reason}</div>
@@ -4735,7 +4800,7 @@ export function ReportPage() {
         </div>
         {report.slug ? <Link to={stationPath(findStation(report.slug) || { slug: report.slug })}>查看完整档案 →</Link> : null}
       </div>
-      <p className="report-note">{report.slug ? "这是记在本站的一条基础测试记录。" : "这次检测用的是你填写的地址和 Key，结果只留在这台浏览器。"}它不是纯度鉴定，也不代表对任何中转站的推荐。请以你自己的使用为准。</p>
+      <p className="report-note">{report.results?.length ? "这是记在本站的一条基础测试记录。" : "这是记在本站的一条公开榜单分数，只有总分、时间和模型。"}它不是纯度鉴定，也不代表对任何中转站的推荐。请以你自己的使用为准。</p>
       {poster ? (
         <div className="th-overlay" onClick={() => setPoster(false)}>
           <div className="poster-dialog" onClick={(event) => event.stopPropagation()}>

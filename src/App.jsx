@@ -1,5 +1,5 @@
 import { Navigate, Route, Routes, useParams } from "react-router-dom";
-import { findStation } from "./data.js";
+import { findStation, stations } from "./data.js";
 import { Shell } from "./ui.jsx";
 import {
   AboutPage,
@@ -32,6 +32,31 @@ function LegacyStationRedirect() {
   return <Navigate to={station?.path || `/site/${slug}`} replace />;
 }
 
+function storedScore(id) {
+  const key = String(id || "");
+  if (!key) return false;
+  return stations.some((station) => (station.tests || []).some((test) => test.id === key && test.suite !== "basic"));
+}
+
+function StoredRunPage() {
+  const { id } = useParams();
+  const text = String(id || "");
+  if (storedScore(text)) return <ReportPage />;
+  if (text.startsWith("basic-") || text.startsWith("all-") || text.startsWith("candy-") || text.startsWith("pelican-")) return <BasicRunPage />;
+  return <ReportPage />;
+}
+
+function LegacyDetectRedirect() {
+  const { id } = useParams();
+  if (storedScore(id)) return <Navigate to={`/b/${id}`} replace />;
+  return <DetectRunPage />;
+}
+
+function LegacyReportRedirect() {
+  const { id } = useParams();
+  return <Navigate to={`/b/${id || ""}`} replace />;
+}
+
 export default function App() {
   return (
     <Shell>
@@ -45,9 +70,9 @@ export default function App() {
         <Route path="/official/:provider" element={<OfficialPage />} />
         <Route path="/check/:kind?" element={<CheckPage />} />
         <Route path="/apply" element={<ApplyPage />} />
-        <Route path="/r/d/:id" element={<ReportPage />} />
-        <Route path="/r/:id" element={<DetectRunPage />} />
-        <Route path="/b/:id" element={<BasicRunPage />} />
+        <Route path="/r/d/:id" element={<LegacyReportRedirect />} />
+        <Route path="/r/:id" element={<LegacyDetectRedirect />} />
+        <Route path="/b/:id" element={<StoredRunPage />} />
         <Route path="/tools/iq" element={<IqPage />} />
         <Route path="/tools/codex-resets" element={<CodexPage />} />
         <Route path="/tools/api-speed" element={<SpeedPage />} />

@@ -56,7 +56,10 @@ def fetch(url: str, method: str = "GET", headers: dict | None = None, body: byte
                 "error_type": "",
             }
     except urllib.error.HTTPError as err:
-        payload = err.read(min(read_limit, 20000))
+        try:
+            payload = err.read(min(read_limit, 20000))
+        except Exception:
+            payload = b""
         kind = "auth" if err.code in (401, 403) else "http"
         return {
             "ok": False,

@@ -4,12 +4,15 @@ import { BrowserRouter } from "react-router-dom";
 import App from "./App.jsx";
 import "./styles.css";
 import { Seo } from "./seo.jsx";
+import { preloadRoutePrices } from "./prices.js";
 
-createRoot(document.getElementById("root")).render(
-  <StrictMode>
-    <BrowserRouter>
-      <Seo />
-      <App />
-    </BrowserRouter>
-  </StrictMode>,
-);
+preloadRoutePrices(window.location.pathname).finally(() => {
+  createRoot(document.getElementById("root")).render(
+    <StrictMode>
+      <BrowserRouter>
+        <Seo />
+        <App />
+      </BrowserRouter>
+    </StrictMode>,
+  );
+});

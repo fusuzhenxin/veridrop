@@ -7,6 +7,30 @@ export function authToken() {
   return localStorage.getItem(TOKEN) || "";
 }
 
+export function voterId() {
+  const key = "veridrop-voter";
+  try {
+    const existing = localStorage.getItem(key) || "";
+    if (/^[a-z0-9]{16,48}$/.test(existing)) return existing;
+    const bytes = new Uint8Array(18);
+    crypto.getRandomValues(bytes);
+    const alphabet = "abcdefghijklmnopqrstuvwxyz0123456789";
+    let id = "";
+    for (let i = 0; i < bytes.length; i += 1) id += alphabet[bytes[i] % alphabet.length];
+    localStorage.setItem(key, id);
+    return id;
+  } catch {
+    return "";
+  }
+}
+
+function voterHeaders(extra = {}) {
+  const headers = { ...extra };
+  const id = voterId();
+  if (id) headers["X-Voter"] = id;
+  return headers;
+}
+
 export function setAuthToken(token) {
   if (token) localStorage.setItem(TOKEN, token);
   else localStorage.removeItem(TOKEN);
@@ -99,13 +123,13 @@ export function stationVoteId(station) {
 }
 
 export function fetchVotes() {
-  return api("/api/votes");
+  return api("/api/votes", { headers: voterHeaders() });
 }
 
 export function sendVote(id, dir) {
   return api("/api/votes", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: voterHeaders({ "Content-Type": "application/json" }),
     body: JSON.stringify({ id, dir }),
   });
 }

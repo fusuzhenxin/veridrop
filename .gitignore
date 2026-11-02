@@ -1,6 +1,7 @@
 node_modules/
 .env
 dist/
+public/prices/
 .vite/
 *.local
 tmp-*
@@ -27,6 +28,8 @@ data/ops.sqlite-*
 data/ops-secret.key
 data/admin-bootstrap.txt
 data/ops-snapshot.json
+data/basic-daily.json
+data/basic-reports/*.json
 data/ops-build.log
 admin/dist/
 admin/node_modules/

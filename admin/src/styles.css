@@ -113,3 +113,7 @@ body,
   font-size: 24px;
   font-weight: 600;
 }
+
+.page-links a {
+  margin-right: 8px;
+}

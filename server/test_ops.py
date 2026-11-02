@@ -204,6 +204,102 @@ class OpsTest(unittest.TestCase):
         self.assertTrue(ops_pages.has_model_plaza(pricing))
         self.assertFalse(ops_pages.has_model_plaza(b'{"data":[]}'))
 
+    def test_site_settings_name_their_own_pages(self):
+        import ops_pages
+
+        data = {
+            "model_plaza_enabled": True,
+            "model_plaza_require_auth": False,
+            "channel_monitor_enabled": True,
+            "public_transit_page_enabled": True,
+        }
+        snapshot = {
+            "groups": [{"name": "default"}],
+            "monitoring": [{"name": "claude"}],
+            "station": {
+                "monitor_url": "https://wawazz.xyz/public/transit?view=monitoring",
+                "price_url": "https://wawazz.xyz/public/transit",
+            },
+        }
+        found = ops_pages.classify_settings("https://wawazz.xyz", data, snapshot, "none")
+        self.assertEqual(found["mode"], "public")
+        self.assertEqual(found["service_status_url"], "https://wawazz.xyz/public/transit?view=monitoring")
+        self.assertEqual(found["plaza_url"], "https://wawazz.xyz/model-plaza")
+        self.assertEqual(found["channel_status_url"], "https://wawazz.xyz/monitor")
+        self.assertEqual(found["status_url"], "https://wawazz.xyz/api/public/transit/v1/snapshot")
+        self.assertIn("服务状态", found["note"])
+        self.assertIn("模型广场", found["note"])
+        self.assertIn("渠道状态要登录", found["note"])
+        off = ops_pages.classify_settings(
+            "https://sparkapi.top",
+            {"model_plaza_enabled": False, "channel_monitor_enabled": False, "public_transit_page_enabled": False},
+            None,
+            "none",
+        )
+        self.assertEqual(off["mode"], "none")
+        self.assertIn("没开", off["note"])
+        login = ops_pages.classify_settings(
+            "https://api.9ksj.com",
+            {"model_plaza_enabled": True, "model_plaza_require_auth": True, "channel_monitor_enabled": False},
+            None,
+            "none",
+        )
+        self.assertEqual(login["mode"], "auth")
+        self.assertIn("要登录", login["note"])
+
+    def test_page_text_uses_the_sites_own_links(self):
+        import ops_pages
+
+        html = """
+        <html><head><script src="/assets/index-abc.js"></script></head>
+        <body>
+          <a href="/models.html">模型价格</a>
+          <a href="https://status.anthropic.com/">服务状态</a>
+          <script>const path = '/channel-status'; entry.textContent = '渠道状态';</script>
+        </body></html>
+        """
+        pages = ops_pages.read_html("https://dmxapi.cn", "https://dmxapi.cn/", html)
+        self.assertEqual(pages["models"], "https://dmxapi.cn/models.html")
+        hashed = '<a href="/portal#/plaza">模型广场</a>'
+        self.assertEqual(
+            ops_pages.read_html("https://ai.baipiao.co", "https://ai.baipiao.co/", hashed)["plaza"],
+            "https://ai.baipiao.co/portal#/plaza",
+        )
+        self.assertEqual(pages["service"], "")
+        self.assertEqual(pages["channel"], "https://dmxapi.cn/channel-status")
+        bundled = 'model_plaza_enabled:!1,channel_monitor_enabled:!0,name:"ChannelStatus",path:"/monitor"'
+        self.assertEqual(ops_pages.read_source("https://wawazz.xyz", bundled)["channel"], "")
+        routes = 'path:"models",sectionPricing:"模型价格"'
+        self.assertEqual(ops_pages.read_source("https://ai.irobotx.org", routes)["models"], "https://ai.irobotx.org/models")
+        head = b'{"schema_version":"ai-transit.v1","station":{"monitor_url":"https://codex666ai.com/public/transit?view=monitoring","price_url":"https://codex666ai.com/public/transit"}'
+        snap = ops_pages._snapshot_doc(head)
+        self.assertEqual(snap["station"]["monitor_url"], "https://codex666ai.com/public/transit?view=monitoring")
+
+    def test_page_notes_do_not_downgrade_public_status(self):
+        import ops_pages
+
+        status, row = self.client("POST", "/api/stations", {
+            "name": "已有状态",
+            "domain": "keep.example",
+            "url": "https://keep.example/",
+            "status_mode": "public",
+            "status_url": "https://keep.example/api/status",
+        })
+        self.assertEqual(status, 200, row)
+        ops_pages.apply_lookup(row["id"], "public", "https://keep.example/api/status", "", "", "", {
+            "channel_status_url": "https://keep.example/monitor",
+            "plaza_url": "",
+            "service_status_url": "",
+            "status_url": "",
+            "mode": "auth",
+            "note": "渠道状态要登录",
+        })
+        got = self.client("GET", f"/api/stations/{row['id']}")[1]
+        self.assertEqual(got["status_mode"], "public")
+        self.assertEqual(got["status_url"], "https://keep.example/api/status")
+        self.assertEqual(got["channel_status_url"], "https://keep.example/monitor")
+        self.assertEqual(got["page_note"], "渠道状态要登录")
+
     def test_status_source_uses_known_pages(self):
         public, url = ops_db._classify_status(["https://ezapi.site/api/status"], "auth")
         self.assertEqual(public, "public")

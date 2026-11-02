@@ -3,7 +3,7 @@ import { Link, NavLink, useLocation, useNavigate } from "react-router-dom";
 import { activities, findStation, logoUrl, models, perks, reviews, stationHeading, stationTotal, stations } from "./data.js";
 import { clearSession, readAccounts, readAvatar, readSession, writeAvatar, writeSession } from "./account.js";
 import { authToken, loginAccount, pullAccount, registerAccount, requestCode, resetAccount, sendPoints, setAuthToken } from "./community.js";
-import { replacePoints, saveNick } from "./points.js";
+import { grant, replacePoints, saveNick } from "./points.js";
 
 const VENDOR_COLOR = {
   nvidia: "#76b900",
@@ -451,7 +451,7 @@ export function Shell({ children }) {
                 <a href="https://github.com/fusuzhenxin" target="_blank" rel="noreferrer" aria-label="GitHub">
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2a10 10 0 0 0-3.16 19.49c.5.09.68-.22.68-.48v-1.7c-2.78.6-3.37-1.18-3.37-1.18-.45-1.16-1.1-1.47-1.1-1.47-.9-.62.07-.6.07-.6 1 .07 1.53 1.03 1.53 1.03.89 1.52 2.34 1.08 2.91.83.09-.65.35-1.08.63-1.33-2.22-.25-4.55-1.11-4.55-4.94 0-1.09.39-1.98 1.03-2.68-.1-.25-.45-1.27.1-2.65 0 0 .84-.27 2.75 1.02a9.56 9.56 0 0 1 5 0c1.91-1.29 2.75-1.02 2.75-1.02.55 1.38.2 2.4.1 2.65.64.7 1.03 1.59 1.03 2.68 0 3.84-2.34 4.68-4.57 4.93.36.31.68.92.68 1.86v2.76c0 .26.18.58.69.48A10 10 0 0 0 12 2Z" /></svg>
                 </a>
-                <a href="https://t.me/alexnsss" target="_blank" rel="noreferrer" aria-label="Telegram">
+                <a href="https://t.me/asAnnie1" target="_blank" rel="noreferrer" aria-label="Telegram">
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M21.5 4.4 2.7 11.7c-1.3.5-1.3 1.2-.2 1.5l4.8 1.5 1.9 5.7c.2.7.1.9.8.9.5 0 .7-.2 1-.5l2.3-2.2 4.8 3.5c.9.5 1.5.2 1.7-.8l3.1-14.6c.3-1.2-.5-1.7-1.4-1.3Zm-3.2 3.1-8.7 7.9-.3 3.5-1.6-4.9 10.6-6.5Z" /></svg>
                 </a>
                 <a href="/feed.xml" aria-label="站点动态 RSS">
@@ -737,9 +737,9 @@ function Login({ onClose, onOk }) {
   const title = mode === "register" ? "创建账户" : mode === "login" ? "欢迎回来" : "找回密码";
   const subtitle =
     mode === "register"
-      ? "先收取邮箱验证码，再注册。注册后可打分、评论、投票"
+      ? "先收取邮箱验证码，再注册。注册后可打分、评论"
       : mode === "login"
-        ? "登录后可打分、评论、投票，其他人也能看到"
+        ? "登录后可打分、评论，其他人也能看到。投票不用登录"
         : "验证码会发到注册邮箱，10 分钟内有效。";
 
   function finish(name, nextNick, mail) {
@@ -987,18 +987,18 @@ export function SponsorStrip({ items = [] }) {
         ×
       </button>
       {cards.length ? (
-        <div className={`sponsor-grid${cards.length > 2 ? " four" : ""}`}>
+        <div className="sponsor-grid four">
           {cards.map((item) => (
-            <a key={item.title} className="sp-card" href={item.href} target="_blank" rel="noreferrer">
-              <div className="sp-art" style={item.img ? undefined : { background: item.bg, color: item.color || "#1d1d1f" }}>
+            <a key={item.title} className="sp-card" href={item.href} target="_blank" rel="sponsored noreferrer" onClick={() => { if (authToken()) grant("sponsor", 5, "点击赞助商", "day"); }}>
+              <div className="sp-art" style={item.img ? { background: item.bg || "#fff" } : { background: item.bg, color: item.color || "#1d1d1f" }}>
                 {item.img ? <img src={item.img} alt="" /> : item.art}
               </div>
               <div className="bd">
                 <b>
-                  {item.title}
+                  <span>{item.title}</span>
                   <span className="sp-flag">赞助</span>
                 </b>
-                {item.desc}
+                <span className="sp-desc">{item.desc}</span>
               </div>
             </a>
           ))}
@@ -1017,7 +1017,15 @@ export function SponsorStrip({ items = [] }) {
 
 export const homeSponsors = [];
 
-export const listSponsors = [];
+export const listSponsors = [
+  {
+    title: "aruhub API",
+    href: "https://aruhub.com/sign-up?aff=M3dH",
+    img: "/media/sponsors/aruhub-mark.png",
+    bg: "#fff",
+    desc: "注册送测试额度！一个站点通用大语言模型、图像生成模型、视频生成模型。全天稳定可用，可随时进行智商检测。支持支付宝/微信付款，支持开发票，不满意可退款",
+  },
+];
 
 export function ReviewCard({ item }) {
   const station = findStation(item.slug);

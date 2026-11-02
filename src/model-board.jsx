@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import modelRows from "./model-rows.json";
-import { models, stationHeading, stationPath, stations } from "./data.js";
+import { models, modelsOf, stationHeading, stationPath, stations } from "./data.js";
+import { preloadModelPrices } from "./prices.js";
 import { useTitle } from "./ui.jsx";
 
 const SORTS = [
@@ -102,7 +103,7 @@ function catalogRows(slug, familyId, taken) {
   if (!familyId) return [];
   const rows = [];
   for (const station of stations) {
-    const listed = station.models || [];
+    const listed = modelsOf(station);
     const exact = listed.filter((model) => sameModel(model, slug));
     const tagged = (station.modelIds || []).includes(familyId);
     if (!exact.length && !tagged) continue;
@@ -371,8 +372,22 @@ export function ModelBoard({ slug }) {
   const [open, setOpen] = useState({});
   const [descOpen, setDescOpen] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [priced, setPriced] = useState(false);
   const sortRef = useRef(null);
   const moreRef = useRef(null);
+
+  useEffect(() => {
+    let cancel = false;
+    setPriced(false);
+    preloadModelPrices(slug).then(() => {
+      if (!cancel) setPriced(true);
+    }).catch(() => {
+      if (!cancel) setPriced(true);
+    });
+    return () => {
+      cancel = true;
+    };
+  }, [slug]);
 
   useEffect(() => {
     let cancel = false;
@@ -426,7 +441,7 @@ export function ModelBoard({ slug }) {
       if (Boolean(a.own) !== Boolean(b.own)) return a.own ? -1 : 1;
       return compareRows(sort, a, b);
     });
-  }, [board, query, sort, row, slug]);
+  }, [board, query, sort, row, slug, priced]);
   const visible = filtered.slice(0, shown);
   const moreRows = modelRows.filter((item) => {
     const text = moreQuery.trim().toLowerCase();

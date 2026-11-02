@@ -1,3 +1,4 @@
+import "./price-prime.js";
 import "./ssr-dom.js";
 import { renderToString } from "react-dom/server";
 import { StaticRouter } from "react-router";
@@ -17,6 +18,8 @@ function applyRequestLocation(url) {
 export function renderPage(url, options = {}) {
   globalThis.__VERD_STATIC__ = Boolean(options.static);
   globalThis.__VERD_COMMUNITY__ = options.community || null;
+  globalThis.__VD_BASIC_REPORT__ = options.basicReport || null;
+  globalThis.__VD_BASIC_INDEX__ = options.basicIndex || null;
   try {
     applyRequestLocation(url);
     const location = String(url || "/").split("#")[0] || "/";
@@ -29,5 +32,7 @@ export function renderPage(url, options = {}) {
   } finally {
     globalThis.__VERD_STATIC__ = false;
     globalThis.__VERD_COMMUNITY__ = null;
+    globalThis.__VD_BASIC_REPORT__ = null;
+    globalThis.__VD_BASIC_INDEX__ = null;
   }
 }

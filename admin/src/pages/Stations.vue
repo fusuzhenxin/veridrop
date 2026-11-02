@@ -17,15 +17,20 @@
       <a-button :loading="importing" @click="importCatalog">从目录导入</a-button>
       <a-button @click="runDue">跑到期任务</a-button>
     </div>
-    <p class="muted">渠道状态和「打开站点」只跳到对方的公开页面，不改维渡前台。</p>
+    <p class="muted">「看到的页面」是打开对方站点后记下来的地址。点链接只去对方页面，不改维渡前台。</p>
     <a-table :columns="columns" :data="rows" :loading="loading" :pagination="pager" row-key="id" @page-change="onPage">
       <template #mode="{ record }">
         <div>{{ MODE[record.status_mode] || record.status_mode }}</div>
         <a v-if="record.plaza_url && record.status_mode !== 'plaza'" :href="record.plaza_url" target="_blank" rel="noopener">模型广场</a>
       </template>
       <template #channel="{ record }">
-        <a v-if="record.channel_status_url" :href="record.channel_status_url" target="_blank" rel="noopener">有</a>
-        <span v-else class="muted">{{ record.pages_checked_at ? "无" : "未核" }}</span>
+        <div class="page-links">
+          <a v-if="record.service_status_url" :href="record.service_status_url" target="_blank" rel="noopener">服务状态</a>
+          <a v-if="record.channel_status_url" :href="record.channel_status_url" target="_blank" rel="noopener">渠道状态</a>
+          <a v-if="record.plaza_url" :href="record.plaza_url" target="_blank" rel="noopener">{{ plazaLabel(record) }}</a>
+        </div>
+        <div v-if="record.page_note" class="muted">{{ record.page_note }}</div>
+        <span v-else-if="!record.service_status_url && !record.channel_status_url && !record.plaza_url" class="muted">{{ record.pages_checked_at ? "没看到" : "未核" }}</span>
       </template>
       <template #tier="{ record }">{{ TIER[record.tier] || record.tier }}</template>
       <template #listed="{ record }">
@@ -66,7 +71,7 @@ const columns = [
   { title: "名称", dataIndex: "name", width: 160 },
   { title: "域名", dataIndex: "domain", width: 180 },
   { title: "来源", slotName: "mode", width: 140 },
-  { title: "渠道状态", slotName: "channel", width: 100 },
+  { title: "看到的页面", slotName: "channel", width: 220 },
   { title: "频率", slotName: "tier", width: 140 },
   { title: "收录", slotName: "listed", width: 100 },
   { title: "最近", slotName: "up", width: 90 },
@@ -75,6 +80,13 @@ const columns = [
   { title: "Key", dataIndex: "key_hint", width: 90 },
   { title: "操作", slotName: "ops", width: 390 },
 ];
+
+function plazaLabel(record) {
+  const note = record.page_note || "";
+  const url = record.plaza_url || "";
+  if (note.includes("模型广场") || url.includes("model-plaza") || url.includes("model-square")) return "模型广场";
+  return "模型";
+}
 
 function params() {
   const search = new URLSearchParams({ page: pager.current, size: pager.pageSize });

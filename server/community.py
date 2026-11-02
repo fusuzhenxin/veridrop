@@ -7,6 +7,7 @@ import hashlib
 import ipaddress
 import json
 import os
+import re
 import secrets
 import smtplib
 import socket
@@ -18,6 +19,9 @@ from http.client import HTTPConnection, HTTPSConnection, HTTPException
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import parse_qs, unquote, urlparse
+
+import basic_reports
+import visits
 
 ROOT = Path(__file__).resolve().parent.parent
 
@@ -189,13 +193,14 @@ def public_points(store: dict, email: str) -> dict:
         "like": done_days.get("like") == day,
         "review": done_days.get("review") == day,
         "detect": done_days.get("detect") == day,
+        "sponsor": done_days.get("sponsor") == day,
         "first-detect": bool(done_days.get("first-detect")),
         "favorite": bool(done_days.get("favorite")),
         "profile": bool(done_days.get("profile")),
     }
     today = {}
     for row in book.get("ledger") or []:
-        if row.get("day") == day and row.get("id") in ("checkin", "like", "review", "detect"):
+        if row.get("day") == day and row.get("id") in ("checkin", "like", "review", "detect", "sponsor"):
             today[row["id"]] = int(row.get("amount") or 0)
     for row in store.get("checkins", {}).get(email, []):
         if row.get("day") == day:
@@ -230,6 +235,7 @@ TASK_POINTS = {
     "like": (2, "投票", "day"),
     "review": (8, "发表点评", "day"),
     "detect": (3, "每日检测", "day"),
+    "sponsor": (5, "点击赞助商", "day"),
     "first-detect": (5, "完成首次检测", "once"),
     "favorite": (3, "首次收藏", "once"),
     "profile": (5, "完善资料", "once"),
@@ -342,6 +348,13 @@ def user_from_header(data: dict, header: str) -> dict | None:
     if not email:
         return None
     return (data.get("accounts") or {}).get(email)
+
+
+def anonymous_voter(raw) -> str:
+    text = str(raw or "").strip().lower()
+    if re.fullmatch(r"[a-z0-9]{16,48}", text):
+        return "anon:" + text
+    return ""
 
 
 def vote_key(raw) -> str:
@@ -595,6 +608,51 @@ class Handler(BaseHTTPRequestHandler):
             if conn is not None:
                 conn.close()
 
+    def _send_raw(self, code: int, headers: dict, body: bytes) -> None:
+        self.send_response(code)
+        for key, value in headers.items():
+            self.send_header(key, value)
+        self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+        if body and self.command != "HEAD":
+            self.wfile.write(body)
+
+    def _basic_reports(self, path: str, query: dict) -> None:
+        report_id = path.rstrip("/").split("/api/basic-reports/", 1)[1] if "/api/basic-reports/" in path else ""
+        if report_id:
+            report = basic_reports.read_report(report_id)
+            if not report:
+                self._send(404, {"error": "没有这份报告"})
+                return
+            self._send(200, report)
+            return
+        station_id = (query.get("station") or [""])[0]
+        host = (query.get("host") or [""])[0]
+        self._send(200, {"reports": basic_reports.summaries_for(station_id, host)})
+
+    def _visit_get(self, query: dict) -> None:
+        try:
+            code, headers, body = visits.read_visits(
+                (query.get("key") or [""])[0],
+                (query.get("format") or [""])[0],
+                (query.get("site") or [""])[0],
+            )
+        except Exception:
+            code, headers, body = 404, {"content-type": "text/plain; charset=utf-8", "cache-control": "no-store"}, b"not found"
+        self._send_raw(code, headers, body)
+
+    def _visit_post(self) -> None:
+        origin = self.headers.get("Origin") or ""
+        try:
+            length = int(self.headers.get("Content-Length") or 0)
+            raw = self.rfile.read(max(0, min(length, 2000))) if length else b""
+            visits.record_visit(self.headers.get("User-Agent") or "", origin, raw)
+        except Exception:
+            pass
+        headers = {"cache-control": "no-store"}
+        headers.update(visits.cors_headers(origin))
+        self._send_raw(204, headers, b"")
+
     def _send(self, code: int, payload) -> None:
         body = json.dumps(payload, ensure_ascii=False).encode("utf-8")
         self.send_response(code)
@@ -667,8 +725,23 @@ class Handler(BaseHTTPRequestHandler):
     def _user(self, store: dict) -> dict | None:
         return user_from_header(store, self.headers.get("Authorization") or "")
 
+    def do_OPTIONS(self) -> None:
+        parsed = urlparse(self.path)
+        if parsed.path.rstrip("/") == "/api/visit":
+            headers = {"cache-control": "no-store"}
+            headers.update(visits.cors_headers(self.headers.get("Origin") or ""))
+            self._send_raw(204, headers, b"")
+            return
+        self._send(404, {"error": "没有这个接口"})
+
     def do_GET(self) -> None:
         parsed = urlparse(self.path)
+        if parsed.path.rstrip("/") == "/api/visit":
+            self._visit_get(parse_qs(parsed.query))
+            return
+        if parsed.path.rstrip("/") == "/api/basic-reports" or parsed.path.startswith("/api/basic-reports/"):
+            self._basic_reports(parsed.path, parse_qs(parsed.query))
+            return
         if parsed.path.startswith("/go/"):
             self._ops_go(parsed.path)
             return
@@ -679,7 +752,8 @@ class Handler(BaseHTTPRequestHandler):
                 store = load_store()
             if path == "/api/votes":
                 user = self._user(store)
-                self._send(200, public_votes(store, user["email"] if user else ""))
+                who = user["email"] if user else anonymous_voter(self.headers.get("X-Voter"))
+                self._send(200, public_votes(store, who))
                 return
             if path == "/api/comments":
                 slug = (query.get("slug") or [""])[0]
@@ -716,10 +790,21 @@ class Handler(BaseHTTPRequestHandler):
             if target:
                 self._redirect(target)
                 return
+            if parsed.path.startswith("/r/d/"):
+                report_id = parsed.path[len("/r/d/"):].strip("/")
+                if report_id:
+                    self._redirect("/b/" + report_id.split("/")[0])
+                    return
             page = site_file(parsed.path)
             if page is not None:
                 self._send_file(page)
                 return
+            if path.startswith("/b/basic-"):
+                report = basic_reports.read_report(path[len("/b/"):])
+                if report:
+                    body = basic_reports.report_html(report).encode("utf-8")
+                    self._send_raw(200, {"content-type": "text/html; charset=utf-8", "cache-control": "no-cache", "x-robots-tag": "noindex"}, body)
+                    return
             self._send(404, {"error": "没有这个接口"})
         except Exception as err:
             self._send(400, {"error": str(err)})
@@ -727,6 +812,9 @@ class Handler(BaseHTTPRequestHandler):
     def do_POST(self) -> None:
         parsed = urlparse(self.path)
         path = parsed.path.rstrip("/")
+        if path == "/api/visit":
+            self._visit_post()
+            return
         if path in ("/api/collect", "/api/public/submission"):
             self._ops_public(path)
             return
@@ -798,6 +886,22 @@ class Handler(BaseHTTPRequestHandler):
                     account["password"] = hash_password(password, account["salt"])
                     save_store(store)
                     self._send(200, {"ok": True})
+                    return
+                if path == "/api/votes":
+                    user = self._user(store)
+                    who = user["email"] if user else anonymous_voter(self.headers.get("X-Voter"))
+                    if not who:
+                        raise ValueError("这台浏览器没能记下投票")
+                    result = apply_vote(store, body.get("id"), str(body.get("dir") or ""), who)
+                    if user:
+                        awarded = {"added": False, "amount": 0}
+                        if result.get("mine") in ("up", "down"):
+                            awarded = award_points(store, user["email"], "like", 2, "投票")
+                        result["points"] = {**public_points(store, user["email"]), "added": awarded["added"], "amount": awarded["amount"]}
+                    else:
+                        result["points"] = {"added": False, "amount": 0}
+                    save_store(store)
+                    self._send(200, result)
                     return
                 user = self._user(store)
                 if not user:
@@ -880,7 +984,7 @@ class Handler(BaseHTTPRequestHandler):
                     profile = profile_book(store, user["email"])
                     empty = not book["ledger"] and not book["balance"] and not profile["avatar"] and not profile["favorites"] and not profile["submissions"]
                     if empty:
-                        limits = {"checkin": 5, "like": 2, "review": 8, "detect": 3, "first-detect": 5, "favorite": 3, "profile": 5}
+                        limits = {"checkin": 5, "like": 2, "review": 8, "detect": 3, "sponsor": 5, "first-detect": 5, "favorite": 3, "profile": 5}
                         ledger = []
                         for row in (body.get("ledger") or [])[:80]:
                             kind = str(row.get("id") or "")
@@ -945,15 +1049,6 @@ class Handler(BaseHTTPRequestHandler):
                     points = award_points(store, user["email"], "checkin", amount, "每日签到")
                     save_store(store)
                     self._send(200, {"added": True, "day": day, "amount": amount, "balance": points["balance"]})
-                    return
-                if path == "/api/votes":
-                    result = apply_vote(store, body.get("id"), str(body.get("dir") or ""), user["email"])
-                    awarded = {"added": False, "amount": 0}
-                    if result.get("mine") in ("up", "down"):
-                        awarded = award_points(store, user["email"], "like", 2, "投票")
-                    result["points"] = {**public_points(store, user["email"]), "added": awarded["added"], "amount": awarded["amount"]}
-                    save_store(store)
-                    self._send(200, result)
                     return
                 if path == "/api/comments":
                     slug = str(body.get("slug") or "").strip()

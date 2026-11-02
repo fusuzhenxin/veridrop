@@ -29,8 +29,10 @@
           <a-form-item v-if="form.status_mode === 'public'" label="状态页地址">
             <a-input v-model="form.status_url" placeholder="留空则用网址下的 /api/status" />
           </a-form-item>
+          <p v-if="form.service_status_url" class="muted">服务状态：{{ form.service_status_url }}</p>
           <p v-if="form.channel_status_url" class="muted">渠道状态：{{ form.channel_status_url }}</p>
-          <p v-if="form.plaza_url" class="muted">模型广场：{{ form.plaza_url }}</p>
+          <p v-if="form.plaza_url" class="muted">{{ form.page_note && form.page_note.includes("模型广场") ? "模型广场" : "模型" }}：{{ form.plaza_url }}</p>
+          <p v-if="form.page_note" class="muted">页面记录：{{ form.page_note }}</p>
           <p v-if="form.status_mode === 'auth'" class="muted">只在保存了测试 Key 时请求模型和一次便宜调用。不会用账号密码登录对方后台。</p>
           <a-form-item v-if="form.status_mode === 'auth'" label="基础测试模型">
             <a-input v-model="form.test_model" placeholder="留空则用对方模型列表的第一个" />
@@ -135,7 +137,9 @@ const form = reactive({
   status_mode: "none",
   status_url: "",
   channel_status_url: "",
+  service_status_url: "",
   plaza_url: "",
+  page_note: "",
   tier: "longtail",
   test_model: "",
   source_token: "",

@@ -33,7 +33,7 @@ export function saveNick(nick) {
 export function replacePoints(remote) {
   const day = shanghaiDay();
   const done = {};
-  for (const id of ["checkin", "like", "review", "detect"]) {
+  for (const id of ["checkin", "like", "review", "detect", "sponsor"]) {
     if (remote?.done?.[id]) done[`${id}:${day}`] = true;
   }
   for (const id of ["first-detect", "favorite", "profile"]) {

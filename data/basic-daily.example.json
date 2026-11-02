@@ -1,0 +1,12 @@
+{
+  "stations": [
+    {
+      "stationId": 1852,
+      "host": "aruhub.com",
+      "base": "https://api.aruhub.com/v1",
+      "model": "gpt-5.6-sol",
+      "keyEnv": "ARUHUB_BASIC_KEY",
+      "channel": "OpenAI"
+    }
+  ]
+}

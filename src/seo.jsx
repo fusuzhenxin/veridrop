@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { useLocation } from "react-router-dom";
-import { findReport, findStation, modelTotal, stationHeading, stationTotal } from "./data.js";
+import { findReport, findStation, modelTotal, stationHeading, stationTotal, stations } from "./data.js";
 import { getOfficialSnapshot } from "./official-store.js";
 import modelRows from "./model-rows.json";
 import { CAT_SEO, CHECK_PAGES, MODEL_SEO, OFFICIAL_SEO } from "./verd-meta.js";
@@ -71,8 +71,12 @@ export function describe(pathname) {
   }
   if (pathname.startsWith("/b/")) {
     const id = decodeURIComponent(pathname.split("/")[2] || "");
-    const kept = publishedBasic[id];
+    const kept = publishedBasic[id] || (globalThis.__VD_BASIC_REPORT__?.id === id ? globalThis.__VD_BASIC_REPORT__ : null);
     if (kept?.id === id) return clip(`${kept.host || ""} ${kept.model || ""} 的基础测试报告。每一项都是这次接口返回，页面里没有密钥。`);
+    if (id.startsWith("h-")) {
+      const hit = stations.flatMap((station) => (station.tests || []).map((test) => ({ test, station }))).find((item) => item.test.id === id);
+      if (hit) return clip(`${stationHeading(hit.station)} 的 ${hit.test.model || "模型"} 公开榜单分数是 ${hit.test.score}。这是记在本站的总分，没有逐项探针。`);
+    }
     return "基础测试、糖果测试或鹈鹕骑车的报告。密钥不在链接里，另一台浏览器打不开这份记录。";
   }
   if (pathname.startsWith("/r/d/")) {
@@ -107,7 +111,7 @@ function ensureProperty(property, content) {
 const PRIVATE_EXACT = new Set(["/account", "/history", "/submissions", "/cat/fav"]);
 
 function robotsFor(pathname) {
-  if (PRIVATE_EXACT.has(pathname) || pathname.startsWith("/r/d/")) return "noindex,follow";
+  if (PRIVATE_EXACT.has(pathname) || pathname.startsWith("/r/d/") || pathname.startsWith("/b/")) return "noindex,follow";
   return "index,follow";
 }
 

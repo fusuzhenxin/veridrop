@@ -276,6 +276,10 @@ def init_schema(conn: sqlite3.Connection) -> None:
         conn.execute("ALTER TABLE stations ADD COLUMN plaza_url TEXT NOT NULL DEFAULT ''")
     if "pages_checked_at" not in columns:
         conn.execute("ALTER TABLE stations ADD COLUMN pages_checked_at TEXT NOT NULL DEFAULT ''")
+    if "service_status_url" not in columns:
+        conn.execute("ALTER TABLE stations ADD COLUMN service_status_url TEXT NOT NULL DEFAULT ''")
+    if "page_note" not in columns:
+        conn.execute("ALTER TABLE stations ADD COLUMN page_note TEXT NOT NULL DEFAULT ''")
 
 
 def _tx(fn):
@@ -771,22 +775,57 @@ def import_catalog(conn, path: Path | None = None) -> dict:
 @_tx
 def stations_for_page_scan(conn) -> list[dict]:
     rows = conn.execute(
-        "SELECT id, url, status_mode, status_url FROM stations WHERE ifnull(pages_checked_at,'')='' ORDER BY id"
+        """
+        SELECT id, url, status_mode, status_url, channel_status_url, plaza_url, service_status_url
+        FROM stations WHERE ifnull(pages_checked_at,'')='' ORDER BY id
+        """
     ).fetchall()
     return [dict(row) for row in rows]
 
 
 @_tx
-def save_page_notes(conn, station_id: int, channel_url: str, plaza_url: str, mode: str, status_url: str) -> None:
+def reopen_unmarked_pages(conn) -> int:
+    cur = conn.execute(
+        """
+        UPDATE stations
+        SET pages_checked_at=''
+        WHERE ifnull(channel_status_url,'')='' AND ifnull(plaza_url,'')='' AND ifnull(service_status_url,'')=''
+        """
+    )
+    return int(cur.rowcount)
+
+
+@_tx
+def save_page_notes(
+    conn,
+    station_id: int,
+    channel_url: str,
+    plaza_url: str,
+    mode: str,
+    status_url: str,
+    service_url: str = "",
+    note: str = "",
+) -> None:
     if mode not in MODES:
         raise ValueError("状态来源不对")
     conn.execute(
         """
         UPDATE stations
-        SET channel_status_url=?, plaza_url=?, status_mode=?, status_url=?, pages_checked_at=?, updated_at=?
+        SET channel_status_url=?, plaza_url=?, service_status_url=?, page_note=?,
+            status_mode=?, status_url=?, pages_checked_at=?, updated_at=?
         WHERE id=?
         """,
-        (channel_url[:500], plaza_url[:500], mode, (status_url or "")[:500], now_iso(), now_iso(), station_id),
+        (
+            channel_url[:500],
+            plaza_url[:500],
+            (service_url or "")[:500],
+            (note or "")[:200],
+            mode,
+            (status_url or "")[:500],
+            now_iso(),
+            now_iso(),
+            station_id,
+        ),
     )
 
 

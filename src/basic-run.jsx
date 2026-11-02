@@ -78,6 +78,12 @@ function publishedReport(id) {
   return report;
 }
 
+function serverReport(id) {
+  const report = globalThis.__VD_BASIC_REPORT__;
+  if (!report || report.id !== id || report.suite !== "basic" || !Array.isArray(report.rows)) return null;
+  return report;
+}
+
 function readSaved(id) {
   try {
     const report = JSON.parse(localStorage.getItem(reportKey(id)) || "null");
@@ -85,7 +91,7 @@ function readSaved(id) {
   } catch {
     /* a broken local copy falls through to the copy kept on the site */
   }
-  return publishedReport(id);
+  return serverReport(id) || publishedReport(id);
 }
 
 function blankRows() {
@@ -527,6 +533,20 @@ export function BasicRunPage() {
     const next = readRun(id);
     setRun(next);
     setMissing(!next);
+  }, [id]);
+
+  useEffect(() => {
+    if (readRun(id)) return undefined;
+    let stop = false;
+    fetch(`/api/basic-reports/${encodeURIComponent(id)}`)
+      .then((res) => (res.ok ? res.json() : null))
+      .then((report) => {
+        if (stop || !report || report.id !== id || report.suite !== "basic" || !Array.isArray(report.rows)) return;
+        setRun(report);
+        setMissing(false);
+      })
+      .catch(() => {});
+    return () => { stop = true; };
   }, [id]);
 
   function stopRun() {

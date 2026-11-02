@@ -4,9 +4,11 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build && node scripts/prerender-html.mjs",
+    "predev": "node scripts/build-price-slices.mjs",
+    "build": "node scripts/build-price-slices.mjs && vite build && node scripts/prerender-html.mjs",
     "preview": "vite preview",
     "serve": "python server/community.py",
+    "basic:daily": "node scripts/basic-daily.mjs",
     "ops": "python server/ops_server.py",
     "ops-ui": "npm run dev --prefix admin"
   },
