@@ -10,12 +10,12 @@ function clip(value) {
 }
 
 function describe(pathname) {
-  if (pathname === "/") return `发现好用的 AI 中转站。现收录 ${stationTotal} 家站点、${modelTotal} 个模型，对照在线率、延迟、支付和公开价格。数据来自目录探测和公开信息，不代收充值，也不证明官方原厂。`;
+  if (pathname === "/") return "维渡 AI 的 API中转站排行。对照在线率、延迟、支付和公开价格。先看名单，再小额试用。不代收充值。";
   if (pathname === "/reputation") return "中转站投票排行。赞成和反对记在接口里，每人每站一票，净票高的排前面。点评同样公开，其他人也能看到。";
-  if (pathname === "/points") return "签到、投票和点评记在账户里，其他人能看到投票和点评。检测记录只留在这台浏览器。兑换页目前没有奖品。";
+  if (pathname === "/points") return "签到、投票和点评记在账户里，其他人能看到投票和点评。检测记录只留在这台浏览器。20 积分可兑换 DeepSeek 共享额度。";
   if (pathname === "/help") return "说明目录探测、公开价格、投票和评价各自怎么来。纯度、单模型延迟和单模型在线率没有探测，页面留空。";
   if (pathname === "/agents") return "给 Agent 的说明。列出 llms.txt、stations.md 和 methodology.md。字段以目录探测、公开价格和账户里的投票、点评为准。";
-  if (pathname === "/list") return "AI 中转站排行榜。可按在线率、延迟、最低充值、支付方式、发票和原有分类筛选。展示的是目录探测结果，不构成充值建议。";
+  if (pathname === "/list") return "API中转站排行榜。可按在线率、延迟、最低充值、支付方式、发票和原有分类筛选。展示的是目录探测结果，不构成充值建议。";
   if (pathname === "/model") return "AI 模型中转站排行。对照 Claude、GPT、Gemini、DeepSeek 等模型的最低中转价、上下文、提供站点数、智商分和发布时间。价格来自公开分组，以对方控制台为准。";
   if (pathname.startsWith("/site/")) {
     const station = findStation(pathname.split("/")[2] || "");
@@ -46,11 +46,11 @@ function describe(pathname) {
 }
 
 const ORIGIN = "https://www.veridrop.cn";
-const HOME_TITLE = `维渡 AI - AI 中转站排行与推荐｜收录 ${stationTotal} 家中转站实测与价格对比`;
+const HOME_TITLE = "维渡 AI｜API中转站排行，对照在线率、延迟和支付";
 
 const STATIC = {
-  "/": { title: "", heading: "AI 中转站排行与推荐" },
-  "/list": { title: "AI 中转站排行榜｜在线率、延迟、最低充值、支付和发票", heading: "AI 中转站排行榜" },
+  "/": { title: "", heading: "API中转站排行" },
+  "/list": { title: "API中转站排行榜｜在线率、延迟、支付和发票", heading: "API中转站排行榜" },
   "/model": { title: "AI 模型中转站排行｜价格、上下文和智商", heading: "AI 模型中转站排行" },
   "/reputation": { title: "中转站投票排行｜赞成、反对与净票", heading: "中转站投票排行" },
   "/activity": { title: "福利羊毛｜中转站优惠活动和官方免费 API", heading: "福利羊毛" },

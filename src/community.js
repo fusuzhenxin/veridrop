@@ -151,6 +151,18 @@ export function sendPoints(id) {
   });
 }
 
+export function fetchShop() {
+  return api("/api/shop");
+}
+
+export function redeemShop(id) {
+  return api("/api/shop/redeem", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ id }),
+  });
+}
+
 export function fetchAccount() {
   return api("/api/account");
 }

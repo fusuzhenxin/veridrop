@@ -242,8 +242,88 @@ TASK_POINTS = {
 }
 
 
+SHOP_FILE = ROOT / "data" / "shop.json"
+
+
+def shop_items() -> list:
+    if not SHOP_FILE.exists():
+        return []
+    try:
+        raw = json.loads(SHOP_FILE.read_text(encoding="utf-8"))
+    except Exception:
+        return []
+    rows = raw.get("items") if isinstance(raw, dict) else raw
+    return [row for row in rows if isinstance(row, dict) and str(row.get("id") or "").strip()] if isinstance(rows, list) else []
+
+
+def shop_book(store: dict) -> dict:
+    book = store.setdefault("shop", {})
+    book.setdefault("orders", {})
+    return book
+
+
+def public_shop_item(item: dict, owned: dict | None = None) -> dict:
+    status = str(item.get("status") or "open")
+    row = {
+        "id": str(item.get("id") or ""),
+        "title": str(item.get("title") or ""),
+        "desc": str(item.get("desc") or ""),
+        "brand": str(item.get("brand") or ""),
+        "badge": str(item.get("badge") or ""),
+        "cost": int(item.get("cost") or 0),
+        "perPerson": int(item.get("perPerson") or 1),
+        "status": status,
+        "ends": str(item.get("ends") or ""),
+        "icon": str(item.get("icon") or ""),
+        "mine": bool(owned),
+    }
+    if owned:
+        row["url"] = str(item.get("url") or owned.get("url") or "")
+        row["key"] = str(item.get("key") or owned.get("key") or "")
+        row["redeemedAt"] = str(owned.get("at") or "")
+    return row
+
+
+def public_shop(store: dict, email: str = "") -> dict:
+    orders = (shop_book(store).get("orders") or {}).get(email) or {}
+    items = [public_shop_item(item, orders.get(str(item.get("id") or "")) if email else None) for item in shop_items()]
+    return {"items": items}
+
+
+def spend_points(store: dict, email: str, kind: str, amount: int, reason: str) -> dict:
+    book = points_book(store, email)
+    balance = int(book.get("balance") or 0)
+    if amount <= 0:
+        raise ValueError("兑换积分无效")
+    if balance < amount:
+        raise ValueError("积分不够")
+    day = shanghai_day()
+    book["balance"] = balance - amount
+    book["ledger"].insert(0, {"id": kind, "reason": reason, "amount": -amount, "day": day, "at": utcnow()})
+    book["ledger"] = book["ledger"][:80]
+    return {"balance": book["balance"]}
+
+
+def redeem_shop_item(store: dict, email: str, item_id: str) -> dict:
+    wanted = str(item_id or "").strip()
+    item = next((row for row in shop_items() if str(row.get("id") or "") == wanted), None)
+    if not item:
+        raise ValueError("没有这件奖品")
+    if str(item.get("status") or "open") != "open":
+        raise ValueError("这件奖品已经结束")
+    cost = int(item.get("cost") or 0)
+    orders = shop_book(store).setdefault("orders", {}).setdefault(email, {})
+    owned = orders.get(wanted)
+    if owned:
+        return {"item": public_shop_item(item, owned), "points": public_points(store, email)}
+    spend_points(store, email, "redeem", cost, item.get("title") or "兑换奖品")
+    owned = {"at": utcnow(), "url": str(item.get("url") or ""), "key": str(item.get("key") or "")}
+    orders[wanted] = owned
+    return {"item": public_shop_item(item, owned), "points": public_points(store, email)}
+
+
 def empty_store() -> dict:
-    return {"updatedAt": "", "accounts": {}, "sessions": {}, "votes": {"stations": {}, "ballots": {}}, "comments": []}
+    return {"updatedAt": "", "accounts": {}, "sessions": {}, "votes": {"stations": {}, "ballots": {}}, "comments": [], "shop": {"orders": {}}}
 
 
 def seed_votes(data: dict) -> None:
@@ -320,6 +400,7 @@ def load_store() -> dict:
     data.setdefault("profiles", {})
     data.setdefault("resets", {})
     data.setdefault("codes", {})
+    shop_book(data)
     return data
 
 
@@ -779,6 +860,10 @@ class Handler(BaseHTTPRequestHandler):
                     return
                 self._send(200, public_points(store, user["email"]))
                 return
+            if path == "/api/shop":
+                user = self._user(store)
+                self._send(200, public_shop(store, user["email"] if user else ""))
+                return
             if path == "/api/auth/me":
                 user = self._user(store)
                 if not user:
@@ -1036,6 +1121,11 @@ class Handler(BaseHTTPRequestHandler):
                     award_points(store, user["email"], kind, amount, reason, scope)
                     save_store(store)
                     self._send(200, public_points(store, user["email"]))
+                    return
+                if path == "/api/shop/redeem":
+                    result = redeem_shop_item(store, user["email"], str(body.get("id") or ""))
+                    save_store(store)
+                    self._send(200, result)
                     return
                 if path == "/api/checkin":
                     day = shanghai_day()

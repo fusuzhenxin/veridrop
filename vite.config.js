@@ -204,7 +204,7 @@ function communityApi() {
   ensureCommunity();
   const handle = (req, res, next) => {
     const path = (req.url || "").split("?")[0];
-    if (path !== "/api/votes" && path !== "/api/comments" && path !== "/api/checkin" && path !== "/api/points" && !path.startsWith("/api/auth") && !path.startsWith("/api/account")) return next();
+    if (path !== "/api/votes" && path !== "/api/comments" && path !== "/api/checkin" && path !== "/api/points" && path !== "/api/shop" && !path.startsWith("/api/shop") && !path.startsWith("/api/auth") && !path.startsWith("/api/account")) return next();
     const proxy = http.request(
       {
         hostname: "127.0.0.1",

@@ -1,9 +1,18 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, NavLink, useLocation, useNavigate } from "react-router-dom";
-import { activities, findStation, logoUrl, models, perks, reviews, stationHeading, stationTotal, stations } from "./data.js";
+import { activities, findStation, hubMark, logoUrl, models, perks, reviews, stationHeading, stations } from "./data.js";
 import { clearSession, readAccounts, readAvatar, readSession, writeAvatar, writeSession } from "./account.js";
 import { authToken, loginAccount, pullAccount, registerAccount, requestCode, resetAccount, sendPoints, setAuthToken } from "./community.js";
-import { grant, replacePoints, saveNick } from "./points.js";
+import { grant, replacePoints, saveNick, shanghaiDay } from "./points.js";
+
+const SITE_NOTICE = {
+  id: "shop-deepseek-3000",
+  title: "积分兑换上新",
+  date: "2026-11-02",
+  body: "DeepSeek 3000 积分共享额度已上架。登录后用 20 积分兑换，用完截止，每人一份。",
+  action: { to: "/points#redeem", label: "去兑换" },
+};
+const NOTICE_KEY = "veridrop-notice-day";
 
 const VENDOR_COLOR = {
   nvidia: "#76b900",
@@ -137,7 +146,7 @@ export function useTitle(title, options) {
   const exact = options?.exact === true;
   useEffect(() => {
     if (exact && title) document.title = title;
-    else document.title = title ? `维渡 AI - ${title}` : `维渡 AI - AI 中转站排行与推荐｜收录 ${stationTotal} 家中转站实测与价格对比`;
+    else document.title = title ? `维渡 AI - ${title}` : "维渡 AI｜API中转站排行，对照在线率、延迟和支付";
   }, [title, exact]);
 }
 
@@ -202,6 +211,7 @@ export function Shell({ children }) {
   const [query, setQuery] = useState("");
   const [pick, setPick] = useState(0);
   const [cookie, setCookie] = useState(() => localStorage.getItem("okk-cookie") !== "1");
+  const [notice, setNotice] = useState(false);
   const [theme, setTheme] = useState(() => localStorage.getItem("okk-theme") || "light");
   const [user, setUser] = useState(() => readSession().name);
   const [email, setEmail] = useState(() => readSession().email);
@@ -255,6 +265,25 @@ export function Shell({ children }) {
     const reset = params.get("reset");
     if (reset) setLogin(true);
   }, [location.search]);
+
+  useEffect(() => {
+    try {
+      const stamp = `${SITE_NOTICE.id}:${shanghaiDay()}`;
+      if (localStorage.getItem(NOTICE_KEY) === stamp) return;
+      setNotice(true);
+    } catch {
+      /* ignore */
+    }
+  }, []);
+
+  function dismissNotice() {
+    try {
+      localStorage.setItem(NOTICE_KEY, `${SITE_NOTICE.id}:${shanghaiDay()}`);
+    } catch {
+      /* ignore */
+    }
+    setNotice(false);
+  }
 
   useEffect(() => {
     setOpen("");
@@ -438,7 +467,7 @@ export function Shell({ children }) {
         </button>
       </div>
       <div className="wrap">
-        <SponsorStrip items={homeSponsors} />
+        <SponsorStrip items={homeSponsors} place="home" />
       </div>
       <footer className="footer">
         <div className="wrap">
@@ -527,6 +556,33 @@ export function Shell({ children }) {
           </div>
         </div>
       </footer>
+      {notice ? (
+        <div className="notice-mask">
+          <div className="notice-box" role="dialog" aria-modal="true" aria-labelledby="site-notice-title">
+            <div className="notice-hero">
+              <button className="notice-x" type="button" aria-label="关闭" onClick={dismissNotice}>×</button>
+              <span className="notice-logo"><img src="/icons/vendor/deepseek.svg" alt="" width="40" height="40" /></span>
+              <em>站点公告</em>
+              <h2 id="site-notice-title">{SITE_NOTICE.title}</h2>
+              {SITE_NOTICE.date ? <time dateTime={SITE_NOTICE.date}>{SITE_NOTICE.date}</time> : null}
+            </div>
+            <div className="notice-body">
+              <p>{SITE_NOTICE.body}</p>
+              <div className="notice-facts">
+                <span><b>20</b> 积分兑换</span>
+                <span>用完截止</span>
+                <span>每人 1 份</span>
+              </div>
+              <div className="notice-actions">
+                <button type="button" className="notice-skip" onClick={dismissNotice}>知道了</button>
+                {SITE_NOTICE.action ? (
+                  <Link className="notice-go" to={SITE_NOTICE.action.to} onClick={dismissNotice}>{SITE_NOTICE.action.label}</Link>
+                ) : null}
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : null}
       {cookie ? (
         <div className="cookie">
           <span className="badge" style={{ background: "transparent", color: "var(--orange)", border: "1px solid var(--orange)", width: 28, height: 28 }}>
@@ -566,7 +622,7 @@ export function Shell({ children }) {
               ) : null)}
               {hits.some((row) => row.kind === "station") ? <h4>站点</h4> : null}
               {hits.map((row, index) => row.kind === "station" ? (
-                <Link key={row.key} to={row.to} className={index === pick ? "cmd-hit on" : "cmd-hit"} onMouseEnter={() => setPick(index)} onClick={() => setSearch(false)}>
+                <Link key={row.key} to={row.to} className={index === pick ? "cmd-hit on" : "cmd-hit"} onMouseEnter={() => setPick(index)} onClick={() => setSearch(false)} {...hubMark(row.item, "search")}>
                   <span className="cmd-ico"><Logo station={row.item} className="cmd-logo" /></span>
                   <span className="cmd-main"><b>{stationHeading(row.item)}</b>{row.item.host && stationHeading(row.item) !== row.item.host ? <small>{row.item.host}</small> : null}</span>
                   <span className="cmd-meta"><span>模型 <b>{row.item.cover ?? row.item.modelsHome ?? "—"}</b></span><span>纯度 <b>{purityOf(row.item)}</b></span></span>
@@ -974,7 +1030,7 @@ function FootFold({ title, startOpen, children }) {
   );
 }
 
-export function SponsorStrip({ items = [] }) {
+export function SponsorStrip({ items = [], place = "list" }) {
   const [hidden, setHidden] = useState(false);
   if (hidden) return null;
   const cards = items.filter(Boolean).slice(0, 4);
@@ -989,7 +1045,7 @@ export function SponsorStrip({ items = [] }) {
       {cards.length ? (
         <div className="sponsor-grid four">
           {cards.map((item) => (
-            <a key={item.title} className="sp-card" href={item.href} target="_blank" rel="sponsored noreferrer" onClick={() => { if (authToken()) grant("sponsor", 5, "点击赞助商", "day"); }}>
+            <a key={item.title} className="sp-card" href={item.href} target="_blank" rel="sponsored noreferrer" data-vd-ad={place} onClick={() => { if (authToken()) grant("sponsor", 5, "点击赞助商", "day"); }}>
               <div className="sp-art" style={item.img ? { background: item.bg || "#fff" } : { background: item.bg, color: item.color || "#1d1d1f" }}>
                 {item.img ? <img src={item.img} alt="" /> : item.art}
               </div>
@@ -1046,7 +1102,7 @@ export function ReviewCard({ item }) {
           <div className="nm">{item.user}</div>
           <Stars count={item.stars} />
         </div>
-        <Link to={station ? station.path : "/reputation"} className="right">
+        <Link to={station ? station.path : "/reputation"} className="right" {...hubMark(station, "home-review")}>
           {station ? <Logo station={station} className="logo-img" /> : <span className="logo-fallback">站</span>}
           <span className="stn">{item.station}</span>
         </Link>

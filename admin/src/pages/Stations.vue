@@ -12,6 +12,11 @@
         <a-option value="1">在收录里</a-option>
         <a-option value="0">未收录</a-option>
       </a-select>
+      <a-select v-model="query.channel" placeholder="渠道状态页" allow-clear style="width: 160px">
+        <a-option value="yes">有，公开可看</a-option>
+        <a-option value="auth">有，要登录才看得到</a-option>
+        <a-option value="no">没有</a-option>
+      </a-select>
       <a-button type="primary" @click="search">查询</a-button>
       <a-button type="primary" @click="router.push('/stations/new')">新建</a-button>
       <a-button :loading="importing" @click="importCatalog">从目录导入</a-button>
@@ -65,7 +70,7 @@ const rows = ref([]);
 const loading = ref(false);
 const importing = ref(false);
 const busy = ref(0);
-const query = reactive({ q: "", mode: "", tier: "", listed: "" });
+const query = reactive({ q: "", mode: "", tier: "", listed: "", channel: "" });
 const pager = reactive({ total: 0, current: 1, pageSize: 20, showTotal: true });
 const columns = [
   { title: "名称", dataIndex: "name", width: 160 },
@@ -94,6 +99,7 @@ function params() {
   if (query.mode) search.set("mode", query.mode);
   if (query.tier) search.set("tier", query.tier);
   if (query.listed) search.set("listed", query.listed);
+  if (query.channel) search.set("channel", query.channel);
   return search.toString();
 }
 

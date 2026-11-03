@@ -519,6 +519,13 @@ def _station_filters(args: dict) -> tuple[str, list]:
         params.append(int(args["listed"]))
     if args.get("down") == "1":
         where.append("last_up=0")
+    channel = args.get("channel")
+    if channel == "yes":
+        where.append("ifnull(channel_status_url,'')<>'' AND ifnull(page_note,'') NOT LIKE '%渠道状态要登录%'")
+    elif channel == "auth":
+        where.append("ifnull(channel_status_url,'')<>'' AND ifnull(page_note,'') LIKE '%渠道状态要登录%'")
+    elif channel == "no":
+        where.append("ifnull(channel_status_url,'')=''")
     return " AND ".join(where), params
 
 

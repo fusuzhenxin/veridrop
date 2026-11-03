@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import modelRows from "./model-rows.json";
-import { models, modelsOf, stationHeading, stationPath, stations } from "./data.js";
+import { hubMark, models, modelsOf, stationHeading, stationPath, stations } from "./data.js";
 import { preloadModelPrices } from "./prices.js";
 import { useTitle } from "./ui.jsx";
 
@@ -267,8 +267,8 @@ function StationName({ row }) {
   if (local) {
     return (
       <span className="hrb-nmrow">
-        <Link className="st-out" to={stationPath(local)}><span className="slb-nm">{row.name}</span></Link>
-        {outbound ? <a className="st-jump" href={outbound} target="_blank" rel="noreferrer" aria-label="打开站点"><OutIcon /></a> : null}
+        <Link className="st-out" to={stationPath(local)} {...hubMark(local, "model-name")}><span className="slb-nm">{row.name}</span></Link>
+        {outbound ? <a className="st-jump" href={outbound} target="_blank" rel="noreferrer" aria-label="打开站点" {...hubMark(local, "model-jump")}><OutIcon /></a> : null}
         {row.cnDown ? <DownTag /> : null}
       </span>
     );

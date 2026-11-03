@@ -974,6 +974,7 @@ function onRunnerLoad() {
 
 function childFrame(source) {
   if (!source) return false;
+  if (source === window && document.querySelector(".check-host")) return true;
   const frames = document.querySelectorAll("iframe");
   for (let i = 0; i < frames.length; i += 1) {
     if (frames[i].contentWindow === source) return true;

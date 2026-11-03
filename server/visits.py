@@ -14,6 +14,38 @@ from urllib.parse import quote
 from urllib.request import Request, urlopen
 
 KINDS = ["home", "check", "cat", "site", "model", "official", "apply", "other"]
+AD_PLACES = ["home", "list"]
+AD_LABEL = {"home": "首页广告", "list": "列表广告"}
+HUB_PLACES = [
+    "home-rank",
+    "home-jump",
+    "home-rec",
+    "home-review",
+    "list-rank",
+    "list-jump",
+    "site-go",
+    "site-link",
+    "site-api",
+    "model-name",
+    "model-jump",
+    "vote",
+    "search",
+]
+HUB_LABEL = {
+    "home-rank": "首页排行",
+    "home-jump": "首页排行外链",
+    "home-rec": "首页推荐",
+    "home-review": "首页点评",
+    "list-rank": "站点列表",
+    "list-jump": "列表排行外链",
+    "site-go": "站点页官网",
+    "site-link": "站点页链接",
+    "site-api": "站点页接口",
+    "model-name": "模型页站名",
+    "model-jump": "模型页外链",
+    "vote": "投票页",
+    "search": "搜索",
+}
 KIND_LABEL = {
     "home": "首页",
     "check": "模型检测",
@@ -187,26 +219,47 @@ def _as_sites(data: dict) -> dict:
     return {"sites": sites}
 
 
+def _place_list(value, key: str, allowed: list[str]) -> list[str]:
+    if not isinstance(value, dict):
+        return []
+    raw = value.get(key)
+    if not isinstance(raw, list):
+        return []
+    seen = []
+    for item in raw:
+        text = str(item or "")
+        if text in allowed and text not in seen:
+            seen.append(text)
+    return seen
+
+
+def _union(left: list[str], extra: str, allowed: list[str]) -> list[str]:
+    seen = [item for item in left if item in allowed]
+    if extra in allowed and extra not in seen:
+        seen.append(extra)
+    return seen
+
+
 def _entry(value):
     clicked = 1 if isinstance(value, dict) and value.get("c") else 0
+    ad_places = _place_list(value, "ap", AD_PLACES)
+    hub_places = _place_list(value, "h", HUB_PLACES)
     if isinstance(value, str) and value in KINDS:
-        return {"k": value, "o": 0, "a": 1, "c": 0}
+        return {"k": value, "o": 0, "a": 1, "c": 0, "ap": [], "h": []}
     if not isinstance(value, dict):
         return None
-    if value.get("k"):
-        kind = value["k"] if value["k"] in KINDS else ""
-        if not kind and not clicked:
-            return None
-        return {"k": kind, "o": 1 if value.get("o") else 0, "a": 1 if value.get("a") else 0, "c": clicked}
-    if not value.get("o") and not value.get("a") and not clicked:
+    kind = value["k"] if value.get("k") in KINDS else ""
+    opened = 1 if value.get("o") else 0
+    acted = 1 if value.get("a") else 0
+    if not kind and not opened and not acted and not clicked and not ad_places and not hub_places:
         return None
-    return {"k": "", "o": 1 if value.get("o") else 0, "a": 1 if value.get("a") else 0, "c": clicked}
+    return {"k": kind, "o": opened, "a": acted, "c": clicked, "ap": ad_places, "h": hub_places}
 
 
-def _merge(prev, kind: str, acted: bool, clicked: bool = False):
+def _merge(prev, kind: str, acted: bool, clicked: bool = False, ad_place: str = "", hub_place: str = ""):
     opened = 0 if acted else 1
     acted_bit = 1 if acted else 0
-    click_bit = 1 if clicked else 0
+    click_bit = 1 if clicked or ad_place in AD_PLACES else 0
     current = _entry(prev)
     if not current:
         entry = {"o": opened, "a": acted_bit}
@@ -214,6 +267,12 @@ def _merge(prev, kind: str, acted: bool, clicked: bool = False):
             entry["c"] = 1
         if kind:
             entry["k"] = kind
+        ad_places = _union([], ad_place, AD_PLACES)
+        hub_places = _union([], hub_place, HUB_PLACES)
+        if ad_places:
+            entry["ap"] = ad_places
+        if hub_places:
+            entry["h"] = hub_places
         return entry
     entry = {"o": current["o"] or opened, "a": current["a"] or acted_bit}
     if current["c"] or click_bit:
@@ -221,6 +280,12 @@ def _merge(prev, kind: str, acted: bool, clicked: bool = False):
     next_kind = current["k"] or kind or ""
     if next_kind:
         entry["k"] = next_kind
+    ad_places = _union(current["ap"], ad_place, AD_PLACES)
+    hub_places = _union(current["h"], hub_place, HUB_PLACES)
+    if ad_places:
+        entry["ap"] = ad_places
+    if hub_places:
+        entry["h"] = hub_places
     return entry
 
 
@@ -252,7 +317,9 @@ def record_visit(ua: str, origin: str, body: bytes, now: datetime | None = None)
     kinds = SITES[site]["kinds"]
     kind = clean_kind(data.get("kind"), kinds)
     clicked = data.get("ad") is True and site == "veridrop"
-    if kinds and not kind and not clicked:
+    ad_place = clean_kind(data.get("place"), AD_PLACES) if clicked else ""
+    hub_place = clean_kind(data.get("hub"), HUB_PLACES) if site == "veridrop" else ""
+    if kinds and not kind and not clicked and not hub_place:
         return 204
     acted = data.get("acted") is True
     moment = now or datetime.now(timezone.utc)
@@ -264,7 +331,7 @@ def record_visit(ua: str, origin: str, body: bytes, now: datetime | None = None)
             raw = _MEMORY
         days = raw.setdefault("sites", {}).setdefault(site, {}).setdefault("days", {})
         bucket = days.setdefault(day, {})
-        bucket[visitor] = _merge(bucket.get(visitor), kind, acted, clicked)
+        bucket[visitor] = _merge(bucket.get(visitor), kind, acted, clicked, ad_place, hub_place)
         _prune(raw, moment)
         if _blob_token():
             _write_blob({"sites": raw["sites"]})
@@ -281,6 +348,8 @@ def _rows(site: str, now: datetime) -> list[dict]:
     for date in dates:
         raw = days.get(date) if isinstance(days.get(date), dict) else {}
         counts = {kind: 0 for kind in kinds}
+        ad_places = {place: 0 for place in AD_PLACES}
+        hub_places = {place: 0 for place in HUB_PLACES}
         opened = 0
         acted = 0
         ads = 0
@@ -292,11 +361,23 @@ def _rows(site: str, now: datetime) -> list[dict]:
                 opened += 1
             if entry["a"]:
                 acted += 1
-            if entry["c"]:
+            if entry["c"] or entry["ap"]:
                 ads += 1
+            for place in entry["ap"]:
+                ad_places[place] += 1
+            for place in entry["h"]:
+                hub_places[place] += 1
             if entry["k"] in counts:
                 counts[entry["k"]] += 1
-        rows.append({"date": date, "open": opened, "acted": acted, "ad": ads, "kinds": counts})
+        rows.append({
+            "date": date,
+            "open": opened,
+            "acted": acted,
+            "ad": ads,
+            "adPlaces": ad_places,
+            "hub": hub_places,
+            "kinds": counts,
+        })
     return rows
 
 
@@ -327,8 +408,11 @@ def render_html(site: str, rows: list[dict], key: str) -> str:
     ad_sum = sum(row.get("ad") or 0 for row in rows)
     show_ads = site == "veridrop"
     head = "".join(f"<th>{_esc(KIND_LABEL[kind])}</th>" for kind in kinds)
-    ad_head = "<th>广告点击</th>" if show_ads else ""
+    ad_place_head = "".join(f"<th>{_esc(AD_LABEL[place])}</th>" for place in AD_PLACES) if show_ads else ""
+    ad_head = f"<th>广告点击</th>{ad_place_head}" if show_ads else ""
+    hub_head = "".join(f"<th>{_esc(HUB_LABEL[place])}</th>" for place in HUB_PLACES)
     body = []
+    hub_body = []
     for row in rows:
         classes = []
         if row["date"] == today:
@@ -337,11 +421,27 @@ def render_html(site: str, rows: list[dict], key: str) -> str:
             classes.append("is-empty")
         cls = f' class="{" ".join(classes)}"' if classes else ""
         kind_cells = "".join(_cell(row["kinds"].get(kind, 0)) for kind in kinds)
-        ad_cell = _cell(row.get("ad") or 0, "col-ad") if show_ads else ""
+        ad_places = row.get("adPlaces") or {}
+        hub_places = row.get("hub") or {}
+        ad_cells = ""
+        if show_ads:
+            ad_cells = _cell(row.get("ad") or 0, "col-ad") + "".join(
+                _cell(ad_places.get(place, 0), "col-ad") for place in AD_PLACES
+            )
         body.append(
-            f"<tr{cls}><td>{_esc(row['date'])}</td>{_cell(row['open'], 'col-open')}{_cell(row['acted'], 'col-act')}{ad_cell}{kind_cells}</tr>"
+            f"<tr{cls}><td>{_esc(row['date'])}</td>{_cell(row['open'], 'col-open')}{_cell(row['acted'], 'col-act')}{ad_cells}{kind_cells}</tr>"
         )
-    note = "每个浏览器按上海时间一天记一次。页面打开记「打开」，当天第一次点击、按键或滚动再记「有操作」。点开带赞助标记的广告再记「广告点击」。爬虫不算。同一个人连续来几天会各记一次。"
+        hub_cells = "".join(_cell(hub_places.get(place, 0), "col-hub") for place in HUB_PLACES)
+        hub_total = sum(hub_places.get(place, 0) for place in HUB_PLACES)
+        hub_body.append(f"<tr{cls}><td>{_esc(row['date'])}</td>{_cell(hub_total, 'col-hub')}{hub_cells}</tr>")
+    hub_sum = sum(sum((row.get("hub") or {}).get(place, 0) for place in HUB_PLACES) for row in rows)
+    note = "每个浏览器按上海时间一天记一次。页面打开记「打开」，当天第一次点击、按键或滚动再记「有操作」。带赞助标记的广告按位置另记，跟中转站点击分开。aruhub 每个位置单独记一次，同一个人同一天点两个位置会记两下。爬虫不算。"
+    hub_block = ""
+    if show_ads:
+        hub_block = f"""<h2>aruhub API 点击</h2>
+<p class="note">跟广告位分开。近 30 天各位置相加是 {hub_sum}。同一人、同一位置、同一天只记一次。</p>
+<div class="table-wrap"><table class="hub"><thead><tr><th>日期</th><th>合计</th>{hub_head}</tr></thead>
+<tbody>{''.join(hub_body)}</tbody></table></div>"""
     links = []
     for site_id, meta in SITES.items():
         query = "key=" + quote(key)
@@ -357,29 +457,31 @@ def render_html(site: str, rows: list[dict], key: str) -> str:
 <style>
 :root{{color-scheme:dark;--bg:#070b14;--panel:#121b2e;--line:rgba(168,196,255,.12);--text:#e9f0ff;--muted:#8b9bb8;--teal:#3ee0c2;--blue:#7aa7ff;--placeholder:#6d7d99}}
 *{{box-sizing:border-box}}body{{margin:0;font:16px/1.5 "PingFang SC","Microsoft YaHei",system-ui,sans-serif;color:var(--text);background:var(--bg)}}
-.wrap{{max-width:1120px;margin:0 auto;padding:28px 20px 64px}}
-h1{{margin:0;font-size:28px}} .sub,.note{{color:var(--muted)}}
+.wrap{{max-width:1280px;margin:0 auto;padding:28px 20px 64px}}
+h1{{margin:0;font-size:28px}} h2{{margin:28px 0 8px;font-size:20px}} .sub,.note{{color:var(--muted)}}
 .sites{{display:flex;gap:18px;margin:12px 0 0}} .sites a{{color:var(--muted);text-decoration:none}}
 .sites a[aria-current=page]{{color:var(--text);font-weight:600}}
 .stats{{display:flex;gap:16px;margin:22px 0 14px}}
 .stat{{flex:1;background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:18px 20px}}
 .stat .label{{color:var(--muted);font-size:14px}} .stat .num{{display:block;margin-top:4px;font-size:40px;font-weight:600}}
-.stat.open .num{{color:var(--teal)}} .stat.act .num{{color:var(--blue)}} .stat.ad .num{{color:#d9f99d}}
+.stat.open .num{{color:var(--teal)}} .stat.act .num{{color:var(--blue)}} .stat.ad .num{{color:#d9f99d}} .stat.hub .num{{color:#fbbf24}}
 .table-wrap{{background:var(--panel);border:1px solid var(--line);border-radius:18px;overflow:auto}}
 table{{width:100%;border-collapse:collapse;min-width:920px}}
+table.hub{{min-width:1280px}}
 th,td{{padding:10px 12px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap}}
 th:first-child,td:first-child{{text-align:left}} th{{color:var(--muted);font-size:13px}}
-td.col-open{{color:var(--teal)}} td.col-act{{color:var(--blue)}} td.col-ad{{color:#d9f99d}} td.zero{{color:var(--placeholder)}}
+td.col-open{{color:var(--teal)}} td.col-act{{color:var(--blue)}} td.col-ad{{color:#d9f99d}} td.col-hub{{color:#fbbf24}} td.zero{{color:var(--placeholder)}}
 tr.is-empty td{{color:var(--placeholder)}}
 @media(max-width:640px){{.stats{{flex-direction:column}}}}
 </style></head><body><div class="wrap">
 <p class="sub">{_esc(label)}</p><h1>访客</h1><p class="sub">近 30 天 · 上海时间</p>{nav}
 <div class="stats"><section class="stat open"><span class="label">打开</span><strong class="num">{open_sum}</strong></section>
 <section class="stat act"><span class="label">有操作</span><strong class="num">{act_sum}</strong></section>
-{f'<section class="stat ad"><span class="label">广告点击</span><strong class="num">{ad_sum}</strong></section>' if show_ads else ''}</div>
+{f'<section class="stat ad"><span class="label">广告点击</span><strong class="num">{ad_sum}</strong></section><section class="stat hub"><span class="label">aruhub 点击</span><strong class="num">{hub_sum}</strong></section>' if show_ads else ''}</div>
 <p class="note">{_esc(note)}</p>
 <div class="table-wrap"><table><thead><tr><th>日期</th><th>打开</th><th>有操作</th>{ad_head}{head}</tr></thead>
-<tbody>{''.join(body)}</tbody></table></div></div></body></html>"""
+<tbody>{''.join(body)}</tbody></table></div>
+{hub_block}</div></body></html>"""
 
 
 def read_visits(key: str, fmt: str, site: str, now: datetime | None = None) -> tuple[int, dict, bytes]:

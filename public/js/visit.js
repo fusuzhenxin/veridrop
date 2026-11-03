@@ -120,25 +120,59 @@
     );
   }
 
-  function adTarget(node) {
-    while (node && node !== document) {
-      if (node.tagName === "A" && /(?:^|\s)sponsored(?:\s|$)/.test(node.getAttribute("rel") || "")) return node;
-      node = node.parentNode;
+  var AD_PLACES = { home: 1, list: 1 };
+  var HUB_PLACES = {
+    "home-rank": 1,
+    "home-jump": 1,
+    "home-rec": 1,
+    "home-review": 1,
+    "list-rank": 1,
+    "list-jump": 1,
+    "site-go": 1,
+    "site-link": 1,
+    "site-api": 1,
+    "model-name": 1,
+    "model-jump": 1,
+    vote: 1,
+    search: 1,
+  };
+
+  function placeSeen(storeKey, place, today) {
+    try {
+      var raw = localStorage.getItem(storeKey) || "";
+      if (storeKey === "vd-visit-ad" && raw === today) return place === "list";
+      var parts = raw.split("|");
+      if (parts[0] !== today) return false;
+      return (parts[1] || "").split(",").indexOf(place) >= 0;
+    } catch (err) {
+      return true;
     }
-    return null;
   }
 
-  function postAd() {
-    var today = dayKey();
+  function markPlace(storeKey, place, today) {
     try {
-      if (localStorage.getItem("vd-visit-ad") === today) return Promise.resolve();
+      var raw = localStorage.getItem(storeKey) || "";
+      var parts = raw.split("|");
+      var list = parts[0] === today ? (parts[1] || "").split(",").filter(Boolean) : [];
+      if (storeKey === "vd-visit-ad" && raw === today && list.indexOf("list") < 0) list.push("list");
+      if (list.indexOf(place) < 0) list.push(place);
+      localStorage.setItem(storeKey, today + "|" + list.join(","));
     } catch (err) {
-      return Promise.resolve();
+      /* the server still keeps one click per place per day */
     }
+  }
+
+  function postSpot(storeKey, place, allowed, extra) {
+    if (!allowed[place]) return Promise.resolve();
+    var today = dayKey();
+    if (placeSeen(storeKey, place, today)) return Promise.resolve();
     var id = visitorId();
     if (!id || typeof fetch !== "function") return Promise.resolve();
-    var payload = { id: id, ad: true, kind: kind() };
+    var payload = { id: id, kind: kind() };
     if (site) payload.site = site;
+    if (extra) payload[extra] = extra === "ad" ? true : place;
+    if (extra === "ad") payload.place = place;
+    if (extra === "hub") payload.hub = place;
     return fetch(endpoint, {
       method: "POST",
       headers: { "content-type": "application/json" },
@@ -146,20 +180,39 @@
       keepalive: true,
     })
       .then(function (res) {
-        if (res && res.ok) {
-          try {
-            localStorage.setItem("vd-visit-ad", today);
-          } catch (err) {
-            /* the server still keeps one ad click per browser per day */
-          }
-        }
+        if (res && res.ok) markPlace(storeKey, place, today);
       })
       .catch(function () {});
   }
 
+  function clickSpot(node) {
+    var ad = "";
+    var hub = "";
+    while (node && node !== document) {
+      var tag = node.tagName;
+      if (tag === "BUTTON" || tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return null;
+      if (!ad && tag === "A" && /(?:^|\s)sponsored(?:\s|$)/.test(node.getAttribute("rel") || "")) {
+        ad = node.getAttribute("data-vd-ad") || "list";
+        if (!AD_PLACES[ad]) ad = "list";
+        return { ad: ad };
+      }
+      if (!hub && node.getAttribute && node.getAttribute("data-vd-hit") === "aruhub") {
+        hub = node.getAttribute("data-vd-place") || "";
+        return HUB_PLACES[hub] ? { hub: hub } : null;
+      }
+      node = node.parentNode;
+    }
+    return null;
+  }
+
   document.addEventListener("click", function (ev) {
-    if (!ev || ev.isTrusted === false || !adTarget(ev.target)) return;
-    tail = tail.then(postAd, postAd);
+    if (!ev || ev.isTrusted === false) return;
+    var spot = clickSpot(ev.target);
+    if (!spot) return;
+    var job = spot.ad
+      ? function () { return postSpot("vd-visit-ad", spot.ad, AD_PLACES, "ad"); }
+      : function () { return postSpot("vd-visit-hub", spot.hub, HUB_PLACES, "hub"); };
+    tail = tail.then(job, job);
   }, true);
 
   var opts = { capture: true, passive: true };

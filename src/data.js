@@ -757,6 +757,17 @@ export function stationPath(item) {
   return item?.path || (item?.slug ? `/site/${item.slug}` : "/list");
 }
 
+export function isAruhub(station) {
+  const host = String(station?.host || "").replace(/^www\./, "").toLowerCase();
+  const slug = String(station?.slug || "");
+  return host === "aruhub.com" || slug === "1852-aruhub-com" || station?.verdId === 1852;
+}
+
+export function hubMark(station, place) {
+  if (!isAruhub(station)) return {};
+  return { "data-vd-hit": "aruhub", "data-vd-place": place };
+}
+
 function officialDays(provider, name, existing) {
   if (existing?.length) return existing;
   const coded = officialBars[provider]?.[name];

@@ -2671,6 +2671,13 @@
   }
 
   function axPlaceMask(mask, box) {
+    if (inSitePage()) {
+      mask.style.position = "fixed";
+      mask.style.inset = "0";
+      mask.style.zIndex = "90";
+      box.style.maxHeight = "calc(100vh - 48px)";
+      return;
+    }
     var view = axVisibleFrame();
     mask.style.position = "absolute";
     mask.style.top = view.top + "px";
@@ -2745,7 +2752,8 @@
     });
     document.addEventListener("keydown", onKey);
     mask.appendChild(box);
-    document.body.appendChild(mask);
+    var host = document.querySelector(".check-host");
+    (host || document.body).appendChild(mask);
     place();
     try {
       window.parent.addEventListener("scroll", place, true);
@@ -3320,6 +3328,7 @@
   }
 
   function applyViewSeo(name) {
+    if (inSitePage()) return;
     const seo = VIEW_SEO[name] || VIEW_SEO.home;
     document.title = seo.title;
     setMeta("description", seo.description);
@@ -3370,7 +3379,9 @@
     const setup = $("mcSetup");
     const slot = document.getElementById("setup-" + name);
     if (setup && slot) slot.appendChild(setup);
-    if (!inParentCheck()) {
+    if (inSitePage()) {
+      window.dispatchEvent(new CustomEvent("veridrop-inline-view", { detail: name }));
+    } else if (!inParentCheck()) {
       let path = pathForView(name);
       if (isHiddenRunner()) {
         const run = new URLSearchParams(location.search).get("run");
@@ -3383,6 +3394,10 @@
     }
     paintSetupGate();
     paintDetectRows();
+  }
+
+  function inSitePage() {
+    return !!document.querySelector(".check-host");
   }
 
   function inParentCheck() {
@@ -3766,7 +3781,7 @@
   }
 
   function requestParentJob(suite) {
-    if (!inParentCheck()) return false;
+    if (!inParentCheck() && !inSitePage()) return false;
     if (!guardSetup()) return true;
     let payload;
     try {
@@ -3776,7 +3791,8 @@
       return true;
     }
     showJobNote("正在开始…");
-    window.parent.postMessage(payload, location.origin);
+    const target = inParentCheck() ? window.parent : window;
+    target.postMessage(payload, location.origin);
     return true;
   }
 
@@ -3928,6 +3944,11 @@
       const name = viewFromPath(url.pathname);
       if (!name) return;
       event.preventDefault();
+      if (inSitePage()) {
+        if (name !== "basic") showMcView(name, false);
+        window.dispatchEvent(new CustomEvent("veridrop-inline-view", { detail: name }));
+        return;
+      }
       if (inParentCheck()) {
         if (name !== "basic") showMcView(name, false);
         tellParentView(name);

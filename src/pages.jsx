@@ -9,6 +9,7 @@ import {
   compareStations,
   pinBoard,
   findStation,
+  hubMark,
   iq,
   latestTests,
   modelTotal,
@@ -36,7 +37,7 @@ import { ModelBoard, ModIcon } from "./model-board.jsx";
 import { useStationModels } from "./prices.js";
 
 import { applyRemoteAccount, fitAvatar, readAvatar, readFavs, readSession, readSubmissions, writeAvatar, writeFavs, writeSession } from "./account.js";
-import { authToken, changePassword, fetchAccount, fetchComments, fetchVotes, saveAvatar, saveFavorite, sendCheckin, sendComment, sendVote, setAuthToken, stationVoteId, updateProfile } from "./community.js";
+import { authToken, changePassword, fetchAccount, fetchComments, fetchShop, fetchVotes, redeemShop, saveAvatar, saveFavorite, sendCheckin, sendComment, sendVote, setAuthToken, stationVoteId, updateProfile } from "./community.js";
 import { grant, isDone, readPoints, replacePoints, saveNick } from "./points.js";
 import {
   Logo,
@@ -808,12 +809,12 @@ function stationSite(item) {
   return /^https?:\/\//i.test(url) ? url : "";
 }
 
-function StationJump({ item }) {
+function StationJump({ item, place }) {
   const href = stationSite(item);
   const label = stationHeading(item);
   if (!href) return <div className="site-name" title={label}>{label}</div>;
   return (
-    <a className="rank-jump" href={href} target="_blank" rel="noreferrer" onClick={(event) => event.stopPropagation()}>
+    <a className="rank-jump" href={href} target="_blank" rel="noreferrer" onClick={(event) => event.stopPropagation()} {...hubMark(item, place)}>
       <span title={label}>{label}</span>
       <svg className="st-arrow" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
         <path d="M7 17 17 7M8 7h9v9" />
@@ -905,13 +906,13 @@ function RankTable({ rows, mode }) {
         </thead>
         <tbody>
           {rows.map((item) => (
-            <tr key={item.slug} className="click" onClick={() => navigate(stationPath(item))}>
+            <tr key={item.slug} className="click" onClick={() => navigate(stationPath(item))} {...hubMark(item, mode === "home" ? "home-rank" : "list-rank")}>
               <td><StarButton on={Boolean(favs[item.slug])} onToggle={() => setFavs(toggleFav(item.slug))} /></td>
               <td>
                 <div className={list ? "slb-st" : "site-cell"}>
                   <Logo station={item} />
                   <div className={list ? "slb-stn" : "site-id"}>
-                    <StationJump item={item} />
+                    <StationJump item={item} place={mode === "home" ? "home-jump" : "list-jump"} />
                     {mode === "home" ? (
                       <div className="site-meta">
                         {item.listed ? <>收录于 {item.listed}</> : null}
@@ -1042,7 +1043,7 @@ function RecMark({ src, name }) {
 
 function RecRow({ item, loop = false }) {
   return (
-    <Link className="rec-row" to={item.path} aria-hidden={loop || undefined} tabIndex={loop ? -1 : undefined}>
+    <Link className="rec-row" to={item.path} aria-hidden={loop || undefined} tabIndex={loop ? -1 : undefined} {...hubMark(findStation(item.slug), "home-rec")}>
       <RecMark src={item.img} name={item.name} />
       <span className="grow">{item.name}</span>
       <span className={`rec-tag ${item.tone}`}>{item.tag}</span>
@@ -1371,9 +1372,7 @@ export function HomePage() {
         <div className="hero-top">
           <div className="hero-copy">
             <HeroStars />
-            <h1>
-              发现<span className="g">好用</span>的 AI 中转站
-            </h1>
+            <h1>API中转站排行</h1>
             <div className="hero-actions">
               <Link to="/list" className="hero-cta">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
@@ -1479,6 +1478,7 @@ export function HomePage() {
           <h2>站点排行</h2>
           <Link className="more" to="/list">查看更多 ›</Link>
         </div>
+        <p className="rank-lead">API 中转站是把 ChatGPT、Claude、Gemini、DeepSeek 等模型接口转售的第三方网站。维渡只做导航和对照，按在线率、延迟、支付方式和公开价格列出已收录的站。本站不代收充值，探测结果也不证明模型来自官方原厂。</p>
         <RankCats current={cat} onPick={pickCat} />
         {rows.length ? <RankTable rows={rows} mode="home" /> : <div className="empty">这个分类下还没有站点</div>}
         <Pager page={safePage} pages={pages} onPage={setPage} />
@@ -1597,8 +1597,8 @@ export function ListPage({ modelId = "" }) {
   const model = modelId || "";
   const catMeta = CAT_SEO[cat];
   const modelMeta = MODEL_SEO[model];
-  const heading = modelMeta?.h1 || catMeta?.h1 || "AI 中转站排行榜";
-  useTitle(modelMeta?.title || catMeta?.title || "AI 中转站排行榜｜在线率、延迟、最低充值、支付和发票");
+  const heading = modelMeta?.h1 || catMeta?.h1 || "API中转站排行榜";
+  useTitle(modelMeta?.title || catMeta?.title || "API中转站排行榜｜在线率、延迟、支付和发票");
   const [q, setQ] = useState("");
   const [pay, setPay] = useState("all");
   const [min, setMin] = useState("all");
@@ -1683,7 +1683,7 @@ export function ListPage({ modelId = "" }) {
           </div>
         </section>
       ) : null}
-      <SponsorStrip items={listSponsors} />
+      <SponsorStrip items={listSponsors} place="list" />
       <div className="slb-pcfilter">
         <label className="slb-search">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
@@ -2395,7 +2395,7 @@ export function StationPage() {
               </div>
               <div className="links">
                 {socials.map((item) => (
-                  <a key={item.name} href={item.url} target="_blank" rel="noreferrer">{item.name}</a>
+                  <a key={item.name} href={item.url} target="_blank" rel="noreferrer" {...hubMark(station, "site-link")}>{item.name}</a>
                 ))}
               </div>
               {station.tags?.length ? (
@@ -2413,7 +2413,7 @@ export function StationPage() {
                 <button className={`sq ${starred ? "on" : ""}`} type="button" aria-label="收藏" onClick={() => setStarred(Boolean(toggleFav(station.slug)[station.slug]))}>☆</button>
                 <button className="sq" type="button" aria-label="分享" onClick={() => navigator.clipboard?.writeText(window.location.href)}>⤴</button>
               </span>
-              <a className="visit" href={official} target="_blank" rel="noreferrer">前往官网 ↗</a>
+              <a className="visit" href={official} target="_blank" rel="noreferrer" {...hubMark(station, "site-go")}>前往官网 ↗</a>
             </div>
           </div>
 
@@ -2669,7 +2669,7 @@ export function StationPage() {
               <div key={link.url} className="link-card">
                 <div className="link-top">
                   <b>{link.name}</b>
-                  <a href={link.url} target="_blank" rel="noreferrer">{link.url}</a>
+                  <a href={link.url} target="_blank" rel="noreferrer" {...hubMark(station, "site-api")}>{link.url}</a>
                 </div>
                 <div className="link-sub">
                   <span>{link.desc || "调用地址"}</span>
@@ -3233,7 +3233,7 @@ export function ReputationPage() {
               <article key={station.slug} className="vcard">
                 <div className="vrank">{index + 1}</div>
                 <div className="vbody">
-                  <Link className="vid" to={station.path}>
+                  <Link className="vid" to={station.path} {...hubMark(station, "vote")}>
                     <Logo station={station} />
                     <span>
                       <div className="nm">{station.name}</div>
@@ -3266,7 +3266,7 @@ export function ReputationPage() {
                       <span>反对</span>
                     </button>
                   </div>
-                  <Link className="vmore" to={station.path}>了解更多 ›</Link>
+                  <Link className="vmore" to={station.path} {...hubMark(station, "vote")}>了解更多 ›</Link>
                 </div>
               </article>
             );
@@ -4145,6 +4145,44 @@ function InviteDialog({ copied, onCopy, onClose }) {
   );
 }
 
+function ShopCard({ item, busy, onRedeem, showKey, onToggleKey, onCopy, copied }) {
+  const sold = item.status === "done" && !item.mine;
+  const label = item.mine ? "已兑换" : sold ? "已兑完" : busy ? "兑换中…" : "立即兑换";
+  return (
+    <article className={`shop-card${item.mine ? " mine" : ""}`}>
+      <div className="shop-top">
+        <div className="shop-brand">
+          <span className="shop-logo"><img src={item.icon || "/icons/vendor/deepseek.svg"} alt="" width="28" height="28" /></span>
+          <strong>{item.brand || item.title}</strong>
+        </div>
+        {item.badge ? <span className="shop-badge">{item.badge}</span> : null}
+      </div>
+      <h3>{item.title}</h3>
+      <p>{item.desc}</p>
+      <div className="shop-meta">
+        <span className="shop-cost"><i />{item.cost} 积分</span>
+        <span>{item.ends === "quota" ? "用完截止" : "长期"}，每人限 {item.perPerson || 1} 份</span>
+      </div>
+      {item.mine && item.url ? (
+        <div className="shop-cred">
+          <div>
+            <span>接口</span>
+            <code>{item.url}</code>
+            <button type="button" onClick={() => onCopy(item.url, `${item.id}-url`)}>{copied === `${item.id}-url` ? "已复制" : "复制"}</button>
+          </div>
+          <div>
+            <span>Key</span>
+            <code>{showKey ? item.key : "••••••••"}</code>
+            <button type="button" onClick={onToggleKey}>{showKey ? "隐藏" : "显示"}</button>
+            <button type="button" onClick={() => onCopy(item.key, `${item.id}-key`)}>{copied === `${item.id}-key` ? "已复制" : "复制"}</button>
+          </div>
+        </div>
+      ) : null}
+      <button type="button" className="shop-go" disabled={sold || busy || item.mine} onClick={onRedeem}>{label}</button>
+    </article>
+  );
+}
+
 export function PointsPage() {
   useTitle("赚积分｜签到、投票和点评记在账户，检测只留在这台浏览器");
   const navigate = useNavigate();
@@ -4161,6 +4199,9 @@ export function PointsPage() {
   const [note, setNote] = useState("");
   const [inviteOpen, setInviteOpen] = useState(false);
   const [copied, setCopied] = useState("");
+  const [shop, setShop] = useState([]);
+  const [busyId, setBusyId] = useState("");
+  const [reveal, setReveal] = useState({});
 
   useEffect(() => {
     const sync = () => {
@@ -4178,7 +4219,14 @@ export function PointsPage() {
 
   useEffect(() => {
     if (location.hash === "#invite") setInviteOpen(true);
+    if (location.hash === "#redeem") setTab("redeem");
   }, [location.hash]);
+
+  useEffect(() => {
+    fetchShop()
+      .then((data) => setShop(Array.isArray(data.items) ? data.items : []))
+      .catch(() => setShop([]));
+  }, [signedIn, tab]);
 
   useEffect(() => {
     const sync = () => {
@@ -4363,7 +4411,7 @@ export function PointsPage() {
       <header className="pts-head">
         <div>
           <h1>积分中心</h1>
-          <p>做任务赚积分。兑换页目前没有奖品。</p>
+          <p>做任务赚积分。20 积分可兑换 DeepSeek 共享额度。</p>
         </div>
         <div className="pts-stats">
           <div className="pts-stat">
@@ -4426,7 +4474,49 @@ export function PointsPage() {
             ))}
           </div>
           <div className="shop-grid">
-            <div className="shop-empty">这里还空着,奖品正在路上。</div>
+            {shop.filter((item) => (item.status || "open") === redeem).length ? (
+              shop.filter((item) => (item.status || "open") === redeem).map((item) => (
+                <ShopCard
+                  key={item.id}
+                  item={item}
+                  busy={busyId === item.id}
+                  showKey={Boolean(reveal[item.id])}
+                  onToggleKey={() => setReveal((current) => ({ ...current, [item.id]: !current[item.id] }))}
+                  onCopy={async (text, which) => {
+                    try {
+                      await navigator.clipboard.writeText(text);
+                      setCopied(which);
+                      setNote("已复制");
+                    } catch {
+                      setNote("这台浏览器没有允许复制");
+                    }
+                  }}
+                  copied={copied}
+                  onRedeem={async () => {
+                    if (!signedIn) {
+                      setNote("请先登录再兑换");
+                      window.dispatchEvent(new Event("okk-open-auth"));
+                      return;
+                    }
+                    setBusyId(item.id);
+                    try {
+                      const result = await redeemShop(item.id);
+                      if (result.points) replacePoints(result.points);
+                      setShop((current) => current.map((row) => (row.id === result.item.id ? result.item : row)));
+                      setReveal((current) => ({ ...current, [item.id]: true }));
+                      setNote("兑换成功，接口和 Key 已显示在卡片上");
+                    } catch (error) {
+                      setNote(error.status === 401 ? "请先登录再兑换" : error.message || "兑换没有完成");
+                      if (error.status === 401) window.dispatchEvent(new Event("okk-open-auth"));
+                    } finally {
+                      setBusyId("");
+                    }
+                  }}
+                />
+              ))
+            ) : (
+              <div className="shop-empty">{redeem === "open" ? "这里还空着，奖品正在路上。" : "这一栏暂时没有奖品。"}</div>
+            )}
           </div>
         </>
       ) : null}
@@ -4442,7 +4532,15 @@ export function PointsPage() {
               <div key={item.at + index} className="plog">
                 <div className="pl-date">{new Intl.DateTimeFormat("zh-CN", { timeZone: "Asia/Shanghai", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hour12: false }).format(new Date(item.at)).replace(/\//g, "-")}</div>
                 <div className="pl-reason">{item.reason}</div>
-                <div className="pl-pts">+{item.amount}</div>
+                <div className={`pl-pts${item.amount < 0 ? " spend" : ""}`}>{item.amount > 0 ? `+${item.amount}` : item.amount}</div>
+              </div>
+            ))
+          ) : ledgerTab === "mine" && shop.some((item) => item.mine) ? (
+            shop.filter((item) => item.mine).map((item) => (
+              <div key={item.id} className="plog">
+                <div className="pl-date">{item.redeemedAt ? new Intl.DateTimeFormat("zh-CN", { timeZone: "Asia/Shanghai", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hour12: false }).format(new Date(item.redeemedAt)).replace(/\//g, "-") : "已兑换"}</div>
+                <div className="pl-reason">{item.title}</div>
+                <div className="pl-pts spend">-{item.cost}</div>
               </div>
             ))
           ) : (

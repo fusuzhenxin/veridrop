@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { useLocation } from "react-router-dom";
-import { findReport, findStation, modelTotal, stationHeading, stationTotal, stations } from "./data.js";
+import { findReport, findStation, stationHeading, stations } from "./data.js";
 import { getOfficialSnapshot } from "./official-store.js";
 import modelRows from "./model-rows.json";
 import { CAT_SEO, CHECK_PAGES, MODEL_SEO, OFFICIAL_SEO } from "./verd-meta.js";
@@ -9,8 +9,8 @@ import publishedBasic from "./published-basic.json";
 const ORIGIN = String(import.meta.env.VITE_SITE_ORIGIN || "https://www.veridrop.cn").replace(/\/$/, "");
 
 const PAGES = {
-  "/": `发现好用的 AI 中转站。现收录 ${stationTotal} 家站点、${modelTotal} 个模型，对照在线率、延迟、支付和公开价格。数据来自目录探测和公开信息，不代收充值，也不证明官方原厂。`,
-  "/list": "AI 中转站排行榜。可按在线率、延迟、最低充值、支付方式、发票和原有分类筛选。展示的是目录探测结果，不构成充值建议。",
+  "/": "维渡 AI 的 API中转站排行。对照在线率、延迟、支付和公开价格。先看名单，再小额试用。不代收充值。",
+  "/list": "API中转站排行榜。可按在线率、延迟、最低充值、支付方式、发票和原有分类筛选。展示的是目录探测结果，不构成充值建议。",
   "/reputation": "中转站投票排行。赞成和反对记在接口里，每人每站一票，净票高的排前面。点评同样公开，其他人也能看到。",
   "/activity": "福利羊毛汇总中转站优惠活动和官方免费 API。截止时间、额度和规则以对方页面为准，本站不代领、不代充。",
   "/availability": "查看各中转站 Codex、Claude、Gemini 分组的在线状态、在线率和延迟，可切换 24 小时、7 天和 30 天。状态会变动。",

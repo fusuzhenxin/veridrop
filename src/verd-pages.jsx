@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { useOfficialStatus } from "./official-store.js";
-import { allReportFor, keepRecoveredDetail, latestAllReport, recoverAllDetail, stopCheckJob, subscribeCheckJob } from "./basic-run.jsx";
+import { allReportFor, latestAllReport, recoverAllDetail, subscribeCheckJob } from "./basic-run.jsx";
 import { Tester } from "./pages.jsx";
 import { applyRemoteAccount } from "./account.js";
 import { authToken, saveSubmission } from "./community.js";
@@ -70,6 +70,124 @@ const CHECK_NAV = [
   ["candy", "糖果测试"],
   ["pelican", "鹈鹕骑车"],
 ];
+
+const CHECK_PARK = "check-park";
+
+function scopeSelector(selector, scope) {
+  const raw = String(selector || "").trim();
+  if (!raw || raw.startsWith("@")) return raw;
+  return raw.split(",").map((part) => {
+    let sel = part.trim();
+    if (!sel) return sel;
+    sel = sel.replace(/html\.check-embed\s+body(?:\.mc-page)?/g, `${scope}.mc-page`).replace(/html\.check-embed/g, scope).replace(/:root/g, scope);
+    if (sel === "html" || sel === "body") return scope;
+    if (sel.startsWith("html[") || sel.startsWith("html.") || sel.startsWith("html ") || sel.startsWith("html:") || sel.startsWith("html#")) {
+      return scope + sel.slice(4);
+    }
+    if (sel.startsWith("body")) return scope + sel.slice(4);
+    if (sel.includes(scope)) return sel;
+    return `${scope} ${sel}`;
+  }).join(",");
+}
+
+function scopeCss(css, scope) {
+  const source = String(css || "").replace(/\/\*[\s\S]*?\*\//g, "");
+  let out = "";
+  let index = 0;
+  while (index < source.length) {
+    const open = source.indexOf("{", index);
+    if (open < 0) break;
+    const selector = source.slice(index, open).trim();
+    let depth = 1;
+    let cursor = open + 1;
+    while (cursor < source.length && depth) {
+      if (source[cursor] === "{") depth += 1;
+      else if (source[cursor] === "}") depth -= 1;
+      cursor += 1;
+    }
+    const body = source.slice(open + 1, cursor - 1);
+    if (selector.startsWith("@media") || selector.startsWith("@supports")) out += `${selector}{${scopeCss(body, scope)}}`;
+    else if (selector.startsWith("@")) out += `${selector}{${body}}`;
+    else if (selector) out += `${scopeSelector(selector, scope)}{${body}}`;
+    index = cursor;
+  }
+  return out;
+}
+
+function checkPark() {
+  let node = document.getElementById(CHECK_PARK);
+  if (!node) {
+    node = document.createElement("div");
+    node.id = CHECK_PARK;
+    node.hidden = true;
+    document.body.appendChild(node);
+  }
+  return node;
+}
+
+function moveChildren(from, to) {
+  while (from.firstChild) to.appendChild(from.firstChild);
+}
+
+let checkAssets = null;
+
+function loadScript(src) {
+  return new Promise((resolve, reject) => {
+    const script = document.createElement("script");
+    script.src = src;
+    script.onload = () => resolve();
+    script.onerror = () => reject(new Error(src));
+    document.body.appendChild(script);
+  });
+}
+
+function ensureCheckAssets() {
+  if (checkAssets) return checkAssets;
+  checkAssets = (async () => {
+    const [html, style, embed] = await Promise.all([
+      fetch("/original-check/check.html").then((response) => response.text()),
+      fetch("/original-check/style.css").then((response) => response.text()),
+      fetch("/original-check/embed.css").then((response) => response.text()),
+    ]);
+    const parsed = new DOMParser().parseFromString(html, "text/html");
+    const holder = document.createElement("div");
+    holder.className = "check-host mc-page";
+    [...parsed.body.childNodes].forEach((node) => {
+      if (node.nodeType === 1 && (node.classList.contains("topbar") || node.tagName === "SCRIPT")) return;
+      holder.appendChild(node);
+    });
+    const styleNode = document.createElement("style");
+    styleNode.setAttribute("data-check-style", "1");
+    styleNode.textContent = `${scopeCss(`${style}\n${embed}`, ".check-host")}
+.check-host.mc-page,.check-host{
+  background:var(--bg);
+  color:var(--fg);
+  min-height:calc(100vh - var(--nav-h, 78px));
+}
+.check-host .cd-opt{
+  background:var(--chip);
+  border-color:var(--line);
+  color:var(--fg);
+}
+.check-host .cd-opt b,.check-host .cd-opt span{ color:var(--fg); }`;
+    holder.prepend(styleNode);
+    checkPark().appendChild(holder);
+    await loadScript("/original-check/check-grade.js");
+    await loadScript("/original-check/check.js?v=20261102c");
+    const extra = [...parsed.querySelectorAll("body script:not([src])")].map((node) => node.textContent || "").join("\n");
+    if (extra.trim()) {
+      const inline = document.createElement("script");
+      inline.textContent = extra;
+      document.body.appendChild(inline);
+    }
+    return holder;
+  })();
+  return checkAssets;
+}
+
+function emitCheck(data) {
+  window.dispatchEvent(new MessageEvent("message", { data, origin: window.location.origin }));
+}
 
 function CheckNav({ current }) {
   return (
@@ -194,155 +312,65 @@ export function CheckPage() {
   const runQuery = search.get("run") || "";
   const runId = safe === "detect" && /^all-[a-z0-9]{4,24}$/i.test(runQuery) ? runQuery : "";
   const page = CHECK_PAGES[safe] || CHECK_PAGES[""];
-  const frame = useRef(null);
-  const frameSrc = useRef(null);
-  const frameRev = "20261027y";
-  if (safe === "basic") frameSrc.current = null;
-  else if (!frameSrc.current || !String(frameSrc.current).includes(`rev=${frameRev}`)) {
-    frameSrc.current = `/original-check/check.html?view=${safe || "home"}&rev=${frameRev}`;
-  }
+  const host = useRef(null);
   useTitle(page.title, { exact: true });
   useEffect(() => {
-    function onMessage(event) {
-      if (event.origin !== window.location.origin) return;
-      const data = event.data;
-      if (!data || !data.type) return;
-      if (data.type === "veridrop-all-stop") {
-        if (!frame.current || event.source !== frame.current.contentWindow) return;
-        stopCheckJob("all");
-        return;
-      }
-      if (data.type === "veridrop-all-recovered") {
-        if (!frame.current || event.source !== frame.current.contentWindow) return;
-        keepRecoveredDetail(data);
-        return;
-      }
-      if (data.type === "veridrop-check-view") {
-        if (!frame.current || event.source !== frame.current.contentWindow) return;
-        const view = data.view === "home" ? "" : String(data.view || "");
-        if (!CHECK_KINDS.has(view)) return;
-        const next = view ? `/check/${view}` : "/check";
-        if (window.location.pathname !== next) navigate(next, { preventScrollReset: true });
-      }
+    function onView(event) {
+      const view = event.detail === "home" ? "" : String(event.detail || "");
+      if (!CHECK_KINDS.has(view)) return;
+      const next = view ? `/check/${view}` : "/check";
+      if (window.location.pathname !== next) navigate(next, { preventScrollReset: true });
     }
-    window.addEventListener("message", onMessage);
-    return () => window.removeEventListener("message", onMessage);
+    window.addEventListener("veridrop-inline-view", onView);
+    return () => window.removeEventListener("veridrop-inline-view", onView);
   }, [navigate]);
   useEffect(() => {
     if (safe === "basic") return undefined;
-    const node = frame.current;
+    const node = host.current;
     if (!node) return undefined;
-    function send() {
-      const win = node.contentWindow;
-      if (!win) return;
-      win.postMessage({ type: "veridrop-check-show", view: safe || "home" }, window.location.origin);
-      if (replayId) win.postMessage({ type: "veridrop-replay", id: replayId }, window.location.origin);
-    }
-    node.addEventListener("load", send);
-    if (node.contentDocument?.readyState === "complete") send();
-    return () => node.removeEventListener("load", send);
+    let dead = false;
+    ensureCheckAssets().then((holder) => {
+      if (dead || !holder || !node) return;
+      holder.dataset.theme = document.documentElement.dataset.theme || "light";
+      if (holder.parentElement !== node) node.appendChild(holder);
+      emitCheck({ type: "veridrop-check-show", view: safe || "home" });
+      if (replayId) emitCheck({ type: "veridrop-replay", id: replayId });
+    }).catch(() => {});
+    const theme = new MutationObserver(() => {
+      const holder = node.querySelector(".check-host");
+      if (holder) holder.dataset.theme = document.documentElement.dataset.theme || "light";
+    });
+    theme.observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+    return () => {
+      dead = true;
+      const holder = node.querySelector(".check-host");
+      if (holder) checkPark().appendChild(holder);
+      theme.disconnect();
+    };
   }, [safe, replayId]);
   useEffect(() => {
     if (safe !== "detect") return undefined;
-    const node = frame.current;
-    if (!node) return undefined;
-    function postReport(win, report, missing) {
-      try {
-        win.postMessage({
-          type: "veridrop-all-report",
-          report: report || null,
-          missing,
-        }, window.location.origin);
-        return;
-      } catch {
-        /* the pelican page can be too large for one message */
-      }
-      if (!report) return;
-      try {
-        win.postMessage({
-          type: "veridrop-all-report",
-          report: { ...report, pelicanHtml: "" },
-          missing,
-        }, window.location.origin);
-      } catch {
-        return;
-      }
-      if (!report.pelicanHtml) return;
-      try {
-        win.postMessage({
-          type: "veridrop-all-html",
-          id: report.id,
-          html: report.pelicanHtml,
-        }, window.location.origin);
-      } catch {
-        /* the questions still paint */
-      }
-    }
     function push() {
-      const win = node.contentWindow;
-      if (!win) return;
-      let href = "";
-      try {
-        href = String(win.location.href || "");
-      } catch {
-        return;
-      }
-      if (!href.includes("original-check")) return;
+      if (!document.querySelector("main .check-host")) return;
       recoverAllDetail();
       const report = runId ? allReportFor(runId) : latestAllReport();
-      postReport(win, report, Boolean(runId && !report));
-    }
-    function onReady(event) {
-      if (event.origin !== window.location.origin) return;
-      if (!event.data || event.data.type !== "veridrop-all-ready") return;
-      if (event.source !== node.contentWindow) return;
-      push();
+      const missing = Boolean(runId && !report);
+      emitCheck({
+        type: "veridrop-all-report",
+        report: report ? { ...report, pelicanHtml: "" } : null,
+        missing,
+      });
+      if (report?.pelicanHtml) emitCheck({ type: "veridrop-all-html", id: report.id, html: report.pelicanHtml });
     }
     const stop = subscribeCheckJob(push);
-    window.addEventListener("message", onReady);
-    node.addEventListener("load", push);
-    push();
+    const first = window.setTimeout(push, 0);
+    const later = window.setTimeout(push, 700);
     return () => {
       stop();
-      window.removeEventListener("message", onReady);
-      node.removeEventListener("load", push);
+      window.clearTimeout(first);
+      window.clearTimeout(later);
     };
   }, [safe, runId]);
-  useEffect(() => {
-    if (safe === "basic") return undefined;
-    const node = frame.current;
-    if (!node) return undefined;
-    let observer;
-    function fit() {
-      const doc = node.contentDocument;
-      if (!doc) return;
-      const height = Math.max(doc.documentElement?.scrollHeight || 0, doc.body?.scrollHeight || 0, 720);
-      if (Math.abs(height - node.offsetHeight) > 2) node.style.height = `${height}px`;
-    }
-    function watch() {
-      fit();
-      observer?.disconnect();
-      const root = node.contentDocument?.documentElement;
-      if (!root) return;
-      observer = new ResizeObserver(fit);
-      observer.observe(root);
-    }
-    function onFit(event) {
-      if (event.origin !== window.location.origin) return;
-      if (!event.data || event.data.type !== "veridrop-frame-fit") return;
-      if (event.source !== node.contentWindow) return;
-      fit();
-    }
-    node.addEventListener("load", watch);
-    window.addEventListener("message", onFit);
-    const timer = window.setInterval(fit, 1000);
-    return () => {
-      node.removeEventListener("load", watch);
-      window.removeEventListener("message", onFit);
-      observer?.disconnect();
-      window.clearInterval(timer);
-    };
-  }, [safe]);
   if (safe === "basic") {
     return (
       <div className="wrap check-basic">
@@ -353,14 +381,7 @@ export function CheckPage() {
       </div>
     );
   }
-  return (
-    <iframe
-      ref={frame}
-      className="check-frame"
-      title={page.title}
-      src={frameSrc.current || `/original-check/check.html?view=${safe || "home"}`}
-    />
-  );
+  return <div ref={host} className="check-page" />;
 }
 
 const APPLY_CATS = CATS.filter(([id]) => !["owner", "online", "fast", "highup"].includes(id)).map(([, label]) => label);

@@ -374,6 +374,12 @@ html.check-embed .mc-qitem,
 html.check-embed .mc-hitem,
 html.check-embed .lab-row,
 html.check-embed .cd-item { border-color: var(--line); }
+html.check-embed .cd-opt {
+  background: var(--chip);
+  color: var(--fg);
+}
+html.check-embed .cd-opt b,
+html.check-embed .cd-opt span { color: var(--fg); }
 html.check-embed .lab-raw pre { background: var(--chip); border-radius: 10px; padding: 10px 12px; }
 
 @media (max-width: 800px) {
