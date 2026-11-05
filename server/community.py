@@ -262,8 +262,9 @@ def shop_book(store: dict) -> dict:
     return book
 
 
-def public_shop_item(item: dict, owned: dict | None = None) -> dict:
+def public_shop_item(item: dict, owned: dict | None = None, sold: int = 0) -> dict:
     status = str(item.get("status") or "open")
+    stock = item.get("stock")
     row = {
         "id": str(item.get("id") or ""),
         "title": str(item.get("title") or ""),
@@ -275,6 +276,9 @@ def public_shop_item(item: dict, owned: dict | None = None) -> dict:
         "status": status,
         "ends": str(item.get("ends") or ""),
         "icon": str(item.get("icon") or ""),
+        "cover": str(item.get("cover") or ""),
+        "stock": None if stock in (None, "") else int(stock),
+        "sold": int(sold or 0),
         "mine": bool(owned),
     }
     if owned:
@@ -284,9 +288,20 @@ def public_shop_item(item: dict, owned: dict | None = None) -> dict:
     return row
 
 
+def shop_sold(store: dict, item_id: str) -> int:
+    orders = (shop_book(store).get("orders") or {})
+    return sum(1 for book in orders.values() if isinstance(book, dict) and item_id in book)
+
+
 def public_shop(store: dict, email: str = "") -> dict:
     orders = (shop_book(store).get("orders") or {}).get(email) or {}
-    items = [public_shop_item(item, orders.get(str(item.get("id") or "")) if email else None) for item in shop_items()]
+    items = []
+    for item in shop_items():
+        item_id = str(item.get("id") or "")
+        owned = orders.get(item_id) if email else None
+        if str(item.get("status") or "open") != "open" and not owned:
+            continue
+        items.append(public_shop_item(item, owned, shop_sold(store, item_id)))
     return {"items": items}
 
 
@@ -311,6 +326,10 @@ def redeem_shop_item(store: dict, email: str, item_id: str) -> dict:
         raise ValueError("没有这件奖品")
     if str(item.get("status") or "open") != "open":
         raise ValueError("这件奖品已经结束")
+    stock = item.get("stock")
+    if stock not in (None, ""):
+        if shop_sold(store, wanted) >= int(stock):
+            raise ValueError("已经兑完")
     cost = int(item.get("cost") or 0)
     orders = shop_book(store).setdefault("orders", {}).setdefault(email, {})
     owned = orders.get(wanted)
@@ -864,6 +883,10 @@ class Handler(BaseHTTPRequestHandler):
                 user = self._user(store)
                 self._send(200, public_shop(store, user["email"] if user else ""))
                 return
+            if path == "/api/notice":
+                import ops_front
+                self._send(200, ops_front.public_notice())
+                return
             if path == "/api/auth/me":
                 user = self._user(store)
                 if not user:
@@ -922,7 +945,7 @@ class Handler(BaseHTTPRequestHandler):
                         raise ValueError("该邮箱已注册")
                     check_code(store, email, "register", body.get("code"))
                     salt = secrets.token_hex(16)
-                    store["accounts"][email] = {"email": email, "nick": nick, "salt": salt, "password": hash_password(password, salt)}
+                    store["accounts"][email] = {"email": email, "nick": nick, "salt": salt, "password": hash_password(password, salt), "created": utcnow()}
                     token = secrets.token_urlsafe(24)
                     store["sessions"][token] = email
                     profile_book(store, email)

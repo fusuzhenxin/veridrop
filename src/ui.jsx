@@ -211,6 +211,7 @@ export function Shell({ children }) {
   const [query, setQuery] = useState("");
   const [pick, setPick] = useState(0);
   const [cookie, setCookie] = useState(() => localStorage.getItem("okk-cookie") !== "1");
+  const [siteNotice, setSiteNotice] = useState(null);
   const [notice, setNotice] = useState(false);
   const [theme, setTheme] = useState(() => localStorage.getItem("okk-theme") || "light");
   const [user, setUser] = useState(() => readSession().name);
@@ -267,18 +268,36 @@ export function Shell({ children }) {
   }, [location.search]);
 
   useEffect(() => {
+    let gone = false;
+    fetch("/api/notice")
+      .then((response) => (response.ok ? response.json() : null))
+      .then((data) => {
+        if (gone) return;
+        if (data && data.enabled !== false && data.title) setSiteNotice(data);
+        else if (!data) setSiteNotice(SITE_NOTICE);
+      })
+      .catch(() => {
+        if (!gone) setSiteNotice(SITE_NOTICE);
+      });
+    return () => {
+      gone = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!siteNotice?.id) return;
     try {
-      const stamp = `${SITE_NOTICE.id}:${shanghaiDay()}`;
+      const stamp = `${siteNotice.id}:${shanghaiDay()}`;
       if (localStorage.getItem(NOTICE_KEY) === stamp) return;
       setNotice(true);
     } catch {
       /* ignore */
     }
-  }, []);
+  }, [siteNotice]);
 
   function dismissNotice() {
     try {
-      localStorage.setItem(NOTICE_KEY, `${SITE_NOTICE.id}:${shanghaiDay()}`);
+      if (siteNotice?.id) localStorage.setItem(NOTICE_KEY, `${siteNotice.id}:${shanghaiDay()}`);
     } catch {
       /* ignore */
     }
@@ -563,20 +582,15 @@ export function Shell({ children }) {
               <button className="notice-x" type="button" aria-label="关闭" onClick={dismissNotice}>×</button>
               <span className="notice-logo"><img src="/icons/vendor/deepseek.svg" alt="" width="40" height="40" /></span>
               <em>站点公告</em>
-              <h2 id="site-notice-title">{SITE_NOTICE.title}</h2>
-              {SITE_NOTICE.date ? <time dateTime={SITE_NOTICE.date}>{SITE_NOTICE.date}</time> : null}
+              <h2 id="site-notice-title">{siteNotice.title}</h2>
+              {siteNotice.date ? <time dateTime={siteNotice.date}>{siteNotice.date}</time> : null}
             </div>
             <div className="notice-body">
-              <p>{SITE_NOTICE.body}</p>
-              <div className="notice-facts">
-                <span><b>20</b> 积分兑换</span>
-                <span>用完截止</span>
-                <span>每人 1 份</span>
-              </div>
+              <p>{siteNotice.body}</p>
               <div className="notice-actions">
                 <button type="button" className="notice-skip" onClick={dismissNotice}>知道了</button>
-                {SITE_NOTICE.action ? (
-                  <Link className="notice-go" to={SITE_NOTICE.action.to} onClick={dismissNotice}>{SITE_NOTICE.action.label}</Link>
+                {siteNotice.action ? (
+                  <Link className="notice-go" to={siteNotice.action.to} onClick={dismissNotice}>{siteNotice.action.label}</Link>
                 ) : null}
               </div>
             </div>

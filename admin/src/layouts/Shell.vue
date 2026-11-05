@@ -59,6 +59,19 @@
             投诉
           </a-menu-item>
         </a-sub-menu>
+        <a-sub-menu key="people">
+          <template #icon><IconTags /></template>
+          <template #title>用户</template>
+          <a-menu-item key="/members">注册用户</a-menu-item>
+          <a-menu-item key="/orders">兑换记录</a-menu-item>
+          <a-menu-item key="/visitors">访客</a-menu-item>
+        </a-sub-menu>
+        <a-sub-menu key="front">
+          <template #icon><IconNotification /></template>
+          <template #title>前台</template>
+          <a-menu-item key="/notice">公告</a-menu-item>
+          <a-menu-item key="/prizes">兑换奖品</a-menu-item>
+        </a-sub-menu>
         <a-sub-menu key="system">
           <template #icon><IconApps /></template>
           <template #title>系统</template>
@@ -126,10 +139,15 @@ const groupOf = {
   "/sites": "sites",
   "/submissions": "sites",
   "/complaints": "sites",
+  "/members": "people",
+  "/orders": "people",
+  "/visitors": "people",
+  "/notice": "front",
+  "/prizes": "front",
   "/publish": "system",
   "/settings": "system",
 };
-const openKeys = ref(["catalog", "business", "sites", "system"]);
+const openKeys = ref(["catalog", "business", "sites", "people", "front", "system"]);
 
 watch(section, (value) => {
   const group = groupOf[value];

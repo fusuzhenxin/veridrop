@@ -30,6 +30,12 @@ data/admin-bootstrap.txt
 data/ops-snapshot.json
 data/basic-daily.json
 data/shop.json
+data/notice.json
+data/notice.json.tmp
+data/visits-local.json
+data/visits-local.json.tmp
+public/media/prizes/*
+!public/media/prizes/.gitkeep
 data/basic-reports/*.json
 data/ops-build.log
 admin/dist/

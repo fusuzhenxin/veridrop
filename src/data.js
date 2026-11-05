@@ -298,9 +298,9 @@ const okkStations = [...catalog.stations]
       const vendor = name === "moonshot" ? "kimi" : name;
       if (!families.includes(vendor)) families.push(vendor);
     }
-    const reviews = row.reviews || [];
-    const ratingCount = reviews.length;
-    const rating = ratingCount ? reviews.reduce((sum, review) => sum + (review.rating || 0), 0) / ratingCount : null;
+    const reviews = [];
+    const ratingCount = 0;
+    const rating = null;
     const names = families.map((name) => FAMILY_NAME[name] || name);
     return {
       slug: row.slug,

@@ -4146,10 +4146,13 @@ function InviteDialog({ copied, onCopy, onClose }) {
 }
 
 function ShopCard({ item, busy, onRedeem, showKey, onToggleKey, onCopy, copied }) {
-  const sold = item.status === "done" && !item.mine;
+  const soldOut = item.stock != null && item.stock !== "" && Number(item.sold || 0) >= Number(item.stock);
+  const sold = (item.status === "done" || soldOut) && !item.mine;
   const label = item.mine ? "已兑换" : sold ? "已兑完" : busy ? "兑换中…" : "立即兑换";
+  const left = item.stock == null || item.stock === "" ? null : Math.max(0, Number(item.stock) - Number(item.sold || 0));
   return (
-    <article className={`shop-card${item.mine ? " mine" : ""}`}>
+    <article className={`shop-card${item.mine ? " mine" : ""}${item.cover ? " has-cover" : ""}`}>
+      {item.cover ? <div className="shop-cover"><img src={item.cover} alt="" /></div> : null}
       <div className="shop-top">
         <div className="shop-brand">
           <span className="shop-logo"><img src={item.icon || "/icons/vendor/deepseek.svg"} alt="" width="28" height="28" /></span>
@@ -4158,10 +4161,10 @@ function ShopCard({ item, busy, onRedeem, showKey, onToggleKey, onCopy, copied }
         {item.badge ? <span className="shop-badge">{item.badge}</span> : null}
       </div>
       <h3>{item.title}</h3>
-      <p>{item.desc}</p>
+      {item.desc ? <p>{item.desc}</p> : null}
       <div className="shop-meta">
         <span className="shop-cost"><i />{item.cost} 积分</span>
-        <span>{item.ends === "quota" ? "用完截止" : "长期"}，每人限 {item.perPerson || 1} 份</span>
+        <span>{left == null ? `每人限 ${item.perPerson || 1} 份` : `剩 ${left} 份，每人限 ${item.perPerson || 1} 份`}</span>
       </div>
       {item.mine && item.url ? (
         <div className="shop-cred">
@@ -4200,6 +4203,7 @@ export function PointsPage() {
   const [inviteOpen, setInviteOpen] = useState(false);
   const [copied, setCopied] = useState("");
   const [shop, setShop] = useState([]);
+  const [shopNote, setShopNote] = useState("");
   const [busyId, setBusyId] = useState("");
   const [reveal, setReveal] = useState({});
 
@@ -4223,9 +4227,21 @@ export function PointsPage() {
   }, [location.hash]);
 
   useEffect(() => {
+    let gone = false;
+    setShopNote("");
     fetchShop()
-      .then((data) => setShop(Array.isArray(data.items) ? data.items : []))
-      .catch(() => setShop([]));
+      .then((data) => {
+        if (gone) return;
+        setShop(Array.isArray(data.items) ? data.items : []);
+      })
+      .catch((err) => {
+        if (gone) return;
+        setShop([]);
+        setShopNote(err.message || "兑换列表没有加载到");
+      });
+    return () => {
+      gone = true;
+    };
   }, [signedIn, tab]);
 
   useEffect(() => {
@@ -4515,7 +4531,7 @@ export function PointsPage() {
                 />
               ))
             ) : (
-              <div className="shop-empty">{redeem === "open" ? "这里还空着，奖品正在路上。" : "这一栏暂时没有奖品。"}</div>
+              <div className="shop-empty">{shopNote || (redeem === "open" ? "这里还空着，奖品正在路上。" : "这一栏暂时没有奖品。")}</div>
             )}
           </div>
         </>

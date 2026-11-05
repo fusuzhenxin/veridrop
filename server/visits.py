@@ -9,6 +9,7 @@ import re
 import ssl
 import threading
 from datetime import datetime, timedelta, timezone
+from pathlib import Path
 from urllib.error import HTTPError, URLError
 from urllib.parse import quote
 from urllib.request import Request, urlopen
@@ -83,6 +84,24 @@ BLOB_PATH = "visits.json"
 DAYS = 30
 _LOCK = threading.Lock()
 _MEMORY = {"sites": {}}
+_LOCAL = Path(__file__).resolve().parent.parent / "data" / "visits-local.json"
+
+
+def _read_local() -> dict:
+    if not _LOCAL.exists():
+        return {"sites": {}}
+    try:
+        raw = json.loads(_LOCAL.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return {"sites": {}}
+    return raw if isinstance(raw, dict) else {"sites": {}}
+
+
+def _write_local(data: dict) -> None:
+    _LOCAL.parent.mkdir(parents=True, exist_ok=True)
+    tmp = _LOCAL.with_suffix(".json.tmp")
+    tmp.write_text(json.dumps({"sites": data.get("sites") or {}}, ensure_ascii=False), encoding="utf-8")
+    os.replace(tmp, _LOCAL)
 
 
 def shanghai_day(now: datetime | None = None) -> str:
@@ -328,13 +347,15 @@ def record_visit(ua: str, origin: str, body: bytes, now: datetime | None = None)
         if _blob_token():
             raw = _as_sites(_read_blob())
         else:
-            raw = _MEMORY
+            raw = _read_local()
         days = raw.setdefault("sites", {}).setdefault(site, {}).setdefault("days", {})
         bucket = days.setdefault(day, {})
         bucket[visitor] = _merge(bucket.get(visitor), kind, acted, clicked, ad_place, hub_place)
         _prune(raw, moment)
         if _blob_token():
             _write_blob({"sites": raw["sites"]})
+        else:
+            _write_local(raw)
     return 204
 
 
@@ -342,7 +363,7 @@ def _rows(site: str, now: datetime) -> list[dict]:
     kinds = SITES[site]["kinds"] or []
     dates = recent_days(DAYS, now)
     with _LOCK:
-        data = _as_sites(_read_blob()) if _blob_token() else _MEMORY
+        data = _as_sites(_read_blob()) if _blob_token() else _read_local()
     days = ((data.get("sites") or {}).get(site) or {}).get("days") or {}
     rows = []
     for date in dates:
@@ -397,6 +418,23 @@ def _cell(value: int, class_name: str = "") -> str:
         names.append("zero")
     cls = f' class="{" ".join(names)}"' if names else ""
     return f"<td{cls}>{value}</td>"
+
+
+def admin_report(site: str = "veridrop") -> dict:
+    if site not in SITES:
+        raise ValueError("没有这个站点")
+    rows = _rows(site, datetime.now(timezone.utc))
+    hub_sum = sum(sum((row.get("hub") or {}).get(place, 0) for place in HUB_PLACES) for row in rows)
+    return {
+        "rows": rows,
+        "kinds": KIND_LABEL,
+        "adPlaces": AD_LABEL,
+        "hubPlaces": HUB_LABEL,
+        "open": sum(row["open"] for row in rows),
+        "acted": sum(row["acted"] for row in rows),
+        "ad": sum(row.get("ad") or 0 for row in rows),
+        "hub": hub_sum,
+    }
 
 
 def render_html(site: str, rows: list[dict], key: str) -> str:

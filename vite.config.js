@@ -178,33 +178,71 @@ function localProbe() {
 
 let communityProcess = null;
 
-function ensureCommunity() {
-  const socket = net.connect({ host: "127.0.0.1", port: 4175 });
-  socket.unref();
-  const giveUp = setTimeout(() => socket.destroy(), 400);
-  giveUp.unref();
-  socket.on("connect", () => {
-    clearTimeout(giveUp);
-    socket.end();
+function startCommunity() {
+  if (communityProcess && communityProcess.exitCode == null) return;
+  communityProcess = spawn("python", ["server/community.py"], {
+    cwd: fileURLToPath(new URL(".", import.meta.url)),
+    stdio: "ignore",
+    windowsHide: true,
+    detached: true,
   });
-  socket.on("error", () => {
-    clearTimeout(giveUp);
-    if (communityProcess && communityProcess.exitCode == null) return;
-    communityProcess = spawn("python", ["server/community.py"], {
-      cwd: fileURLToPath(new URL(".", import.meta.url)),
-      stdio: "ignore",
-      windowsHide: true,
-      detached: true,
+  communityProcess.unref();
+}
+
+function communityUp() {
+  return new Promise((resolve) => {
+    const socket = net.connect({ host: "127.0.0.1", port: 4175 });
+    const giveUp = setTimeout(() => {
+      socket.destroy();
+      resolve(false);
+    }, 400);
+    socket.once("connect", () => {
+      clearTimeout(giveUp);
+      socket.end();
+      resolve(true);
     });
-    communityProcess.unref();
+    socket.once("error", () => {
+      clearTimeout(giveUp);
+      resolve(false);
+    });
+  });
+}
+
+function waitForCommunity() {
+  return new Promise((resolve) => {
+    const started = Date.now();
+    const attempt = async () => {
+      if (await communityUp()) {
+        resolve(true);
+        return;
+      }
+      startCommunity();
+      if (Date.now() - started > 5000) {
+        resolve(false);
+        return;
+      }
+      setTimeout(attempt, 250);
+    };
+    attempt();
   });
 }
 
 function communityApi() {
-  ensureCommunity();
-  const handle = (req, res, next) => {
+  const handle = async (req, res, next) => {
     const path = (req.url || "").split("?")[0];
-    if (path !== "/api/votes" && path !== "/api/comments" && path !== "/api/checkin" && path !== "/api/points" && path !== "/api/shop" && !path.startsWith("/api/shop") && !path.startsWith("/api/auth") && !path.startsWith("/api/account")) return next();
+    if (path !== "/api/votes" && path !== "/api/comments" && path !== "/api/checkin" && path !== "/api/points" && path !== "/api/shop" && path !== "/api/notice" && !path.startsWith("/api/shop") && !path.startsWith("/api/auth") && !path.startsWith("/api/account")) return next();
+    req.pause();
+    const ready = await waitForCommunity();
+    if (!ready) {
+      if (!res.writableEnded) {
+        res.statusCode = 502;
+        res.setHeader("content-type", "application/json; charset=utf-8");
+        res.setHeader("cache-control", "no-store");
+        res.end(JSON.stringify({ error: "兑换服务没有开" }));
+      }
+      return;
+    }
+    req.resume();
     const proxy = http.request(
       {
         hostname: "127.0.0.1",
@@ -226,7 +264,7 @@ function communityApi() {
       res.statusCode = 502;
       res.setHeader("content-type", "application/json; charset=utf-8");
       res.setHeader("cache-control", "no-store");
-      res.end(JSON.stringify({ error: "登录和投票服务没有开" }));
+      res.end(JSON.stringify({ error: "兑换服务没有开" }));
     });
     req.pipe(proxy);
   };

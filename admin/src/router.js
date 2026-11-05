@@ -21,9 +21,14 @@ import Changes from "./pages/Changes.vue";
 import Spend from "./pages/Spend.vue";
 import Publish from "./pages/Publish.vue";
 import Settings from "./pages/Settings.vue";
+import Members from "./pages/Members.vue";
+import Orders from "./pages/Orders.vue";
+import Visitors from "./pages/Visitors.vue";
+import Notice from "./pages/Notice.vue";
+import Prizes from "./pages/Prizes.vue";
 
 const router = createRouter({
-  history: createWebHistory(),
+  history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
     { path: "/login", component: Login, meta: { title: "登录" } },
     {
@@ -52,6 +57,11 @@ const router = createRouter({
         { path: "complaints/:id", component: ComplaintForm, meta: { title: "编辑投诉", section: "/complaints" } },
         { path: "changes", component: Changes, meta: { title: "今日变动", section: "/changes" } },
         { path: "spend", component: Spend, meta: { title: "探测花费", section: "/spend" } },
+        { path: "members", component: Members, meta: { title: "注册用户", section: "/members" } },
+        { path: "orders", component: Orders, meta: { title: "兑换记录", section: "/orders" } },
+        { path: "visitors", component: Visitors, meta: { title: "访客", section: "/visitors" } },
+        { path: "notice", component: Notice, meta: { title: "公告", section: "/notice" } },
+        { path: "prizes", component: Prizes, meta: { title: "兑换奖品", section: "/prizes" } },
         { path: "publish", component: Publish, meta: { title: "发布", section: "/publish" } },
         { path: "settings", component: Settings, meta: { title: "设置", section: "/settings" } },
       ],

@@ -45,7 +45,10 @@ export function todayText() {
 export async function api(path, options = {}) {
   const headers = { "X-Ops": "1", ...(options.headers || {}) };
   if (options.body) headers["Content-Type"] = "application/json";
-  const response = await fetch(path, { credentials: "same-origin", ...options, headers });
+  const root = (import.meta.env.BASE_URL || "/").replace(/\/$/, "");
+  const method = (options.method || "GET").toUpperCase();
+  const fresh = method === "GET" ? `${path.includes("?") ? "&" : "?"}t=${Date.now()}` : "";
+  const response = await fetch(`${root}${path}${fresh}`, { credentials: "same-origin", ...options, headers });
   const text = await response.text();
   let data = {};
   if (text) {
@@ -58,7 +61,8 @@ export async function api(path, options = {}) {
   if (response.status === 401) {
     auth.me = null;
     auth.ready = true;
-    if (!location.pathname.endsWith("/login")) location.assign("/login");
+    const loginPath = `${root}/login` || "/login";
+    if (location.pathname !== loginPath) location.assign(loginPath);
   }
   if (!response.ok) throw new Error(data.error || "请求失败");
   return data;
