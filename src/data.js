@@ -663,7 +663,7 @@ stations
     commentLifted.add(station.slug);
   });
 export function pinBoard(list) {
-  const deferredHosts = new Set(["aiberm.com", "amutes.com", "api.holdai.top", "api.hubagi.ai"]);
+  const deferredHosts = new Set(["aiberm.com", "amutes.com", "api.holdai.top", "api.hubagi.ai", "134.175.71.62", "1rr.top"]);
   const deferred = list.filter((station) => deferredHosts.has(station.host));
   for (let index = list.length - 1; index >= 0; index -= 1) {
     if (deferredHosts.has(list[index].host)) list.splice(index, 1);
@@ -675,7 +675,9 @@ export function pinBoard(list) {
   };
   const aruhub = take((station) => station.host === "aruhub.com" || station.slug === "1852-aruhub-com" || station.verdId === 1852);
   const xisu = take((station) => station.host === "xisu.ai" || station.slug === "900039-xisu-ai");
+  const sevenCode = take((station) => station.host === "ai.7code.cc");
   if (aruhub) list.splice(Math.min(4, list.length), 0, aruhub);
+  if (sevenCode) list.splice(Math.min(18, list.length), 0, sevenCode);
   if (xisu) list.splice(Math.min(19, list.length), 0, xisu);
   list.splice(Math.min(20, list.length), 0, ...deferred);
   return list;
