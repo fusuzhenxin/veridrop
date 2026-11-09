@@ -588,6 +588,22 @@ def site_file(url_path: str) -> Path | None:
     return None
 
 
+def report_loading_html(url_path: str) -> str | None:
+    if not re.fullmatch(r"/b/(?:basic|all|candy|pelican)-[a-z0-9]{6,24}/?", url_path):
+        return None
+    shell = DIST / "check" / "detect" / "index.html"
+    if not shell.is_file():
+        return None
+    html = shell.read_text(encoding="utf-8")
+    loading = ('<main><section class="wrap report-loading" aria-busy="true" '
+               'role="status"><h1>正在加载检测结果</h1>'
+               '<p>正在读取这次检测的报告，请稍候。</p></section></main>')
+    html = re.sub(r"<main(?:\s[^>]*)?>.*?</main>", lambda _: loading, html, count=1, flags=re.S)
+    html = re.sub(r'<meta name="robots" content="[^"]*">',
+                  '<meta name="robots" content="noindex,follow">', html, count=1)
+    return html
+
+
 PROBE_HEADERS = {
     "authorization",
     "x-api-key",
@@ -993,6 +1009,10 @@ class Handler(BaseHTTPRequestHandler):
             page = site_file(parsed.path)
             if page is not None:
                 self._send_file(page)
+                return
+            loading = report_loading_html(parsed.path)
+            if loading is not None:
+                self._send_raw(200, {"content-type": "text/html; charset=utf-8", "cache-control": "no-cache", "x-robots-tag": "noindex"}, loading.encode("utf-8"))
                 return
             if path.startswith("/b/basic-"):
                 report = basic_reports.read_report(path[len("/b/"):])
