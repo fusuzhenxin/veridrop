@@ -344,6 +344,70 @@ const LABELS = [
   ["context", "长上下文真实性"],
 ];
 
+// Use the browser's question bank, prompts, transport and graders for scheduled checks.
+export async function runAbilitySuites(job) {
+  const base = G.normalizeBase(job.base);
+  const protocol = claudeModel(job.model) ? "claude" : "openai";
+  const ctx = { base, key: job.key, model: job.model, protocol, endpoints: G.endpoints(base, protocol) };
+  const meter = { requests: 0, input: 0, output: 0, ttftMs: null };
+  const started = Date.now();
+  const count = [5, 10, 15, 20].includes(job.candyCount) ? job.candyCount : 10;
+  const questions = G.CANDY_QUESTIONS.slice(0, count);
+  const candyRows = [];
+  const candyGate = AbortSignal.timeout(480000);
+  let stop = false;
+  for (const question of questions) {
+    const missed = (message) => ({
+      title: question.title, prompt: question.prompt, dimension: question.dimension,
+      level: question.level, options: question.options, answer: question.answer,
+      expect: question.expect, picked: message, ok: false, missed: true,
+    });
+    if (stop || candyGate.aborted) {
+      candyRows.push(missed("未作答"));
+      continue;
+    }
+    try {
+      const prompt = [question.prompt, "", ...question.options.map((opt) => `${opt.key}. ${opt.text}`), "", "只回复一个选项字母。"].join("\n");
+      const out = await postChat(ctx, { messages: user(prompt), max_tokens: question.max || 800 }, AbortSignal.any([candyGate, AbortSignal.timeout(60000)]), meter);
+      candyRows.push(G.gradeCandyQuestion(question, out.reply.content));
+    } catch (err) {
+      const hard = err.network || [401, 402, 403, 429].includes(err.status);
+      // A rejected key/quota is not a wrong answer; preserve every unasked question.
+      candyRows.push(missed(String(err.message || err).split(job.key).join("[redacted]")));
+      if (hard) stop = true;
+    }
+  }
+  const asked = candyRows.filter((row) => !row.missed);
+  const right = asked.filter((row) => row.ok).length;
+  const wrong = asked.length - right;
+  const missed = candyRows.length - asked.length;
+  const candy = {
+    id: "candy", label: "糖果测试", state: "done",
+    status: !asked.length ? "error" : wrong && !right ? "fail" : wrong || missed ? "warn" : "pass",
+    summary: `共 ${count} 题，对了 ${right} 题${wrong ? `，错了 ${wrong} 题` : ""}${missed ? `，${missed} 题没跑完` : ""}。 ${Date.now() - started} ms`, raw: "",
+  };
+  if (job.suite === "candy") {
+    return {
+      rows: [candy], candyRows, partRight: right, partTotal: count,
+      partScore: Math.round(right / count * 100), pelicanHtml: "",
+      meter: { ...meter, totalMs: Date.now() - started }, complete: !missed,
+    };
+  }
+  let pelicanHtml = "";
+  const pelican = await withTimeout(180000, async (signal) => {
+    const out = await postChat(ctx, { messages: [{ role: "user", content: G.PELICAN_PROMPT }], max_tokens: 12000, stream: true }, signal, meter);
+    const graded = G.gradePelican(out.reply.content);
+    pelicanHtml = String(graded.html || "").split(job.key).join("[redacted]");
+    return pack(decorate(graded, out.ms, out.reply), "", job.key);
+  }, job.key);
+  return {
+    rows: [candy, { ...pelican, id: "pelican", label: "鹈鹕骑车", state: "done" }],
+    candyRows, partRight: right, partTotal: count, partScore: Math.round(right / count * 100),
+    pelicanHtml, meter: { ...meter, totalMs: Date.now() - started },
+    complete: !missed && pelican.status !== "error",
+  };
+}
+
 export async function runBasicSuite(job) {
   const secret = job.key;
   const base = G.normalizeBase(job.base);

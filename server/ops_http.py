@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import subprocess
 import threading
 import traceback
@@ -14,6 +15,7 @@ from urllib.parse import parse_qs, urlparse
 import ops_db
 import ops_front
 import ops_jobs
+import proposals
 
 ROOT = Path(__file__).resolve().parent.parent
 DIST = ROOT / "admin" / "dist"
@@ -25,6 +27,9 @@ TYPES = {
     ".js": "text/javascript; charset=utf-8",
     ".svg": "image/svg+xml",
     ".png": "image/png",
+    ".jpg": "image/jpeg",
+    ".webp": "image/webp",
+    ".gif": "image/gif",
     ".json": "application/json; charset=utf-8",
     ".ico": "image/x-icon",
     ".woff2": "font/woff2",
@@ -119,6 +124,16 @@ class OpsHandler(BaseHTTPRequestHandler):
         self._api(method, parts[1:], query, operator)
 
     def _api(self, method: str, parts: list[str], query: dict, operator: dict) -> None:
+        if parts and parts[0] == "proposals":
+            if method == "GET" and len(parts) == 1:
+                self._json(200, proposals.listing(query, admin=True))
+            elif method == "GET" and len(parts) == 2:
+                self._json(200, proposals.detail(parts[1], admin=True))
+            elif method == "POST" and len(parts) == 2:
+                self._json(200, proposals.moderate(parts[1], self._body()))
+            else:
+                self._json(404, {"error": "没有这个接口"})
+            return
         if parts == ["logout"] and method == "POST":
             ops_db.logout(self._token())
             self._json(200, {"ok": True}, clear=True)
@@ -299,6 +314,9 @@ class OpsHandler(BaseHTTPRequestHandler):
         if parts == ["notice"] and method == "POST":
             self._json(200, ops_front.save_notice(self._body()))
             return
+        if parts == ["notice", "upload"] and method == "POST":
+            self._json(200, ops_front.save_notice_image(self._body()))
+            return
         if parts == ["prizes", "upload"] and method == "POST":
             self._json(200, ops_front.save_prize_image(self._body()))
             return
@@ -442,6 +460,19 @@ class OpsHandler(BaseHTTPRequestHandler):
             self.wfile.write(body)
 
     def _file(self, path: str) -> None:
+        if path == "/icons/vendor/deepseek.svg" or re.fullmatch(r"/media/(?:notices|prizes)/[\w.-]+\.(?:png|jpg|webp|gif)", path):
+            candidate = ROOT / "public" / path.lstrip("/")
+            if not candidate.is_file():
+                self._json(404, {"error": "图片不存在"})
+                return
+            body = candidate.read_bytes()
+            self.send_response(200)
+            self.send_header("Content-Type", TYPES.get(candidate.suffix.lower(), "application/octet-stream"))
+            self.send_header("Content-Length", str(len(body)))
+            self.send_header("Cache-Control", "no-cache")
+            self.end_headers()
+            self.wfile.write(body)
+            return
         if not DIST.exists():
             self._json(404, {"error": "后台页面还没有构建。开发时请另开 admin 的 Vite。"})
             return

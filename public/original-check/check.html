@@ -178,13 +178,13 @@
     <section class="mc-view is-on" data-view-panel="home">
       <div class="mc-hero">
         <div>
-          <h1>模型检测</h1>
+          <div class="ck-eyebrow">MODEL CHECK · 检测工作台</div><h1>模型检测</h1>
           <p>用你自己的中转地址和 Key，检测这一次调用有没有降智。可以测 GPT、Claude、DeepSeek 的基础接口、糖果测试和鹈鹕骑车。</p>
           <i class="mc-bar"></i>
         </div>
         <div class="mc-art" aria-hidden="true"></div>
       </div>
-      <div class="mc-cards">
+      <div class="mc-cards"><div class="ck-entry-label">选择检测项目<span>从接口连接，到真实任务表现</span></div>
         <article class="mc-entry">
           <span class="mc-ico" aria-hidden="true"><svg viewBox="0 0 40 40" width="40" height="40"><rect x="4" y="22" width="8" height="14" rx="2.4" fill="#60a5fa"/><rect x="16" y="8" width="8" height="28" rx="2.4" fill="#84cc16"/><rect x="28" y="15" width="8" height="21" rx="2.4" fill="#f59e0b"/></svg></span>
           <h2>检测结果</h2>
@@ -241,7 +241,7 @@
       <div class="mc-hero">
         <div>
           <h1>检测结果</h1>
-          <p>三项一起测的结果在这一页展开：基础测试的每一项、糖果测试的每一题、鹈鹕骑车生成的页面。想看 GPT降智或 ChatGPT降智，就看后两项。单独的基础测试仍打开原来的报告。请求发到你填写的地址，Key 不经过本站，也不出现在这一页的地址里。</p>
+          <details class="ck-report-help"><summary>检测说明</summary><p>三项一起测的结果在这一页展开：基础测试的每一项、糖果测试的每一题、鹈鹕骑车生成的页面。想看 GPT降智或 ChatGPT降智，就看后两项。单独的基础测试仍打开原来的报告。请求发到你填写的地址，Key 不经过本站，也不出现在这一页的地址里。</p></details>
           <i class="mc-bar"></i>
         </div>
       </div>
@@ -325,22 +325,23 @@
       <div id="candyStart">
         <div class="mc-hero">
           <div>
-            <h1>糖果测试</h1>
+            <div class="ck-eyebrow">CANDY TEST · 逻辑与推理</div><h1>糖果测试</h1>
             <p>题库 20 道，开考前选 5、10、15 或 20 道。用来看这一次 GPT降智、ChatGPT降智有没有把逻辑题做错。做到哪一题就展示题目和选项，做完给出分数、对错和分项得分。</p>
               <i class="mc-bar"></i>
           </div>
         </div>
+<div class="ck-steps"><span><i>01</i>连接模型</span><b></b><span><i>02</i>选择题量</span><b></b><span><i>03</i>查看结果</span></div>
         <section class="mc-card mc-setup-card">
-          <h2>测试设置</h2>
+          <div class="ck-settings-heading"><h2>测试设置</h2><span>请求从浏览器直接发往接口</span></div>
           <div id="setup-candy"></div>
           <div class="mc-runrow">
             <fieldset class="mc-field">
               <span>题量</span>
               <div class="mc-choices">
-                <label class="t-blue"><input type="radio" name="candyCount" value="5"> 5 题</label>
-                <label class="t-teal"><input type="radio" name="candyCount" value="10" checked> 10 题</label>
-                <label class="t-amber"><input type="radio" name="candyCount" value="15"> 15 题</label>
-                <label class="t-rose"><input type="radio" name="candyCount" value="20"> 20 题</label>
+                <label class="t-blue"><input type="radio" name="candyCount" value="5"> <b>5<small>题</small></b><em>快速体验</em></label>
+                <label class="t-teal"><input type="radio" name="candyCount" value="10" checked> <b>10<small>题</small></b><em>常用题量</em></label>
+                <label class="t-amber"><input type="radio" name="candyCount" value="15"> <b>15<small>题</small></b><em>更多题目</em></label>
+                <label class="t-rose"><input type="radio" name="candyCount" value="20"> <b>20<small>题</small></b><em>完整题库</em></label>
               </div>
             </fieldset>
             <div class="mc-actions">
@@ -352,6 +353,7 @@
           </div>
         </section>
         <p class="mc-hist"><a class="mc-hgo" href="/history" target="_top">检测历史 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg></a></p>
+<aside class="ck-plan"><div class="ck-plan-heading">本轮题目分布<span id="ckPlanCount"></span></div><div id="ckPlanBars"></div><p>完成后，可以查看总分、正确率、四项得分和每道题的模型答案。</p></aside>
         <section class="mc-card mc-note">
           <h2>这页在测什么</h2>
           <p>糖果测试是 20 道固定选择题，用来看这一次调用会不会把简单逻辑题做错。开考前可以选 5、10、15 或 20 道，默认 10 道。做题时页面给出当前题目和 A、B、C、D，做完给出正确率、对错，以及迷惑辨析、数量关系、约束求解、演绎四项得分。</p>
@@ -374,7 +376,9 @@
     <section class="mc-view" data-view-panel="pelican">
       <div class="mc-hero">
         <div>
-          <h1>鹈鹕骑车</h1>
+          <div class="ck-eyebrow">PELICAN LAB · 画面与动画</div>
+          <div class="ck-pelican-heading"><h1>鹈鹕骑车</h1><div id="pelicanResultActions" class="ck-pelican-actions" role="group" aria-label="结果操作" hidden></div></div>
+          <div id="pelicanResultMeta" hidden></div>
           <p>这不是问答题。让模型交回一整页 HTML，用 SVG 画一只正在骑自行车的鹈鹕，而且要能动。跑完后在下面直接看，也可以把这一页下载下来。</p>
           <i class="mc-bar"></i>
         </div>
@@ -400,9 +404,10 @@
           <div class="lab-card-head"><h2>鹈鹕骑车</h2><span class="lab-badge" data-badge>未测</span></div>
           <div data-out></div>
         </article>
+        <aside class="ck-observe"><h3>画面观察清单</h3><p>请结合实际生成的画面判断。</p><ul><li>长喙和喉囊是否清晰</li><li>是否有两个车轮和完整车架</li><li>脚有没有踩在踏板上</li><li>动画是否连贯、细节是否合理</li></ul><p>通过只表示交回了能打开的动画页，像不像要自己看。</p></aside>
       </section>
     </section>
-    <p class="mc-local">检测数据只在这台浏览器里。地址、Key、历史记录和每一项结果不会同步到别的浏览器，也不会发到本站。</p>
+    <p class="mc-local">检测记录默认保存在这台浏览器。只有主动点击分享时，才会保存一份不含 API Key 的公开结果，供他人通过链接或海报二维码查看。</p>
   </main>
   <footer class="site-foot mc-foot">
     <div class="site-foot-inner">
@@ -457,7 +462,7 @@
     <p class="foot-copy">© 维渡 AI · 模型检测只对照这一次调用，充值与使用风险自负</p>
   </footer>
   <script src="/original-check/check-grade.js"></script>
-  <script src="/original-check/check.js?v=20261102c"></script>
+  <script src="/original-check/check.js?v=20261108-pelican-details"></script>
   <script>
     (function () {
       var select = document.getElementById("model");

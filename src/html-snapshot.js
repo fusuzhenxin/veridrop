@@ -10,6 +10,7 @@ function clip(value) {
 }
 
 function describe(pathname) {
+  if (pathname === "/proposals") return "提名想收录的中转站，选择想看的测试，支持提案并参与讨论。查看运营排期、收录进展和测试结果。";
   if (pathname === "/") return "维渡 AI 的 API中转站排行。对照在线率、延迟、支付和公开价格。先看名单，再小额试用。不代收充值。";
   if (pathname === "/reputation") return "中转站投票排行。赞成和反对记在接口里，每人每站一票，净票高的排前面。点评同样公开，其他人也能看到。";
   if (pathname === "/points") return "签到、投票和点评记在账户里，其他人能看到投票和点评。检测记录只留在这台浏览器。20 积分可兑换 DeepSeek 共享额度。";
@@ -49,6 +50,7 @@ const ORIGIN = "https://www.veridrop.cn";
 const HOME_TITLE = "维渡 AI｜API中转站排行，对照在线率、延迟和支付";
 
 const STATIC = {
+  "/proposals": { title: "收录提案｜一起决定下一站与想看的测试", heading: "收录提案" },
   "/": { title: "", heading: "API中转站排行" },
   "/list": { title: "API中转站排行榜｜在线率、延迟、支付和发票", heading: "API中转站排行榜" },
   "/model": { title: "AI 模型中转站排行｜价格、上下文和智商", heading: "AI 模型中转站排行" },
@@ -317,7 +319,20 @@ function pageFor(pathname, community, boot = null) {
     const id = decodeURIComponent(path.slice("/b/".length).split("/")[0] || "");
     const fromFile = boot?.report?.id === id ? boot.report : null;
     const kept = publishedBasic[id] || fromFile;
-    if (!kept || kept.id !== id) return historyPage(path, id);
+    if (!kept || kept.id !== id) {
+      const history = historyPage(path, id);
+      if (history) return history;
+      if (!/^(basic|all|candy|pelican)-[a-z0-9]{4,24}$/i.test(id)) return null;
+      // Browser-local reports cannot be resolved until the client reads storage.
+      return {
+        path,
+        title: brand("正在读取检测报告"),
+        description: "正在读取这份检测记录。",
+        body: '<section class="wrap report-loading" role="status" aria-busy="true"><h1>正在读取检测报告</h1><p>正在加载这份记录，请稍候。</p></section>',
+        robots: "noindex,follow",
+        status: 200,
+      };
+    }
     const lines = Array.isArray(kept.rows) ? kept.rows.map((row) => `<li>${esc(row.label || row.id)} ${esc(row.summary || "")}</li>`).join("") : "";
     return {
       path,

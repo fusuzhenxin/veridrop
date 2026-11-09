@@ -26,6 +26,7 @@ import Orders from "./pages/Orders.vue";
 import Visitors from "./pages/Visitors.vue";
 import Notice from "./pages/Notice.vue";
 import Prizes from "./pages/Prizes.vue";
+import Proposals from "./pages/Proposals.vue";
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -50,6 +51,7 @@ const router = createRouter({
         { path: "sites/new", component: SiteForm, meta: { title: "登记站点", section: "/sites" } },
         { path: "sites/:id", component: SiteForm, meta: { title: "编辑站点", section: "/sites" } },
         { path: "submissions", component: Submissions, meta: { title: "收录", section: "/submissions" } },
+        { path: "proposals", component: Proposals, meta: { title: "收录提案", section: "/proposals" } },
         { path: "submissions/new", component: SubmissionForm, meta: { title: "新建申请", section: "/submissions" } },
         { path: "submissions/:id", component: SubmissionForm, meta: { title: "处理申请", section: "/submissions" } },
         { path: "complaints", component: Complaints, meta: { title: "投诉", section: "/complaints" } },

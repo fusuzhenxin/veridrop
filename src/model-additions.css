@@ -1,0 +1,69 @@
+/* Additive controls for model detail pages; existing content retains its styling. */
+.mb .mb-title-bar { display: flex; align-items: center; justify-content: space-between; gap: 20px; flex-wrap: wrap; }
+.mb .mb-title-actions { display: flex; align-items: center; gap: 22px; margin-left: auto; }
+.mb .mb-title-actions a { display: inline-flex; align-items: center; gap: 7px; font-size: 13px; font-weight: 550; }
+.mb .mb-ability-link { color: var(--orange-2); }
+.mb .mb-check-link { background: var(--orange); color: #fff; padding: 11px 15px; border-radius: 7px; }
+.mb .mb-check-link:hover { background: var(--orange-2); }
+.mb .mb-view-bar { display: flex; align-items: center; justify-content: space-between; gap: 20px; margin-top: 22px; border-block: 1px solid var(--line); }
+.mb .mb-view-tabs { display: flex; gap: 28px; }
+.mb .mb-view-tabs button { display: inline-flex; align-items: center; gap: 7px; position: relative; padding: 16px 0; color: var(--muted); font-size: 14px; white-space: nowrap; }
+.mb .mb-view-tabs button[aria-selected="true"] { color: var(--orange-2); font-weight: 600; }
+.mb .mb-view-tabs button[aria-selected="true"]::after { content: ""; position: absolute; bottom: -1px; left: 0; right: 0; height: 2px; background: var(--orange); }
+.mb .mb-view-tabs small, .mb .mb-view-bar > span { font-size: 11px; color: var(--faint); font-weight: 400; }
+.mb #mb-quotes-panel[hidden], .mb #mb-guide-panel[hidden] { display: none; }
+.mb .mb-guide-layout { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); gap: 46px; padding: 28px 0; }
+.mb .mb-guide-layout h2 { font-size: 17px; margin: 0 0 19px; }
+.mb .mb-guide-steps ol { padding-left: 21px; margin: 0; }
+.mb .mb-guide-steps li { padding-left: 5px; margin-bottom: 17px; font-size: 14px; }
+.mb .mb-guide-steps li::marker { color: var(--orange-2); font-weight: 600; }
+.mb .mb-guide-steps p { font-size: 13px; color: var(--muted); line-height: 1.85; margin: 5px 0 0; overflow-wrap: anywhere; }
+.mb .mb-guide-steps code { font-size: 12px; color: var(--fg); }
+.mb .mb-guide-config { padding: 15px; border: 1px solid var(--line); border-radius: 9px; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; }
+.mb .mb-guide-config > span { font-size: 12px; color: var(--muted); }
+.mb .mb-guide-config button { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--orange-2); }
+.mb .mb-guide-config pre { flex: 1 0 100%; white-space: pre-wrap; overflow-wrap: anywhere; font-size: 12px; line-height: 1.9; margin: 0; }
+.mb .mb-guide-cost { padding-left: 30px; border-left: 1px solid var(--line); min-width: 0; }
+.mb .mb-guide-cost h2 small { font-size: 11px; color: var(--muted); margin-left: 10px; font-weight: 400; }
+.mb .mb-guide-cost label { display: flex; flex-direction: column; gap: 9px; font-size: 12px; color: var(--muted); }
+.mb .mb-guide-cost select, .mb .mb-guide-cost input { width: 100%; min-width: 0; background: var(--card); color: var(--fg); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; font-size: 13px; }
+.mb .mb-group-picker { position: relative; }
+.mb .mb-group-label { display: block; margin-bottom: 9px; font-size: 12px; color: var(--muted); }
+.mb .mb-group-trigger { display: flex; align-items: center; gap: 10px; width: 100%; min-height: 60px; padding: 10px 13px; border: 1px solid var(--line); border-radius: 10px; text-align: left; background: var(--card); transition: border-color .15s; }
+.mb .mb-group-trigger:hover, .mb .mb-group-trigger[aria-expanded="true"] { border-color: #98b76b; }
+.mb .mb-group-trigger[aria-expanded="true"] { box-shadow: 0 0 0 3px color-mix(in srgb, var(--orange) 10%, transparent); }
+.mb .mb-group-trigger > span, .mb .mb-group-options button > span:first-child { flex: 1; min-width: 0; }
+.mb .mb-group-picker strong { display: block; color: var(--fg); font-size: 13px; font-weight: 600; line-height: 1.5; overflow-wrap: anywhere; }
+.mb .mb-group-picker small { display: block; margin-top: 3px; color: var(--muted); font-size: 12px; font-weight: 400; line-height: 1.5; overflow-wrap: anywhere; }
+.mb .mb-group-picker em { flex-shrink: 0; padding: 3px 6px; border-radius: 5px; background: var(--chip); color: var(--muted); font-style: normal; font-size: 10px; letter-spacing: .3px; }
+.mb .mb-group-trigger > svg { flex-shrink: 0; color: var(--muted); transition: transform .15s; }
+.mb .mb-group-trigger[aria-expanded="true"] > svg { transform: rotate(180deg); }
+.mb .mb-group-menu { position: absolute; top: calc(100% + 8px); left: 0; right: 0; z-index: 25; border: 1px solid var(--line); border-radius: 12px; background: var(--card); box-shadow: var(--shadow); overflow: hidden; }
+.mb .mb-group-search { display: flex; align-items: center; gap: 8px; padding: 9px 13px; border-bottom: 1px solid var(--line); color: var(--muted); }
+.mb .mb-guide-cost .mb-group-search input { padding: 6px 0; border: 0; border-radius: 0; background: transparent; outline: none; font-size: 12px; box-shadow: none; }
+.mb .mb-guide-cost .mb-group-search input:focus-visible { outline: none; border: 0; box-shadow: none; }
+.mb .mb-group-search:focus-within { background: color-mix(in srgb, var(--soft) 45%, var(--card)); }
+.mb .mb-group-search > svg { flex-shrink: 0; }
+.mb .mb-group-options { max-height: 280px; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; scrollbar-color: #aeb8a1 transparent; padding: 5px; }
+.mb .mb-group-options button { display: flex; align-items: center; gap: 9px; width: 100%; padding: 9px 10px; text-align: left; border-radius: 7px; }
+.mb .mb-group-options button:hover, .mb .mb-group-options button.is-active { background: var(--chip); }
+.mb .mb-group-options button[aria-selected="true"] { background: var(--soft); }
+.mb .mb-group-options button[aria-selected="true"] strong, .mb .mb-group-check { color: var(--orange-2); }
+.mb .mb-group-check { display: flex; width: 15px; flex: none; }
+.mb .mb-group-menu-foot { display: flex; justify-content: space-between; gap: 10px; padding: 9px 13px; border-top: 1px solid var(--line); color: var(--muted); font-size: 10px; }
+.mb .mb-group-menu-foot > span { color: var(--faint); }
+.mb .mb-group-empty { padding: 18px; margin: 0; text-align: center; color: var(--muted); font-size: 12px; }
+:root[data-theme="dark"] .mb .mb-group-options button[aria-selected="true"] strong, :root[data-theme="dark"] .mb .mb-group-check { color: #b8d68c; }
+.mb .mb-guide-token-inputs { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 17px; }
+.mb .mb-guide-unit-price, .mb .mb-guide-footnote { font-size: 12px; line-height: 1.85; color: var(--muted); margin: 14px 0 0; }
+.mb .mb-guide-total { display: grid; gap: 6px; background: var(--soft); border-radius: 9px; padding: 17px 19px; margin-top: 17px; }
+.mb .mb-guide-total > span { color: var(--muted); font-size: 12px; }
+.mb .mb-guide-total strong { color: var(--orange-2); font-size: 28px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.mb .mb-guide-total small { color: var(--muted); font-size: 11px; }
+.mb :is(.mb-title-actions,.mb-view-tabs,.mb-guide-layout) :is(a,button,input,select):focus-visible { outline: 2px solid var(--orange); outline-offset: 4px; }
+:root[data-theme="dark"] .mb :is(.mb-ability-link,.mb-guide-total strong,.mb-view-tabs button[aria-selected="true"],.mb-guide-config button) { color: #b8d68c; }
+@media(max-width:760px) {
+  .mb .mb-title-bar { gap: 16px; }.mb .mb-title-actions { margin-left: 0; gap: 18px; }
+  .mb .mb-view-bar > span { display: none; }.mb .mb-view-tabs { gap: 23px; }.mb .mb-view-tabs small { font-size: 10px; }
+  .mb .mb-guide-layout { grid-template-columns: minmax(0, 1fr); gap: 28px; }.mb .mb-guide-cost { border-left: 0; border-top: 1px solid var(--line); padding: 25px 0 0; }
+}

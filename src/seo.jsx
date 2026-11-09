@@ -9,6 +9,7 @@ import publishedBasic from "./published-basic.json";
 const ORIGIN = String(import.meta.env.VITE_SITE_ORIGIN || "https://www.veridrop.cn").replace(/\/$/, "");
 
 const PAGES = {
+  "/proposals": "提名想收录的中转站，选择基础测试、糖果测试或鹈鹕骑车，支持其他人的提案并参与讨论。查看运营排期、收录进展和测试结果。",
   "/": "维渡 AI 的 API中转站排行。对照在线率、延迟、支付和公开价格。先看名单，再小额试用。不代收充值。",
   "/list": "API中转站排行榜。可按在线率、延迟、最低充值、支付方式、发票和原有分类筛选。展示的是目录探测结果，不构成充值建议。",
   "/reputation": "中转站投票排行。赞成和反对记在接口里，每人每站一票，净票高的排前面。点评同样公开，其他人也能看到。",

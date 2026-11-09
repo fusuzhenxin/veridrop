@@ -25,6 +25,7 @@ import { BasicRunPage, RunKeeper } from "./basic-run.jsx";
 import { DetectRunPage } from "./detect-page.jsx";
 import { CodexPage, HistoryPage, IqPage, SpeedPage } from "./tools.jsx";
 import { ApplyPage, CheckPage, OfficialPage } from "./verd-pages.jsx";
+import { ProposalsPage } from "./proposals.jsx";
 
 function LegacyStationRedirect() {
   const { slug } = useParams();
@@ -77,6 +78,7 @@ export default function App() {
         <Route path="/tools/codex-resets" element={<CodexPage />} />
         <Route path="/tools/api-speed" element={<SpeedPage />} />
         <Route path="/reputation" element={<ReputationPage />} />
+        <Route path="/proposals" element={<ProposalsPage />} />
         <Route path="/activity" element={<ActivityPage />} />
         <Route path="/availability" element={<AvailabilityPage />} />
         <Route path="/model" element={<ModelListPage />} />

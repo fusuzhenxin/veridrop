@@ -3,6 +3,8 @@ import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom"
 import { useOfficialStatus } from "./official-store.js";
 import { allReportFor, latestAllReport, recoverAllDetail, subscribeCheckJob } from "./basic-run.jsx";
 import { Tester } from "./pages.jsx";
+import { ReportShare } from "./report-share.jsx";
+import { ReportLoading } from "./report-loading.jsx";
 import { applyRemoteAccount } from "./account.js";
 import { authToken, saveSubmission } from "./community.js";
 import { useTitle } from "./ui.jsx";
@@ -144,11 +146,12 @@ function loadScript(src) {
 function ensureCheckAssets() {
   if (checkAssets) return checkAssets;
   checkAssets = (async () => {
-    const [html, style, embed] = await Promise.all([
-      fetch("/original-check/check.html").then((response) => response.text()),
-      fetch("/original-check/style.css").then((response) => response.text()),
-      fetch("/original-check/embed.css").then((response) => response.text()),
-    ]);
+    const [html, style, embed] = await Promise.all(
+      ["check.html", "style.css", "embed.css"].map((file) => fetch(`/original-check/${file}`).then((response) => {
+        if (!response.ok) throw new Error("检测页面资源加载失败");
+        return response.text();
+      })),
+    );
     const parsed = new DOMParser().parseFromString(html, "text/html");
     const holder = document.createElement("div");
     holder.className = "check-host mc-page";
@@ -173,7 +176,7 @@ function ensureCheckAssets() {
     holder.prepend(styleNode);
     checkPark().appendChild(holder);
     await loadScript("/original-check/check-grade.js");
-    await loadScript("/original-check/check.js?v=20261102c");
+    await loadScript("/original-check/check.js?v=20261108-pelican-details");
     const extra = [...parsed.querySelectorAll("body script:not([src])")].map((node) => node.textContent || "").join("\n");
     if (extra.trim()) {
       const inline = document.createElement("script");
@@ -190,10 +193,18 @@ function emitCheck(data) {
 }
 
 function CheckNav({ current }) {
+  const icons = {
+    "": <path d="M9 3h6m-5 0v7l-6 9q-1 2 2 2h12q3 0 2-2l-6-9V3M7 16h10" />,
+    detect: <path d="M4 3v17h17M8 16v-5m5 5V6m5 10V9" />,
+    basic: <path d="M2 12h5l3-8 4 16 3-8h5" />,
+    candy: <path d="m12 2 3 7 7 3-7 3-3 7-3-7-7-3 7-3Z" />,
+    pelican: <><circle cx="12" cy="12" r="4" /><path d="M12 2v2m0 16v2M2 12h2m16 0h2M5 5l2 2m10 10 2 2M5 19l2-2M17 7l2-2" /></>,
+  };
   return (
     <nav className="check-nav" aria-label="模型检测">
       {CHECK_NAV.map(([id, label]) => (
         <Link key={id || "home"} to={id ? `/check/${id}` : "/check"} className={current === id ? "on" : ""} aria-current={current === id ? "page" : undefined}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{icons[id]}</svg>
           {label}
         </Link>
       ))}
@@ -311,9 +322,31 @@ export function CheckPage() {
   const replayId = (safe === "candy" || safe === "pelican") && new RegExp(`^${safe}-[a-z0-9]{4,24}$`, "i").test(replay) ? replay : "";
   const runQuery = search.get("run") || "";
   const runId = safe === "detect" && /^all-[a-z0-9]{4,24}$/i.test(runQuery) ? runQuery : "";
+  const shareToken = search.get("share") || "";
+  const [shared, setShared] = useState({ token: "", report: null, error: "" });
+  const sharedReport = shared.token === shareToken ? shared.report : null;
+  const shareError = shared.token === shareToken ? shared.error : "";
   const page = CHECK_PAGES[safe] || CHECK_PAGES[""];
   const host = useRef(null);
+  const viewKey = [safe, replayId, runId, shareToken].join(":");
+  const [assets, setAssets] = useState({ key: "", error: "" });
+  const ready = assets.key === viewKey && !assets.error;
+  const loadError = shareError || (assets.key === viewKey ? assets.error : "");
   useTitle(page.title, { exact: true });
+  useEffect(() => {
+    if (!shareToken) return undefined;
+    let dead = false;
+    setShared({ token: shareToken, report: null, error: "" });
+    fetch("/api/shared-reports/" + encodeURIComponent(shareToken))
+      .then(async response => {
+        const data = await response.json();
+        if (!response.ok || !data.id || !Array.isArray(data.rows)) throw new Error(data.error || "分享报告未找到");
+        if ((data.suite === "all" ? "detect" : data.suite) !== safe) throw new Error("报告类型与页面不匹配");
+        if (!dead) setShared({ token: shareToken, report: data, error: "" });
+      })
+      .catch(() => { if (!dead) setShared({ token: shareToken, report: null, error: "这份分享不存在或暂时无法读取，请确认链接后重试。" }); });
+    return () => { dead = true; };
+  }, [shareToken, safe]);
   useEffect(() => {
     function onView(event) {
       const view = event.detail === "home" ? "" : String(event.detail || "");
@@ -325,17 +358,25 @@ export function CheckPage() {
     return () => window.removeEventListener("veridrop-inline-view", onView);
   }, [navigate]);
   useEffect(() => {
-    if (safe === "basic") return undefined;
+    if (safe === "basic" || (shareToken && !sharedReport)) return undefined;
     const node = host.current;
     if (!node) return undefined;
     let dead = false;
+    setAssets({ key: "", error: "" });
     ensureCheckAssets().then((holder) => {
       if (dead || !holder || !node) return;
       holder.dataset.theme = document.documentElement.dataset.theme || "light";
       if (holder.parentElement !== node) node.appendChild(holder);
       emitCheck({ type: "veridrop-check-show", view: safe || "home" });
-      if (replayId) emitCheck({ type: "veridrop-replay", id: replayId });
-    }).catch(() => {});
+      if (sharedReport && safe === "detect") {
+        emitCheck({ type: "veridrop-all-report", report: sharedReport, missing: false });
+      }
+      if (sharedReport && safe !== "detect") emitCheck({ type: "veridrop-replay", id: sharedReport.id, report: sharedReport });
+      else if (replayId) emitCheck({ type: "veridrop-replay", id: replayId });
+      setAssets({ key: viewKey, error: "" });
+    }).catch(() => {
+      if (!dead) setAssets({ key: viewKey, error: "请检查网络连接后重试，已保存的检测记录不会因此被清除。" });
+    });
     const theme = new MutationObserver(() => {
       const holder = node.querySelector(".check-host");
       if (holder) holder.dataset.theme = document.documentElement.dataset.theme || "light";
@@ -347,13 +388,13 @@ export function CheckPage() {
       if (holder) checkPark().appendChild(holder);
       theme.disconnect();
     };
-  }, [safe, replayId]);
+  }, [safe, replayId, shareToken, sharedReport, viewKey]);
   useEffect(() => {
-    if (safe !== "detect") return undefined;
+    if (safe !== "detect" || (shareToken && !sharedReport)) return undefined;
     function push() {
       if (!document.querySelector("main .check-host")) return;
-      recoverAllDetail();
-      const report = runId ? allReportFor(runId) : latestAllReport();
+      if (!shareToken) recoverAllDetail();
+      const report = sharedReport || (runId ? allReportFor(runId) : latestAllReport());
       const missing = Boolean(runId && !report);
       emitCheck({
         type: "veridrop-all-report",
@@ -370,7 +411,7 @@ export function CheckPage() {
       window.clearTimeout(first);
       window.clearTimeout(later);
     };
-  }, [safe, runId]);
+  }, [safe, runId, shareToken, sharedReport]);
   if (safe === "basic") {
     return (
       <div className="wrap check-basic">
@@ -381,7 +422,12 @@ export function CheckPage() {
       </div>
     );
   }
-  return <div ref={host} className="check-page" />;
+  return <>
+    {!ready || loadError ? <div><div className="wrap"><CheckNav current={safe} /></div><ReportLoading error={loadError} title={safe ? "正在加载检测结果" : "正在加载模型检测"} description={shareToken ? "正在读取分享的报告和结果内容，请稍候。" : replayId || runId ? "正在读取历史记录和报告内容，请稍候。" : "正在准备检测页面，请稍候。"} /></div> : null}
+    {shareToken && ready ? <section className="check-share-notice" role="status"><p>分享报告 · 用户自测结果，仅代表本轮调用。</p></section> : null}
+    <div ref={host} className="check-page" style={!ready || loadError ? { display: "none" } : undefined} />
+    <ReportShare sharedReport={sharedReport} sharedUrl={sharedReport ? `${window.location.origin}/check/${safe}?share=${encodeURIComponent(shareToken)}` : ""} />
+  </>;
 }
 
 const APPLY_CATS = CATS.filter(([id]) => !["owner", "online", "fast", "highup"].includes(id)).map(([, label]) => label);

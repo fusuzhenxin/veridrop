@@ -22,6 +22,171 @@
     claudeViaOpenAI: false,
   };
 
+
+  function ckIcon(name) {
+    const paths = {
+      globe: '<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c5 5 5 13 0 18-5-5-5-13 0-18Z"/>',
+      calendar: '<rect x="4" y="5" width="16" height="16" rx="2"/><path d="M8 3v4m8-4v4M4 10h16m-11 4h2m2 3h2"/>',
+      clock: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
+      chart: '<path d="M4 3v17h17M8 16v-5m5 5V6m5 10V9"/>',
+      beaker: '<path d="M9 3h6m-5 0v7l-6 9q-1 2 2 2h12q3 0 2-2l-6-9V3M7 16h10"/>',
+      pulse: '<path d="M2 12h5l3-8 4 16 3-8h5"/>',
+      spark: '<path d="m12 2 3 7 7 3-7 3-3 7-3-7-7-3 7-3Z"/>',
+      sun: '<circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M2 12h2m16 0h2M5 5l2 2m10 10 2 2M5 19l2-2M17 7l2-2"/>',
+      shield: '<path d="m12 3 8 3v6q0 6-8 9-8-3-8-9V6Zm-4 9 3 3 5-6"/>',
+      arrow: '<path d="M5 12h14m-5-5 5 5-5 5"/>',
+      refresh: '<path d="M20 9a8 8 0 1 0 0 6M20 3v6h-6"/>',
+      download: '<path d="M12 3v12m-5-5 5 5 5-5M4 16v5h16v-5"/>',
+      copy: '<rect x="8" y="8" width="12" height="13" rx="2"/><path d="M16 8V3H3v13h5"/>',
+      code: '<path d="m8 7-5 5 5 5m8-10 5 5-5 5m-3-14-2 18"/>',
+      list: '<path d="M9 5h12M9 12h12M9 19h12M3 5h1m-1 7h1m-1 7h1"/>',
+      info: '<circle cx="12" cy="12" r="9"/><path d="M12 11v6m0-10v1"/>'
+    };
+    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.setAttribute('viewBox','0 0 24 24'); svg.setAttribute('class','ck-icon');
+    svg.setAttribute('fill','none'); svg.setAttribute('stroke','currentColor');
+    svg.setAttribute('stroke-width','1.6'); svg.setAttribute('stroke-linecap','round');
+    svg.setAttribute('stroke-linejoin','round'); svg.setAttribute('aria-hidden','true');
+    svg.innerHTML = paths[name] || paths.info;
+    return svg;
+  }
+  function ckModelMark(model) {
+    const key = String(model || '').toLowerCase();
+    const vendors = [[/gpt|codex|openai|chatgpt/,'openai'],[/claude|opus|sonnet|fable/,'claude'],[/gemini/,'gemini'],[/deepseek/,'deepseek'],[/grok/,'grok'],[/kimi|moonshot/,'moonshot'],[/glm|zhipu/,'zhipu'],[/qwen/,'qwen']];
+    const vendor = vendors.find(function (pair) { return pair[0].test(key); });
+    if (!vendor) return ckIcon('spark');
+    const img = document.createElement('img'); img.className='ck-vendor'; img.alt='';
+    img.src='/icons/vendor/'+vendor[1]+'.svg';
+    if (['openai','grok','moonshot'].includes(vendor[1])) img.classList.add('ck-mono');
+    return img;
+  }
+  function ckMeta(host, model, when) {
+    const meta = candyNode('div','ck-report-meta');
+    [[host,'globe'],[model,'model'],[when,'calendar']].forEach(function (pair) {
+      if (!pair[0]) return;
+      const part = candyNode(pair[1]==='globe'?'b':'span');
+      part.appendChild(pair[1]==='model'?ckModelMark(pair[0]):ckIcon(pair[1]));
+      part.appendChild(document.createTextNode(pair[0])); meta.appendChild(part);
+    });
+    return meta;
+  }
+  function ckShareButtons(container, suite, report) {
+    if (isHiddenRunner() || !inSitePage()) return;
+    const recordId = report && report.id || suite + "-" + Number(state.suiteStarted || 0).toString(36);
+    [["poster", "分享海报"], ["link", "分享链接"]].forEach(function (pair) {
+      const button = candyNode("button", "mc-btn ck-share-button", pair[1]);
+      button.type = "button";
+      button.appendChild(ckIcon(pair[0] === "poster" ? "chart" : "copy"));
+      button.addEventListener("click", function () {
+        window.dispatchEvent(new CustomEvent("veridrop-share-open", { detail: { mode: pair[0], id: recordId, report: report || null } }));
+      });
+      container.appendChild(button);
+    });
+  }
+  function ckPelicanSource(stage, frame, source, format) {
+    stage.classList.add("ck-pelican-preview");
+    const tabs = candyNode("div", "ck-output-tabs");
+    tabs.setAttribute("role", "group");
+    tabs.setAttribute("aria-label", "生成内容视图");
+    const preview = candyNode("button", "is-active", "动画预览");
+    const code = candyNode("button", "", "HTML 源码");
+    preview.type = code.type = "button";
+    preview.prepend(ckIcon("sun"));
+    code.prepend(ckIcon("code"));
+    const panel = candyNode("div", "ck-output-source");
+    panel.hidden = true;
+    const header = candyNode("div", "ck-source-heading");
+    header.appendChild(candyNode("span", "", "本轮生成的 HTML"));
+    const copy = candyNode("button", "mc-btn", "复制源码");
+    copy.type = "button";
+    copy.prepend(ckIcon("copy"));
+    copy.addEventListener("click", function () {
+      if (!navigator.clipboard || !navigator.clipboard.writeText) {
+        copy.textContent = "请手动选择源码";
+        return;
+      }
+      navigator.clipboard.writeText(source).then(function () {
+        copy.textContent = "已复制";
+      }, function () { copy.textContent = "复制失败，请手动选择"; });
+    });
+    header.appendChild(copy);
+    panel.appendChild(header);
+    const pre = candyNode("pre", "", source);
+    pre.tabIndex = 0;
+    panel.appendChild(pre);
+    function select(view) {
+      const showingPreview = view === "preview";
+      frame.hidden = !showingPreview;
+      panel.hidden = showingPreview;
+      preview.classList.toggle("is-active", showingPreview);
+      code.classList.toggle("is-active", !showingPreview);
+      preview.setAttribute("aria-pressed", String(showingPreview));
+      code.setAttribute("aria-pressed", String(!showingPreview));
+    }
+    preview.addEventListener("click", function () { select("preview"); });
+    code.addEventListener("click", function () { select("source"); });
+    select("preview");
+    tabs.appendChild(preview);
+    tabs.appendChild(code);
+    tabs.appendChild(candyNode("span", "ck-output-format", format + " · 本轮输出"));
+    stage.prepend(tabs);
+    stage.appendChild(panel);
+  }
+  function ckPelicanDetails(card, status, summary, page, hasSvg) {
+    const out = card.querySelector("[data-out]");
+    const report = state.replayingReport;
+    const meta = $("pelicanResultMeta");
+    if (meta) {
+      let host = report && report.host || "";
+      if (!report) {
+        try { host = new URL($("base").value).hostname; } catch (err) {}
+      }
+      const model = report ? report.model || report.modelId : ($("modelPickLabel") && $("modelPickLabel").textContent) || chosenModel();
+      const at = report ? Number(report.finishedAt || report.started) : Date.now();
+      const when = at > 0 && isFinite(at) ? candyStamp(new Date(at)) : "时间未记录";
+      const line = ckMeta(host, model || "模型未记录", when);
+      const modelPart = line.querySelector("span");
+      if (modelPart) line.prepend(modelPart);
+      meta.replaceChildren(line);
+      meta.hidden = false;
+    }
+    if (!page) return;
+    const original = out.querySelector(".lab-summary");
+    const verdict = candyNode("div", "ck-pelican-summary");
+    const head = candyNode("div", "ck-pelican-verdict-heading");
+    head.appendChild(candyNode("span", "", "本轮结果"));
+    head.appendChild(candyNode("span", "lab-badge " + status, STATUS_TEXT[status] || status));
+    verdict.appendChild(head);
+    verdict.appendChild(candyNode("h3", "", status === "pass" ? "已返回可播放的动画页" : "已返回页面，请结合画面判断"));
+    verdict.appendChild(candyNode("p", "ck-pelican-description", String(summary || "").replace(/\s+\d[\d,]*\s*ms\b[\s\S]*$/i, "").trim()));
+    const metrics = candyNode("dl", "ck-pelican-metrics");
+    const timing = String(summary || "").match(/\b(\d[\d,]*)\s*ms\b/i);
+    [["生成耗时", timing ? (Number(timing[1].replace(/,/g, "")) / 1000).toFixed(1) : "未记录", timing ? "秒" : ""],
+      ["输出形式", hasSvg ? "HTML + SVG" : "HTML", ""]].forEach(function (pair, index) {
+      const item = candyNode("div");
+      item.appendChild(candyNode("dt", "", pair[0]));
+      const value = candyNode("dd", index ? "ck-pelican-format" : "", pair[1]);
+      if (pair[2]) value.appendChild(candyNode("small", "", pair[2]));
+      item.appendChild(value);
+      metrics.appendChild(item);
+    });
+    verdict.appendChild(metrics);
+    // Keep the saved summary exactly as returned by the grader and request timer.
+    if (original) {
+      original.hidden = true;
+      original.replaceWith(verdict);
+      verdict.appendChild(original);
+    } else out.prepend(verdict);
+  }
+  function ckSectionHeading(node, icon, subtitle) {
+    const title = node.querySelector('h2'); if (!title) return;
+    const group = candyNode('div','ck-section-heading');
+    const mark = candyNode('span','ck-section-mark'); mark.appendChild(ckIcon(icon));
+    const text = candyNode('div'); title.before(group); text.appendChild(title);
+    if (subtitle) text.appendChild(candyNode('p','',subtitle));
+    group.appendChild(mark); group.appendChild(text);
+  }
+
   function randomToken(prefix, alphabet, length) {
     const bytes = new Uint8Array(length);
     crypto.getRandomValues(bytes);
@@ -207,6 +372,9 @@
     if (!el) return;
     el.className = "lab-badge " + status;
     el.dataset.state = status;
+    if (status === "running" && card.getAttribute("data-test") === "pelican" && !isHiddenRunner()) {
+      [$("pelicanResultMeta"), $("pelicanResultActions")].forEach(function (node) { if (node) node.hidden = true; });
+    }
     stopRunClock(card);
     var oldWait = card.querySelector(".lab-wait");
     if (oldWait) oldWait.remove();
@@ -298,6 +466,9 @@
       if (drawing) frame.setAttribute("scrolling", "no");
       frame.srcdoc = preview;
       stage.appendChild(frame);
+      if (card.getAttribute("data-test") === "pelican" && !isHiddenRunner()) {
+        ckPelicanSource(stage, frame, String(html || svg || ""), drawing || svg ? "HTML + SVG" : "HTML");
+      }
       out.appendChild(stage);
       const bar = document.createElement("div");
       bar.className = "lab-actions";
@@ -346,6 +517,25 @@
     }
     if (card.getAttribute("data-test") === "pelican") {
       state.pelicanHtml = String(html || "").slice(0, 1200000);
+      if (!isHiddenRunner()) {
+        ckPelicanDetails(card, status, summary, page, !!(page && largestSvg(page)));
+        const actions = $("pelicanResultActions");
+        if (actions) {
+          actions.replaceChildren();
+          ckShareButtons(actions, "pelican", state.replayingReport);
+          const retry = candyNode("button", "mc-btn mc-btn-solid", "再测一次");
+          retry.type = "button";
+          retry.setAttribute("data-run-set", "pelican");
+          retry.appendChild(ckIcon("refresh"));
+          retry.addEventListener("click", function () {
+            $("setup-pelican").scrollIntoView({ block: "center" });
+            $("runPelicanCard").click();
+          });
+          actions.appendChild(retry);
+          actions.hidden = false;
+          setBusy();
+        }
+      }
     }
     paintDetectRows();
     if (detail && card.getAttribute("data-raw") === "1") {
@@ -696,7 +886,8 @@
   });
 
   function tell(payload) {
-    if (window.parent === window) return;
+    // Inline standalone tests use the same record listener as embedded tests.
+    if (window.parent === window && (!inSitePage() || !payload || payload.type !== "veridrop-local-record")) return;
     if (leaving && !isHiddenRunner()) return;
     try {
       window.parent.postMessage(payload, location.origin);
@@ -1100,7 +1291,7 @@
     run.appendChild(grid);
   }
 
-  function renderCandyReport(rows) {
+  function renderCandyReport(rows, savedReport) {
     const report = $("candyReport");
     if (!report) return;
     const ui = state.candyUi || {};
@@ -1122,9 +1313,8 @@
     back.addEventListener("click", showCandyStart);
     report.appendChild(back);
     report.appendChild(candyNode("h1", "cd-title", "糖果测试-第" + (ui.seq || 1) + "次"));
-    const sub = candyNode("p", "cd-sub");
-    sub.appendChild(candyNode("i", "cd-dot"));
-    sub.appendChild(document.createTextNode(" " + (ui.model || chosenModel() || "未选模型") + " · 困难 · " + candyStamp(ui.at)));
+    report.querySelector('.cd-title').before(candyNode('div','ck-eyebrow','CANDY REPORT · 本轮测试报告'));
+    const sub = ckMeta(savedReport && savedReport.host || '', ui.model || chosenModel() || '未选模型', candyStamp(ui.at));
     report.appendChild(sub);
     const stats = candyNode("div", "cd-scorebar");
     const ringCard = candyNode("div", "cd-score");
@@ -1135,6 +1325,11 @@
     hole.appendChild(candyNode("span", "", "/100"));
     ring.appendChild(hole);
     ringCard.appendChild(ring);
+    const scoreCaption=candyNode('div','ck-score-caption');
+    scoreCaption.appendChild(candyNode('span','','本轮得分'));
+    scoreCaption.appendChild(candyNode('b','',right===total?'本轮全部答对':'有题目需要留意'));
+    scoreCaption.appendChild(candyNode('small','',total+' 道固定选择题 · 四项能力分别看'));
+    ringCard.appendChild(scoreCaption);
     const judge = candyNode("div", "cd-score");
     judge.appendChild(candyNode("span", "", "判定"));
     judge.appendChild(candyNode("em", verdict === "正常" ? "cd-pill" : "cd-pill cd-pill-bad", verdict));
@@ -1162,10 +1357,25 @@
         if (mode === "ok" && !row.ok) return;
         if (mode === "bad" && row.ok) return;
         const item = candyNode("li", "cd-item");
+        item.id='ck-question-'+(index+1);
         item.appendChild(candyNode("b", "", index + 1 < 10 ? "0" + (index + 1) : String(index + 1)));
         const body = candyNode("div");
+        const labels=candyNode('div','ck-question-labels');
+        if(row.dimension) labels.appendChild(candyNode('span','',row.dimension));
+        if(row.level) labels.appendChild(candyNode('span','',row.level));
+        body.appendChild(labels);
+        if(row.title && row.prompt) body.appendChild(candyNode('h4','',row.title));
         body.appendChild(candyNode("p", "", row.prompt || row.title || ""));
         body.appendChild(candyNode("p", "cd-pick", "模型答案：" + (row.picked || "没有回答")));
+        if (Array.isArray(row.options) && row.options.length) {
+          const options=candyNode('details','ck-answer-options');
+          options.appendChild(candyNode('summary','','选项与参考答案'));
+          row.options.forEach(function (opt) {
+            options.appendChild(candyNode('p','',(opt.key||'')+'  '+(opt.text||'')));
+          });
+          if(row.answer || row.expect) options.appendChild(candyNode('p','ck-reference','参考答案：'+(row.answer || row.expect)));
+          body.appendChild(options);
+        }
         item.appendChild(body);
         item.appendChild(candyNode("em", row.ok ? "cd-pill" : "cd-pill cd-pill-bad", row.missed ? "未完成" : row.ok ? "答对" : "答错"));
         list.appendChild(item);
@@ -1189,7 +1399,17 @@
     paintList();
     main.appendChild(list);
     const side = candyNode("aside", "cd-side");
-    side.appendChild(candyNode("h3", "", "维度得分"));
+    const dimensions=candyNode('section','ck-dimensions');
+    dimensions.appendChild(candyNode('h3','','维度得分'));
+    const domainGrid=candyNode('div','ck-domain-grid'); dimensions.appendChild(domainGrid);
+    side.appendChild(candyNode('h3','','答题导航'));
+    const map=candyNode('div','ck-question-map');
+    rows.forEach(function (row,index) {
+      const jump=candyNode('button',row.ok?'is-ok':'is-bad',String(index+1).padStart(2,'0'));
+      jump.type='button'; jump.setAttribute('aria-label','第 '+(index+1)+' 题，'+(row.missed?'未完成':row.ok?'答对':'答错'));
+      jump.addEventListener('click',function () { filters.querySelector('button').click(); $('ck-question-'+(index+1)).scrollIntoView({block:'center'}); });
+      map.appendChild(jump);
+    }); side.appendChild(map);
     ["迷惑辨析", "数量关系", "约束求解", "演绎"].forEach(function (name) {
       const group = asked.filter(function (row) {
         return row.dimension === name;
@@ -1205,8 +1425,9 @@
       inner.style.width = score + "%";
       track.appendChild(inner);
       line.appendChild(track);
-      line.appendChild(candyNode("em", "", String(score)));
-      side.appendChild(line);
+      line.appendChild(candyNode("em", "", group.length ? String(score)+' 分' : '—'));
+      line.appendChild(candyNode('small','',group.length ? got+' / '+group.length+' 题答对' : '本轮未覆盖'));
+      domainGrid.appendChild(line);
     });
     const stable = asked.length && right === asked.length;
     side.appendChild(
@@ -1248,7 +1469,10 @@
     const buttons = candyNode("div", "cd-actions");
     buttons.appendChild(again);
     buttons.appendChild(save);
-    side.appendChild(buttons);
+    ckShareButtons(buttons, "candy", savedReport);
+    buttons.classList.add('ck-report-actions');
+    sub.after(buttons);
+    report.appendChild(dimensions);
     grid.appendChild(main);
     grid.appendChild(side);
     report.appendChild(grid);
@@ -1921,7 +2145,7 @@
       rows: plainCandyRows(state.candyRows || []),
     });
     if (suite === "basic" || suite === "all") tell({ type: "veridrop-basic-done", scored: basicReachedApi() });
-    if ((suite === "candy" || suite === "pelican") && inParentCheck()) recordLocal(suite);
+    if ((suite === "candy" || suite === "pelican") && (inParentCheck() || inSitePage())) recordLocal(suite);
   }
 
   function plainCandyRows(rows) {
@@ -1981,9 +2205,9 @@
   function replaySaved(data) {
     if (isHiddenRunner() || !data || typeof data.id !== "string") return;
     if (!/^(candy|pelican)-[a-z0-9]{4,24}$/i.test(data.id)) return;
-    let report = null;
+    let report = data.report && data.report.id === data.id ? data.report : null;
     try {
-      report = JSON.parse(localStorage.getItem("veridrop-basic-report:" + data.id) || "null");
+      if (!report) report = JSON.parse(localStorage.getItem("veridrop-basic-report:" + data.id) || "null");
     } catch (err) {
       report = null;
     }
@@ -1996,7 +2220,7 @@
         at: report.finishedAt ? new Date(report.finishedAt) : new Date(),
         model: report.model || "",
       };
-      renderCandyReport(report.candyRows);
+      renderCandyReport(report.candyRows, report);
       return;
     }
     if (report.suite === "pelican" && name === "pelican") {
@@ -2004,7 +2228,9 @@
       if (!card) return;
       const row = Array.isArray(report.rows) ? report.rows[0] : null;
       const status = row && row.status ? row.status : "pass";
-      showResult(card, status, (row && row.summary) || report.result || "", "", "", report.pelicanHtml || "", null);
+      state.replayingReport = report;
+      try { showResult(card, status, (row && row.summary) || report.result || "", "", "", report.pelicanHtml || "", null); }
+      finally { state.replayingReport = null; }
     }
   }
 
@@ -2401,64 +2627,17 @@
     var main = axEl("div");
     main.appendChild(axEl("h2", "ax-title", axTitle(report)));
     var when = report.running ? axClock(report.started) : axClock(report.finishedAt || report.started);
-    var meta = axEl("p", "ax-meta");
-    [report.host || "未记下站点", report.model || "未选模型", when].filter(Boolean).forEach(function (bit, index) {
-      if (index) meta.appendChild(document.createTextNode(" · "));
-      meta.appendChild(document.createTextNode(bit));
-    });
-    meta.appendChild(document.createTextNode(" · "));
-    var dur = axEl("span", "", axDuration(axTotalMs(report)));
-    if (report.running) dur.setAttribute("data-ax-elapsed", "1");
-    meta.appendChild(dur);
+    var meta = ckMeta(report.host || "未记下站点", report.model || "未选模型", when);
+    main.appendChild(axEl("div", "ck-eyebrow", "DETECTION REPORT · 检测报告"));
     main.appendChild(meta);
     if (report.running) main.appendChild(axEl("p", "ax-live", "离开这个页面后，这一轮仍会继续。检测历史里显示进行中。"));
     top.appendChild(main);
     var actions = axEl("div", "ax-tools");
-    var copy = axEl("button", "mc-btn", "复制报告链接");
-    copy.type = "button";
-    copy.addEventListener("click", function () {
-      var url = axParentUrl();
-      var done = function () {
-        copy.textContent = "已复制";
-        setTimeout(function () { copy.textContent = "复制报告链接"; }, 1600);
-      };
-      var fail = function () { copy.textContent = "请手动复制地址栏"; };
-      var legacy = function () {
-        var area = document.createElement("textarea");
-        area.value = url;
-        area.setAttribute("readonly", "");
-        area.style.position = "fixed";
-        area.style.left = "-9999px";
-        document.body.appendChild(area);
-        area.select();
-        var ok = false;
-        try { ok = document.execCommand("copy"); } catch (err) { ok = false; }
-        area.remove();
-        if (ok) done();
-        else fail();
-      };
-      if (!(navigator.clipboard && navigator.clipboard.writeText)) {
-        legacy();
-        return;
-      }
-      var settled = false;
-      var timer = setTimeout(function () {
-        if (!settled) legacy();
-      }, 1200);
-      navigator.clipboard.writeText(url).then(function () {
-        settled = true;
-        clearTimeout(timer);
-        done();
-      }, function () {
-        settled = true;
-        clearTimeout(timer);
-        legacy();
-      });
-    });
-    var save = axEl("button", "mc-btn", "下载 JSON");
+    if (!report.running) ckShareButtons(actions, "all", report);
+    var save = axEl("button", "mc-btn ck-download", "下载 JSON");
+    save.title = "下载 JSON"; save.setAttribute("aria-label", "下载 JSON");
     save.type = "button";
     save.addEventListener("click", function () { axDownload(report); });
-    actions.appendChild(copy);
     actions.appendChild(save);
     if (report.running) {
       var stop = axEl("button", "mc-btn", "停止");
@@ -2531,6 +2710,17 @@
     strip.appendChild(axKpi("鹈鹕", pelicanWord[0], pelicanCap));
     strip.appendChild(axKpi("首次响应", waiting ? "—" : axDuration(meter.ttftMs), "第一次请求用时"));
     strip.appendChild(axKpi("总耗时", axDuration(axTotalMs(report)), "整轮用时", true));
+    const first = strip.firstElementChild;
+    first.classList.add('ck-basis');
+    const ring = axEl('div','ck-basis-ring');
+    ring.style.setProperty('--score',String(scored.score == null ? 0 : scored.score));
+    const hole = axEl('div'); hole.appendChild(first.querySelector('b'));
+    hole.appendChild(axEl('small','','基础分 / 100')); ring.appendChild(hole);
+    const caption = axEl('div','ck-basis-caption'); caption.appendChild(axEl('strong','','本次基础检测'));
+    caption.appendChild(first.querySelector('small') || axEl('small','','还没有计入的项'));
+    caption.appendChild(axEl('small','','仅反映本次调用'));
+    first.replaceChildren(ring,caption);
+    ['spark','sun','pulse','clock'].forEach(function (name,index) { strip.children[index+1].querySelector('span').prepend(ckIcon(name)); });
     return strip;
   }
 
@@ -2575,7 +2765,7 @@
   }
 
   function axCandy(report) {
-    var card = axEl("section", "ax-card");
+    var card = axEl("section", "ax-card ck-candy-card");
     var row = axRowOf(report, "candy");
     var word = axWord(row);
     var rows = Array.isArray(report.candyRows) ? report.candyRows : [];
@@ -2763,7 +2953,7 @@
   }
 
   function axPelican(report) {
-    var card = axEl("section", "ax-card");
+    var card = axEl("section", "ax-card ck-pelican-card");
     var row = axRowOf(report, "pelican");
     var word = axWord(row);
     var head = axEl("div", "ax-sec-h");
@@ -3041,11 +3231,22 @@
     }
     board.appendChild(axHead(allReportCache));
     board.appendChild(axKpis(allReportCache));
+    const notice = axEl('p','ck-report-notice','基础项不支持或网络失败，不直接算作降智；推理与画面表现请结合下方能力测试查看。');
+    notice.prepend(ckIcon('info')); board.appendChild(notice);
+    const jumps = axEl('nav','ck-report-jumps'); jumps.setAttribute('aria-label','报告章节');
+    [['能力表现','chart','ck-capabilities'],['基础明细','list','ck-basic-detail']].forEach(function (pair) {
+      const link = axEl('button','',pair[0]); link.type='button'; link.prepend(ckIcon(pair[1]));
+      link.addEventListener('click',function () { const target=$(pair[2]); if(target) target.scrollIntoView({block:'start',behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'instant':'smooth'}); });
+      jumps.appendChild(link);
+    }); board.appendChild(jumps);
     var split = axEl("div", "ax-split");
-    split.appendChild(axCandy(allReportCache));
-    split.appendChild(axPelican(allReportCache));
+    split.id='ck-capabilities';
+    const candyCard=axCandy(allReportCache), pelicanCard=axPelican(allReportCache);
+    ckSectionHeading(candyCard,'spark','四个维度，看这次的解题表现。');
+    ckSectionHeading(pelicanCard,'sun','看画面，也看动画与细节。');
+    split.appendChild(candyCard); split.appendChild(pelicanCard);
     board.appendChild(split);
-    board.appendChild(axBasic(allReportCache));
+    const basicDetail=axBasic(allReportCache); basicDetail.id="ck-basic-detail"; board.appendChild(basicDetail);
     board.appendChild(axEl("p", "ax-foot", "密钥只发给你填写的接口。这一页的地址、检测历史和下载的 JSON 里都没有密钥。分数只来自这一轮实际返回，没有测成的项不补成分数。"));
     axFitSplit();
     if (allReportCache.running) {
@@ -3237,6 +3438,20 @@
     const box = $("mcHistory");
     if (!box) return;
     const rows = hubRows();
+    const latest=document.querySelector('.mc-entry:first-of-type');
+    if(latest) {
+      const prior=latest.querySelector('.ck-latest-record'); if(prior) prior.remove();
+      const record=candyNode('div','ck-latest-record');
+      if(rows.length) {
+        const item=rows[0];
+        record.appendChild(candyNode('span','ck-latest-label','最近一次检测'));
+        record.appendChild(candyNode('strong','',hubResult(item)));
+        record.appendChild(ckMeta(item.host || '未记下站点', item.model || '未选模型',hubClock(item.at)));
+        record.appendChild(candyNode('p','',hubApi(item)));
+        latest.querySelector('a').href=hubHref(item);
+      } else record.appendChild(candyNode('p','','还没有检测记录。完成测试后，可在这里查看本轮结果。'));
+      latest.querySelector('a').before(record);
+    }
     box.replaceChildren();
     if (!rows.length) {
       const empty = document.createElement("p");
@@ -3836,7 +4051,36 @@
     if (history.replaceState) history.replaceState({}, "", location.pathname + (rest ? "?" + rest : "") + location.hash);
   }
 
+
+  function ckDecorate() {
+    document.querySelectorAll('.mc-links a').forEach(function(link) {
+      if(!link.querySelector('.ck-icon')) link.prepend(ckIcon({home:'beaker',detect:'chart',basic:'pulse',candy:'spark',pelican:'sun'}[link.dataset.view]));
+    });
+    document.querySelectorAll('.mc-tip .mc-faq, #candyStart .mc-faq').forEach(function(dl) {
+      const next=document.createElement('div'); next.className='ck-faq-grid';
+      Array.from(dl.querySelectorAll('dt')).forEach(function(dt,index) {
+        const dd=dt.nextElementSibling, detail=document.createElement('details');
+        const summary=document.createElement('summary'); summary.textContent=dt.textContent;
+        const text=document.createElement('p'); text.textContent=dd?dd.textContent:'';
+        detail.append(summary,text); detail.open=index===0; next.appendChild(detail);
+      }); dl.replaceWith(next);
+    });
+    function plan() {
+      const count=Number(document.querySelector('[name="candyCount"]:checked')?.value || 10);
+      const box=$('ckPlanBars'); if(!box)return;
+      $('ckPlanCount').textContent=count+' / 20 题'; box.replaceChildren();
+      ['迷惑辨析','数量关系','约束求解','演绎'].forEach(function(name,index) {
+        const questions=(G.CANDY_QUESTIONS || []).slice(0,count).filter(function(q){return q.dimension===name;});
+        const block=candyNode('div','ck-plan-domain');
+        const head=candyNode('div'); head.append(candyNode('b','',name),candyNode('span','',questions.length+' 题'));
+        block.append(head,candyNode('p','',['识别直觉陷阱与题意差异','处理比例、计算与数量变化','找到同时满足条件的解','从已知前提推导结论'][index])); box.appendChild(block);
+      });
+    }
+    document.querySelectorAll('[name="candyCount"]').forEach(function(input){input.addEventListener('change',plan);}); plan();
+  }
+
   function bind() {
+    ckDecorate();
     restore();
     applyIncomingBase();
     paintCandyList();

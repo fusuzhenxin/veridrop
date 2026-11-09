@@ -5,7 +5,7 @@
       <a-statistic title="兑换次数" :value="count" />
       <a-button @click="load">刷新</a-button>
     </div>
-    <p class="muted">人数按邮箱去重。地址和 Key 只在这里看，公开兑换页不显示给别人。</p>
+    <p class="muted">人数按邮箱去重。每笔记录保留实际发放的 Key / 兑换码，用户仅能查看自己的兑换信息。</p>
     <a-table :columns="columns" :data="rows" :loading="loading" :pagination="{ pageSize: 20 }" row-key="rowKey" />
   </a-card>
 </template>
@@ -24,7 +24,7 @@ const columns = [
   { title: "奖品", dataIndex: "title" },
   { title: "时间", dataIndex: "at", width: 220 },
   { title: "地址", dataIndex: "url" },
-  { title: "Key", dataIndex: "key" },
+  { title: "Key / 兑换码", dataIndex: "key" },
 ];
 
 async function load() {

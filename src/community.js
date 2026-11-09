@@ -223,3 +223,19 @@ export function sendComment(body) {
     body: JSON.stringify(body),
   });
 }
+
+export function fetchProposals(params = {}) {
+  return api(`/api/proposals?${new URLSearchParams(params)}`);
+}
+export function fetchProposal(id) {
+  return api(`/api/proposals/${encodeURIComponent(id)}`);
+}
+export function createProposal(body) {
+  return api("/api/proposals", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+}
+export function supportProposal(id, on) {
+  return api(`/api/proposals/${encodeURIComponent(id)}/support`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ on }) });
+}
+export function commentProposal(id, content) {
+  return api(`/api/proposals/${encodeURIComponent(id)}/comments`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ content }) });
+}

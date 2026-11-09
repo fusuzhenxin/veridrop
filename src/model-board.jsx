@@ -4,6 +4,7 @@ import modelRows from "./model-rows.json";
 import { hubMark, models, modelsOf, stationHeading, stationPath, stations } from "./data.js";
 import { preloadModelPrices } from "./prices.js";
 import { useTitle } from "./ui.jsx";
+import { ModelAccessGuide, ModelViewIcon } from "./model-access-guide.jsx";
 
 const SORTS = [
   { id: "avail", label: "在线率" },
@@ -373,6 +374,7 @@ export function ModelBoard({ slug }) {
   const [descOpen, setDescOpen] = useState(false);
   const [copied, setCopied] = useState(false);
   const [priced, setPriced] = useState(false);
+  const [view, setView] = useState("quotes");
   const sortRef = useRef(null);
   const moreRef = useRef(null);
 
@@ -399,6 +401,7 @@ export function ModelBoard({ slug }) {
     setDescOpen(false);
     setMoreOpen(false);
     setMoreQuery("");
+    setView("quotes");
     fetch(`/model-board/${encodeURIComponent(slug)}.json`)
       .then((response) => (response.ok ? response.json() : null))
       .then((data) => {
@@ -453,6 +456,7 @@ export function ModelBoard({ slug }) {
   return (
     <div className="wrap model-page mb">
       <div className="mb-top">
+        <div className="mb-title-bar">
         <h1 className="mb-ttl">
           {row?.icon ? <img className="mb-vlogo" src={row.icon} alt="" /> : null}
           {name}
@@ -476,6 +480,11 @@ export function ModelBoard({ slug }) {
             <span className="ract-tip">{copied ? "已复制" : "复制"}</span>
           </span>
         </h1>
+        <div className="mb-title-actions">
+          <Link to="/tools/iq" className="mb-ability-link">能力榜单 <ModelViewIcon name="chart" /></Link>
+          <Link to="/check" className="mb-check-link">检测此模型 <OutIcon /></Link>
+        </div>
+        </div>
         {desc ? (
           <div className={descOpen ? "mb-desc-wrap open" : "mb-desc-wrap"}>
             <div className={descOpen ? "mb-desc open" : "mb-desc"}>{desc}</div>
@@ -494,6 +503,20 @@ export function ModelBoard({ slug }) {
         <div className="mb-card"><i>上下文</i><b>{contextLabel(row?.context)}</b></div>
         <div className="mb-card"><i>发布时间</i><b>{releasedLabel(row?.released)}</b></div>
       </div>
+      <div className="mb-view-bar">
+        <div className="mb-view-tabs" role="tablist" aria-label="模型信息" onKeyDown={(event) => {
+          if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) return;
+          event.preventDefault();
+          const next = event.key === "Home" ? "quotes" : event.key === "End" ? "guide" : view === "quotes" ? "guide" : "quotes";
+          setView(next);
+          event.currentTarget.querySelector(`#mb-${next}-tab`)?.focus();
+        }}>
+          <button type="button" role="tab" id="mb-quotes-tab" aria-selected={view === "quotes"} aria-controls="mb-quotes-panel" tabIndex={view === "quotes" ? 0 : -1} onClick={() => setView("quotes")}><ModelViewIcon name="list" />分组报价</button>
+          <button type="button" role="tab" id="mb-guide-tab" aria-selected={view === "guide"} aria-controls="mb-guide-panel" tabIndex={view === "guide" ? 0 : -1} onClick={() => setView("guide")}><ModelViewIcon name="tool" />接入指南 <small>含费用估算</small></button>
+        </div>
+        <span>按站点分组，比较实际接入方式</span>
+      </div>
+      <section id="mb-quotes-panel" role="tabpanel" aria-labelledby="mb-quotes-tab" hidden={view !== "quotes"}>
       <div className="mb-pills">
         <div className="mb-pills-l">
           {chips.map((item) => (
@@ -610,6 +633,10 @@ export function ModelBoard({ slug }) {
       {visible.length < filtered.length ? (
         <div className="pager"><button type="button" className="step" onClick={() => setShown((value) => value + 20)}>加载更多</button></div>
       ) : null}
+      </section>
+      <section id="mb-guide-panel" role="tabpanel" aria-labelledby="mb-guide-tab" hidden={view !== "guide"}>
+        {view === "guide" ? <ModelAccessGuide key={slug} slug={slug} name={name} rows={filtered} /> : null}
+      </section>
     </div>
   );
 }

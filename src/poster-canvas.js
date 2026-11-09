@@ -189,7 +189,7 @@ export function renderBasicPoster(canvas, info, scale = 2) {
   ctx.fillStyle = OLIVE;
   ctx.fillText("Drop", PAD + veriW, box.headerY);
   ctx.font = `500 12px ${FONT}`;
-  const pill = "基础测试";
+  const pill = info.title || "基础测试";
   const pillW = ctx.measureText(pill).width + 22;
   const pillH = 26;
   const pillX = W - PAD - pillW;
@@ -223,10 +223,10 @@ export function renderBasicPoster(canvas, info, scale = 2) {
   ctx.textAlign = "center";
   ctx.fillStyle = INK;
   ctx.font = info.score == null ? `500 34px ${FONT}` : `700 48px ${FONT}`;
-  ctx.fillText(info.score == null ? "—" : String(info.score), cx, ringY - 6);
+  ctx.fillText(info.score == null ? (info.mark || "—") : String(info.score), cx, ringY - 6);
   ctx.font = `500 13px ${FONT}`;
   ctx.fillStyle = FAINT;
-  ctx.fillText("/ 100", cx, ringY + 24);
+  ctx.fillText(info.score == null && info.mark ? "本轮结果" : "/ 100", cx, ringY + 24);
 
   const color = verdictColor(info.verdict);
   ctx.font = `700 18px ${FONT}`;
@@ -312,7 +312,7 @@ export function renderBasicPoster(canvas, info, scale = 2) {
   });
   ctx.font = `400 12px ${FONT}`;
   ctx.fillStyle = FAINT;
-  ctx.fillText("www.veridrop.cn", textX, box.footY + 10 + 44);
+  ctx.fillText(info.note || "www.veridrop.cn", textX, box.footY + 10 + 44);
 
   if (box.qr) {
     const qx = W - PAD - box.qrSize;

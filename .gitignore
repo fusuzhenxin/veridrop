@@ -1,6 +1,7 @@
 node_modules/
 .env
 dist/
+dist-client/
 public/prices/
 .vite/
 *.local
@@ -25,6 +26,8 @@ __pycache__/
 *.pyc
 data/ops.sqlite
 data/ops.sqlite-*
+data/proposals.sqlite
+data/proposals.sqlite-*
 data/ops-secret.key
 data/admin-bootstrap.txt
 data/ops-snapshot.json
@@ -36,7 +39,12 @@ data/visits-local.json
 data/visits-local.json.tmp
 public/media/prizes/*
 !public/media/prizes/.gitkeep
+public/media/notices/*
+!public/media/notices/.gitkeep
 data/basic-reports/*.json
+data/shared-reports/
 data/ops-build.log
+data/*.log
+data/*.log.err
 admin/dist/
 admin/node_modules/

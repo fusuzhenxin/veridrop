@@ -3,10 +3,11 @@ import { Link, NavLink, useLocation, useNavigate } from "react-router-dom";
 import { activities, findStation, hubMark, logoUrl, models, perks, reviews, stationHeading, stations } from "./data.js";
 import { clearSession, readAccounts, readAvatar, readSession, writeAvatar, writeSession } from "./account.js";
 import { authToken, loginAccount, pullAccount, registerAccount, requestCode, resetAccount, sendPoints, setAuthToken } from "./community.js";
-import { grant, replacePoints, saveNick, shanghaiDay } from "./points.js";
+import { grant, replacePoints, saveNick } from "./points.js";
 
 const SITE_NOTICE = {
   id: "shop-deepseek-3000",
+  icon: "/icons/vendor/deepseek.svg",
   title: "积分兑换上新",
   date: "2026-11-02",
   body: "DeepSeek 3000 积分共享额度已上架。登录后用 20 积分兑换，用完截止，每人一份。",
@@ -182,7 +183,10 @@ const NAV = [
       { to: "/model", label: "更多", more: true },
     ],
   },
-  { to: "/reputation", label: "投票" },
+  { to: "/reputation", label: "投票", children: [
+    { to: "/reputation", label: "站点口碑榜" },
+    { to: "/proposals", label: "收录提案" },
+  ] },
   {
     label: "模型检测",
     to: "/check",
@@ -287,8 +291,9 @@ export function Shell({ children }) {
   useEffect(() => {
     if (!siteNotice?.id) return;
     try {
-      const stamp = `${siteNotice.id}:${shanghaiDay()}`;
-      if (localStorage.getItem(NOTICE_KEY) === stamp) return;
+      // Dismissal belongs to this notice version, so ordinary notices stay quiet
+      // until their id changes rather than interrupting the user every day.
+      if (localStorage.getItem(NOTICE_KEY) === String(siteNotice.id)) return;
       setNotice(true);
     } catch {
       /* ignore */
@@ -297,7 +302,7 @@ export function Shell({ children }) {
 
   function dismissNotice() {
     try {
-      if (siteNotice?.id) localStorage.setItem(NOTICE_KEY, `${siteNotice.id}:${shanghaiDay()}`);
+      if (siteNotice?.id) localStorage.setItem(NOTICE_KEY, String(siteNotice.id));
     } catch {
       /* ignore */
     }
@@ -371,8 +376,8 @@ export function Shell({ children }) {
     <>
       <header className="topbar">
         <div className="wrap">
-          <Link to="/" className="logo" aria-label="VeriDrop">
-            Veri<i>Drop</i>
+          <Link to="/" className="logo" aria-label="VeriDrop 维渡">
+            Veri<i>Drop</i><b>维渡</b>
           </Link>
           <nav className="nav">
             {NAV.map((item) =>
@@ -423,7 +428,7 @@ export function Shell({ children }) {
               </svg>
             </a>
             <button className="search-btn" onClick={() => setSearch(true)}>
-              <IconSearch /> 搜索站点 / 模型
+              <IconSearch /> 搜索站点 / 模型<kbd>⌘K</kbd>
             </button>
             <button className="icon-btn" aria-label="主题" onClick={() => setTheme(theme === "light" ? "dark" : "light")}>
               {theme === "light" ? "☀" : "☾"}
@@ -521,6 +526,7 @@ export function Shell({ children }) {
                 <Link to="/model/deepseek">DeepSeek 中转</Link>
                 <Link to="/check">模型检测</Link>
                 <Link to="/apply">申请收录</Link>
+                <Link to="/proposals">收录提案</Link>
                 <Link to="/reputation">投票</Link>
                 <Link to="/tools/iq">模型智商</Link>
                 <Link to="/tools/codex-resets">Codex 额度重置</Link>
@@ -580,7 +586,7 @@ export function Shell({ children }) {
           <div className="notice-box" role="dialog" aria-modal="true" aria-labelledby="site-notice-title">
             <div className="notice-hero">
               <button className="notice-x" type="button" aria-label="关闭" onClick={dismissNotice}>×</button>
-              <span className="notice-logo"><img src="/icons/vendor/deepseek.svg" alt="" width="40" height="40" /></span>
+              <span className="notice-logo"><img src={siteNotice.icon || SITE_NOTICE.icon} alt="" width="40" height="40" onError={(event) => { if (event.currentTarget.getAttribute("src") !== SITE_NOTICE.icon) event.currentTarget.src = SITE_NOTICE.icon; }} /></span>
               <em>站点公告</em>
               <h2 id="site-notice-title">{siteNotice.title}</h2>
               {siteNotice.date ? <time dateTime={siteNotice.date}>{siteNotice.date}</time> : null}
@@ -809,7 +815,7 @@ function Login({ onClose, onOk }) {
     mode === "register"
       ? "先收取邮箱验证码，再注册。注册后可打分、评论"
       : mode === "login"
-        ? "登录后可打分、评论，其他人也能看到。投票不用登录"
+        ? "登录后可打分、评论，也可以提交和支持收录提案。站点口碑投票无需登录。"
         : "验证码会发到注册邮箱，10 分钟内有效。";
 
   function finish(name, nextNick, mail) {

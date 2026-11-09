@@ -58,6 +58,10 @@
             <template #icon><IconExclamationCircle /></template>
             投诉
           </a-menu-item>
+          <a-menu-item key="/proposals">
+            <template #icon><IconBookmark /></template>
+            收录提案
+          </a-menu-item>
         </a-sub-menu>
         <a-sub-menu key="people">
           <template #icon><IconTags /></template>
@@ -138,6 +142,7 @@ const groupOf = {
   "/spend": "business",
   "/sites": "sites",
   "/submissions": "sites",
+  "/proposals": "sites",
   "/complaints": "sites",
   "/members": "people",
   "/orders": "people",

@@ -12,6 +12,7 @@ const icons = new Set([
   "/img/favicon-32.png",
   "/img/favicon-16.png",
   "/img/apple-touch-icon.png",
+  "/icons/vendor/deepseek.svg",
 ]);
 
 const types = {
@@ -21,6 +22,7 @@ const types = {
   ".webp": "image/webp",
   ".gif": "image/gif",
   ".ico": "image/x-icon",
+  ".svg": "image/svg+xml",
 };
 
 function siteIcons() {
@@ -31,10 +33,10 @@ function siteIcons() {
         const path = (req.url || "").split("?")[0];
         let file = "";
         if (icons.has(path)) file = join(sitePublic, ...path.slice(1).split("/"));
-        else if (path.startsWith("/media/prizes/")) {
-          const name = path.slice("/media/prizes/".length);
+        else if (/^\/media\/(prizes|notices)\//.test(path)) {
+          const [, category, name] = path.match(/^\/media\/([^/]+)\/(.*)$/);
           if (!/^[\w.-]+$/.test(name)) return next();
-          file = join(sitePublic, "media", "prizes", name);
+          file = join(sitePublic, "media", category, name);
         } else return next();
         if (!existsSync(file)) return next();
         const ext = file.slice(file.lastIndexOf(".")).toLowerCase();

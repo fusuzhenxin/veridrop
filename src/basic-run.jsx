@@ -4,6 +4,7 @@ import { grant } from "./points.js";
 import { renderBasicPoster } from "./poster-canvas.js";
 import { useTitle } from "./ui.jsx";
 import publishedBasic from "./published-basic.json";
+import { ReportLoading } from "./report-loading.jsx";
 
 const ACTIVE_KEY = "veridrop-basic-active";
 const REPORT_PREFIX = "veridrop-basic-report:";
@@ -503,8 +504,9 @@ export function BasicRunPage() {
   const [jsonCopied, setJsonCopied] = useState(false);
   const [run, setRun] = useState(() => readRun(id));
   const [missing, setMissing] = useState(() => !readRun(id));
+  const [loading, setLoading] = useState(() => !readRun(id));
   const suiteName = SUITE_NAME[run?.suite] || "基础测试";
-  useTitle(run ? `${run.host || suiteName} ${suiteName} 报告｜密钥不在链接里` : "检测报告未找到｜记录只在这台浏览器");
+  useTitle(run ? `${run.host || suiteName} ${suiteName} 报告｜密钥不在链接里` : loading ? "正在读取检测报告" : "检测报告未找到｜记录只在这台浏览器");
 
   useEffect(() => {
     if (!run?.running) return undefined;
@@ -536,8 +538,12 @@ export function BasicRunPage() {
   }, [id]);
 
   useEffect(() => {
-    if (readRun(id)) return undefined;
+    if (readRun(id)) {
+      setLoading(false);
+      return undefined;
+    }
     let stop = false;
+    setLoading(true);
     fetch(`/api/basic-reports/${encodeURIComponent(id)}`)
       .then((res) => (res.ok ? res.json() : null))
       .then((report) => {
@@ -545,7 +551,8 @@ export function BasicRunPage() {
         setRun(report);
         setMissing(false);
       })
-      .catch(() => {});
+      .catch(() => {})
+      .finally(() => { if (!stop) setLoading(false); });
     return () => { stop = true; };
   }, [id]);
 
@@ -617,6 +624,10 @@ export function BasicRunPage() {
       link.remove();
       URL.revokeObjectURL(url);
     }, 30000);
+  }
+
+  if ((missing || !run) && loading) {
+    return <ReportLoading />;
   }
 
   if (missing || !run) {

@@ -2,78 +2,13 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import codexRows from "./codex.json";
 import iqRows from "./iq.json";
+import { IqLeaderboard } from "./iq-leaderboard.jsx";
 import { logoUrl, stations } from "./data.js";
 import { grant } from "./points.js";
 import { abandonCheckJob, clearBasicHistory, JOB_EVENT, readBasicHistory } from "./basic-run.jsx";
 import { clearDetectHistory, readDetectHistory } from "./detect.js";
 import { LIMITS, endpoint, listModels, quotaState, readHistory, runBenchmark, takeQuota, writeHistory } from "./probe.js";
 import { useTitle } from "./ui.jsx";
-
-const ICONS = {
-  anthropic: "/icons/vendor/claude.svg",
-  openai: "/icons/vendor/openai.svg",
-  deepseek: "/icons/vendor/deepseek.svg",
-  gemini: "/icons/vendor/gemini.svg",
-  google: "/icons/vendor/gemini.svg",
-  zhipu: "/icons/vendor/zhipu.svg",
-  glm: "/icons/vendor/zhipu.svg",
-  grok: "/icons/vendor/grok.svg",
-  xai: "/icons/vendor/grok.svg",
-  moonshot: "/icons/vendor/moonshot.svg",
-  kimi: "/icons/vendor/moonshot.svg",
-};
-const BARS = {
-  anthropic: "#c4622d",
-  openai: "#1a1a1a",
-  deepseek: "#3b6fd8",
-  moonshot: "#6d5efc",
-  kimi: "#6d5efc",
-  zhipu: "#2aa3c7",
-  glm: "#2aa3c7",
-  gemini: "#1f9d6a",
-  google: "#1f9d6a",
-};
-
-function signed(value) {
-  const number = Number(value) || 0;
-  if (number > 0) return `+${number}`;
-  if (number === 0) return "+0";
-  return String(number);
-}
-
-function ciText(ci) {
-  if (!ci || ci.length < 2) return "—";
-  const half = Math.abs(ci[1] - ci[0]) / 2;
-  return `±${Number.isInteger(half) ? half : half.toFixed(1)}`;
-}
-
-function ModelIcon({ ven }) {
-  const src = ICONS[ven];
-  if (!src) return <span className="iq-fallback">{(ven || "?").slice(0, 1).toUpperCase()}</span>;
-  return <img src={src} alt="" width="16" height="16" />;
-}
-
-function DeltaBar({ value }) {
-  const width = Math.min(42, Math.abs(Number(value) || 0) * 4);
-  return (
-    <span className="iq-mini" aria-hidden="true">
-      <i className="axis" />
-      <i className={value < 0 ? "bad" : "good"} style={value < 0 ? { right: "50%", width } : { left: "50%", width }} />
-    </span>
-  );
-}
-
-function Trend({ values, base }) {
-  return (
-    <span className="iq-trend" title="绿=正常，黄=有波动，红=明显低于平时，灰=当天没数据">
-      {(values || []).map((value, index) => {
-        let color = "#e4e5e9";
-        if (value != null) color = value < base - 8 ? "#ef4444" : value < base - 2 ? "#eab308" : "#22a559";
-        return <i key={index} style={{ background: color }} />;
-      })}
-    </span>
-  );
-}
 
 function Faq({ items }) {
   return (
@@ -98,129 +33,11 @@ const IQ_FAQ = [
   ["数据多久更新一次？", "来源方每小时实测一轮，维渡 AI 每 5 小时同步一次并长期留存——来源方只保留 31 天，我们自己的历史会越攒越长。"],
 ].map(([q, a]) => ({ q, a }));
 
-function topBy(rows, pick) {
-  return [...rows].sort((a, b) => pick(b) - pick(a)).slice(0, 10);
-}
-
 export function IqPage() {
   useTitle("模型智商榜｜代码、推理和工具调用的公开分数对照");
-  const [onlyReasoning, setOnlyReasoning] = useState(false);
-  const rows = iqRows.filter((item) => !onlyReasoning || item.re);
-  const maxScore = Math.max(...rows.map((item) => item.cur));
-  const signals = [
-    { tone: "up", title: [...iqRows].sort((a, b) => b.diff - a.diff)[0], text: "和刚发布时相比，它提升得最多。", value: (item) => signed(item.diff) },
-    { tone: "score", title: [...iqRows].sort((a, b) => b.cur - a.cur)[0], text: "现在总分最高的模型。", value: (item) => item.cur },
-    { tone: "code", title: [...iqRows].sort((a, b) => b.modes.coding - a.modes.coding)[0], text: "写代码的测试里，它得分最高。", value: (item) => item.modes.coding },
-    { tone: "down", title: [...iqRows].sort((a, b) => a.bdiff - b.bdiff)[0], text: "比自己平时的水平掉得最狠，疑似降智。", value: (item) => signed(item.bdiff) },
-  ];
-  const boards = [
-    ["推理", "解数学、逻辑这类要动脑的难题，它表现如何", (item) => item.modes.reasoning],
-    ["代码", "写代码、改 bug 的水平，每小时都在测", (item) => item.modes.coding],
-    ["工具调用", "让它调用工具干活，靠不靠谱", (item) => item.modes.tooling],
-    ["稳定性", "同样的题反复做，发挥稳不稳（近 7 天）", (item) => item.stability],
-  ];
-  const latest = codexAge();
   return (
-    <div className="wrap tool-page">
-      <div className="tool-hd">
-        <div>
-          <h1>模型智商榜</h1>
-          <p>第三方基准全天候给主流大模型出题打分，盯着谁在悄悄变笨（降智）。24 款监测中，20 款能力滑落，同步于 5 天前</p>
-        </div>
-        <button type="button" className="ghost-btn" onClick={() => navigator.clipboard.writeText(location.href)}>分享</button>
-      </div>
-      <Link to="/tools/codex-resets" className="note">
-        <span>Codex 额度上次重置 <b>{latest.label}前</b></span>
-        <span>→</span>
-      </Link>
-      <section className="chart">
-        <div className="chart-top">
-          <div>
-            <b>维渡 AI 模型能力指数</b>
-            <p>持续让各家模型做同一套题：写代码每小时测，推理和工具调用每天各测一轮，汇成 0–100 的综合分——也就是这页说的「智商」，越高越聪明。下面是最新一轮的排名。</p>
-          </div>
-          <label className="iq-filter">
-            {rows.length} / {iqRows.length} 款模型
-            <select value={onlyReasoning ? "re" : "all"} onChange={(event) => setOnlyReasoning(event.target.value === "re")}>
-              <option value="all">全部</option>
-              <option value="re">推理模型</option>
-            </select>
-          </label>
-        </div>
-        <div className="iq-plot">
-          <div className="iq-axis">{[100, 90, 80, 70, 60].map((tick) => <span key={tick}>{tick}</span>)}</div>
-          <div className="bars-chart iq-bars">
-            {rows.map((item) => (
-              <div key={item.slug} className="col" title={`${item.display} ${item.cur}`}>
-                <div className="bar" style={{ height: `${((item.cur - 60) / (maxScore - 58)) * 168}px`, background: BARS[item.ven] || "#888" }}>
-                  <span>{item.cur}</span>
-                </div>
-                <ModelIcon ven={item.ven} />
-                <div className="nm">{item.display}</div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-      <section className="h-block">
-        <h2>完整排行</h2>
-        <div className="table-wrap">
-          <table className="rank iq-table">
-            <thead>
-              <tr>
-                <th>#</th><th>模型</th><th>综合得分</th><th>较近期</th><th>近期常态</th><th>较发布时</th><th>发布时得分</th><th>置信区间</th><th>30 天趋势</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((item, index) => (
-                <tr key={item.slug}>
-                  <td>{index + 1}</td>
-                  <td className="iq-name"><ModelIcon ven={item.ven} />{item.display}</td>
-                  <td><b>{item.cur}</b> <DeltaBar value={item.bdiff} /></td>
-                  <td className={item.bdiff < 0 ? "down" : "up"}>{signed(item.bdiff)}</td>
-                  <td>{item.base}</td>
-                  <td className={item.diff < 0 ? "down" : "up"}>{signed(item.diff)}</td>
-                  <td>{item.gold ?? "—"}</td>
-                  <td>{ciText(item.ci)}</td>
-                  <td><Trend values={item.vals} base={item.hmed} /></td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </section>
-      <section className="h-block">
-        <h2>信号速览</h2>
-        <div className="iq-signals">
-          {signals.map((item) => (
-            <article key={item.text}>
-              <ModelIcon ven={item.title.ven} />
-              <b>{item.title.display}</b>
-              <strong>{item.value(item.title)}</strong>
-              <p>{item.text}</p>
-            </article>
-          ))}
-        </div>
-      </section>
-      <section className="h-block">
-        <h2>分项基准榜</h2>
-        <div className="iq-boards">
-          {boards.map(([title, desc, pick]) => (
-            <article key={title}>
-              <h3>{title}</h3>
-              <p>{desc}</p>
-              {topBy(iqRows, pick).map((item, index) => (
-                <div key={item.slug} className="iq-line">
-                  <span>{index + 1}</span>
-                  <ModelIcon ven={item.ven} />
-                  <span className="nm">{item.display}</span>
-                  <b>{pick(item)}</b>
-                </div>
-              ))}
-            </article>
-          ))}
-        </div>
-      </section>
+    <div className="wrap tool-page iqx">
+      <IqLeaderboard rows={iqRows} latest={codexAge()} />
       <Faq items={IQ_FAQ} />
     </div>
   );

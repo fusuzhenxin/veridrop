@@ -1,10 +1,13 @@
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useLocation, useNavigate, useParams, useSearchParams } from "react-router-dom";
+import { DirectoryAtmosphere, DirectoryCarousel, DirectoryDigest, DirectoryIcon, DirectoryStats, DirectoryTable, DirectoryTags } from "./directory-ui.jsx";
 import activityData from "./activity.json";
+import { ActivityOffers } from "./activity-offers.jsx";
 import availabilityData from "./availability.json";
 import modelRows from "./model-rows.json";
 import {
   findReport,
+  activities,
   latestCodex,
   compareStations,
   pinBoard,
@@ -13,8 +16,6 @@ import {
   iq,
   latestTests,
   modelTotal,
-  perks,
-  reviews,
   stationTotal,
   stationHeading,
   stations,
@@ -42,7 +43,6 @@ import { grant, isDone, readPoints, replacePoints, saveNick } from "./points.js"
 import {
   Logo,
   Pays,
-  ReviewCard,
   SponsorStrip,
   Stars,
   FAMILY_VENDOR,
@@ -1030,7 +1030,7 @@ function recAverage() {
     .filter((value) => Number.isFinite(value));
   if (!values.length) return "—";
   const avg = values.reduce((sum, value) => sum + value, 0) / values.length;
-  return `${avg.toFixed(1)}%`;
+  return `${avg.toFixed(2)}%`;
 }
 
 const REC_UPTIME = recAverage();
@@ -1294,7 +1294,7 @@ function RankCats({ current, onPick }) {
               );
             })}
           </div>
-          {row.label === "类型" ? <Link to="/apply" className="outline rc-apply">申请收录</Link> : null}
+          {row.label === "类型" ? <Link to="/apply" className="outline rc-apply"><DirectoryIcon name="plus" />申请收录</Link> : null}
         </div>
       ))}
     </div>
@@ -1350,222 +1350,69 @@ function HeroStars() {
 
 export function HomePage() {
   useTitle("");
-  const [page, setPage] = useState(1);
   const [cat, setCat] = useState("all");
-  const pageSize = 20;
-  const filtered = useMemo(
-    () => (cat === "all" ? stations : stations.filter((station) => homeCatHit(station, cat))),
-    [cat],
-  );
-  const pages = Math.max(1, Math.ceil(filtered.length / pageSize));
-  const safePage = Math.min(page, pages);
-  const rows = filtered.slice((safePage - 1) * pageSize, safePage * pageSize);
-  function pickCat(id) {
-    setCat(id);
-    setPage(1);
-  }
-  return (
-    <>
+  const filtered = useMemo(() => cat === "all" ? stations : stations.filter((station) => homeCatHit(station, cat)), [cat]);
+  return <>
     <OfficialStrip />
-    <div className="wrap">
-      <header className="hero">
-        <div className="hero-top">
-          <div className="hero-copy">
-            <HeroStars />
-            <h1>API中转站排行</h1>
-            <div className="hero-actions">
-              <Link to="/list" className="hero-cta">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
-                  <path d="M5 7h14M5 12h14M5 17h14" />
-                </svg>
-                查看站点排行
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
-                  <path d="M5 12h14M13 6l6 6-6 6" />
-                </svg>
-              </Link>
-              <Link to="/check" className="hero-cta hero-cta-line">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
-                  <path d="M12 3.2 13.4 8.4 18.8 10 13.4 11.6 12 16.8 10.6 11.6 5.2 10 10.6 8.4 12 3.2Z" />
-                </svg>
-                开始检测
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
-                  <path d="M5 12h14M13 6l6 6-6 6" />
-                </svg>
-              </Link>
-            </div>
-            <div className="hero-notes">
-              <a href="#rank-cats">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
-                  <path d="M4 7h16M4 12h16M4 17h16" />
-                  <circle cx="9" cy="7" r="1.7" fill="currentColor" stroke="none" />
-                  <circle cx="15" cy="12" r="1.7" fill="currentColor" stroke="none" />
-                  <circle cx="8" cy="17" r="1.7" fill="currentColor" stroke="none" />
-                </svg>
-                按分类看
-              </a>
-              <span>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
-                  <circle cx="8" cy="15" r="3.2" />
-                  <path d="M10.8 12.4 19 5.2M15.4 7.4l2.4 2.4M13.4 9.4l2 2" />
-                </svg>
-                Key 留在浏览器
-              </span>
-              <Link to="/reputation">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
-                  <path d="M6 19V11M12 19V6M18 19v-6" />
-                </svg>
-                投票可对照
-              </Link>
-              <Link to="/apply">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
-                  <path d="M12 5v14M5 12h14" />
-                </svg>
-                申请收录
-              </Link>
-            </div>
+    <div className="vd-home-hero">
+      <DirectoryAtmosphere />
+      <div className="wrap">
+        <section className="vd-hero">
+          <p className="vd-kicker"><span>维渡 AI 服务导航</span><i />发现 · 对照 · 选择</p>
+          <h1>API 中转站<span>排行</span></h1>
+          <p className="vd-lead">看稳定性，查模型价格，听真实口碑。找到适合自己的那一站。</p>
+          <div className="vd-hero-actions">
+            <Link className="vd-btn" to="/list">查看站点排行 <DirectoryIcon name="arrow" /></Link>
+            <Link className="vd-btn line" to="/check">开始模型检测 <DirectoryIcon name="external" /></Link>
           </div>
-          <RecommendCard />
-        </div>
-        <Tester />
-      </header>
-
-      <section className="stat-grid">
-        <article className="card">
-          <div className="card-hd">
-            模型智商榜 <Link className="more" to="/tools/iq">查看更多 ›</Link>
+          <div className="vd-shortcuts">
+            {[["charity", "公益站"], ["cheaprate", "低倍率"], ["pay", "国内支付"]].map(([id, label]) => <Link key={id} to={`/cat/${id}`}><svg viewBox="0 0 24 24" aria-hidden="true"><CatGlyph id={id} /></svg>{label}</Link>)}
+            <Link to="/apply"><DirectoryIcon name="plus" />申请收录</Link>
           </div>
-          {iq.slice(0, 3).map((item, index) => (
-            <Link key={item.name} to="/tools/iq" className="rank-row">
-              <span className="n">{index + 1}</span>
-              <Vendor name={item.vendor} />
-              <span>{item.name}</span>
-              <span className="sc">{item.score}</span>
-            </Link>
-          ))}
-        </article>
-        <article className="card">
-          <div className="card-hd">
-            Codex 额度重置 <Link className="more" to="/tools/codex-resets">查看更多 ›</Link>
-          </div>
-          <div className="kv"><span>距上次重置</span><b>{latestCodex().label}</b></div>
-          <div className="kv"><span>最近一次重置</span><b>{latestCodex().day}</b></div>
-          <div className="kv">
-            <span>近 7 天</span>
-            <span className="bars">
-              {[1, 1, 1, 0, 1, 0, 1].map((on, index) => (
-                <i key={index} className={on ? "on" : "mid"} />
-              ))}
-            </span>
-          </div>
-        </article>
-        <article className="card">
-          <div className="card-hd">
-            最新实测 <Link className="more" to="/list">查看更多 ›</Link>
-          </div>
-          {latestTests.slice(0, 3).map((item) => (
-            <Link key={`${item.href}|${item.model}|${item.at}`} to={item.href} className="test-row">
-              <Logo station={{ img: item.img, name: item.station }} className="logo-img test-logo" />
-              <span>{item.station}</span>
-              <span className="channel">{item.model}</span>
-              <span className="date">{item.date}</span>
-            </Link>
-          ))}
-        </article>
-      </section>
-
-      <section className="section">
-        <div className="section-hd">
-          <h2>站点排行</h2>
-          <Link className="more" to="/list">查看更多 ›</Link>
-        </div>
-        <p className="rank-lead">API 中转站是把 ChatGPT、Claude、Gemini、DeepSeek 等模型接口转售的第三方网站。维渡只做导航和对照，按在线率、延迟、支付方式和公开价格列出已收录的站。本站不代收充值，探测结果也不证明模型来自官方原厂。</p>
-        <RankCats current={cat} onPick={pickCat} />
-        {rows.length ? <RankTable rows={rows} mode="home" /> : <div className="empty">这个分类下还没有站点</div>}
-        <Pager page={safePage} pages={pages} onPage={setPage} />
-      </section>
-
-      <section className="section">
-        <div className="section-hd">
-          <h2>投票精选</h2>
-          <Link className="more" to="/reputation">查看更多 ›</Link>
-        </div>
-        <div className="review-grid">
-          {reviews.slice(0, 6).map((item) => (
-            <ReviewCard key={item.id || item.user + item.station} item={item} />
-          ))}
-        </div>
-      </section>
-
-      <section className="section">
-        <div className="section-hd">
-          <h2>福利羊毛</h2>
-          <Link className="more" to="/activity">查看更多 ›</Link>
-        </div>
-        <SlideRow className="perk-grid">
-          {perks.map((item) => (
-            <article key={item.name} className="perk">
-              <span className={`kind ${item.kind === "中转站福利" ? "warn" : ""}`}>{item.kind}</span>
-              <h3>{item.name}</h3>
-              <div className="host">{item.host}</div>
-              <p>{item.desc}</p>
-              <div className="tags">
-                {item.tags.map((tag) => (
-                  <span key={tag} className="tag">{tag}</span>
-                ))}
-              </div>
-              <a className="go-line" href={item.href} target="_blank" rel="noreferrer">立即前往</a>
-            </article>
-          ))}
-        </SlideRow>
-      </section>
+        </section>
+        <DirectoryCarousel title="推荐站点" kind="recommendations" stats={<DirectoryStats count={stationTotal} uptime={REC_UPTIME} compact />} items={REC_ROWS} renderItem={(item) => {
+          const station = findStation(item.slug);
+          const official = /^https?:\/\//i.test(station?.site || "") ? station.site : "";
+          return <div key={item.slug} className="vd-rec-card">
+            <Link className="vd-rec-detail" to={item.path} aria-label={`查看${item.name}详情`} {...hubMark(station, "home-rec")} />
+            <img src={item.img} alt="" /><span><b>{official ? <a className="vd-rec-name vd-site-external" href={official} target="_blank" rel="noopener noreferrer" aria-label={`前往${item.name}官网（新标签页）`} {...hubMark(station, "home-rec-visit")}>{item.name}<DirectoryIcon name="external" /></a> : item.name}</b><small><em className={item.tone}>{item.tag}</em>延迟 {item.latency}</small></span><DirectoryIcon name="next" />
+          </div>;
+        }} />
+      </div>
     </div>
-    </>
-  );
+    <div className="wrap vd-home">
+      <div className="vd-check"><Tester /></div>
+      <DirectoryDigest />
+      <section className="vd-dir">
+        <div className="vd-dir-hd">
+          <div><span className="perk-kicker">找到你的下一站</span><h2>API 中转站排行</h2></div>
+          <div className="vd-dir-metrics"><DirectoryStats count={stationTotal} uptime={REC_UPTIME} /><Link className="vd-more" to="/list">全部站点 <DirectoryIcon name="arrow" /></Link></div>
+        </div>
+        <RankCats current={cat} onPick={setCat} />
+        {filtered.length ? <DirectoryTable rows={filtered.slice(0, 20)} onFavorite={toggleFav} /> : <div className="empty">这个分类下还没有站点</div>}
+        <Link className="vd-all" to="/list">浏览完整站点列表 →</Link>
+      </section>
+      <DirectoryCarousel title="福利羊毛" eyebrow="给探索多一点额度" more="/activity" kind="welfare" items={activities} renderItem={(item) => {
+        const match = String(item.quota || "").match(/(\d[\d,]*)/);
+        const amount = match ? match[1] : "免费";
+        const quota = match && /^[约\s]*\d[\d,]*\s*次\/分钟$/.test(item.quota) ? "次 / 分钟" : item.quota;
+        return <article key={item.name} className="vd-welfare-card">
+          <span className="vd-welfare-logo">{VENDOR_ICON[item.vendor] ? <VendorIcon name={item.vendor} /> : item.host.slice(0, 1)}</span>
+          <div className="vd-welfare-host">{item.host}<em>· 免费 API</em></div>
+          <h3>{item.name}</h3>
+          <p>{item.modes?.length ? `支持${item.modes.join("、")}。` : ""}额度以服务商页面为准。</p>
+          <div className="vd-welfare-quota"><b>{amount}</b><small>{quota}</small></div>
+          <div className="vd-welfare-foot"><span>{(item.gate || []).join(" · ")}</span><a href={item.href} target="_blank" rel="noreferrer">去看看 <DirectoryIcon name="external" /></a></div>
+        </article>;
+      }} />
+      <p className="vd-welfare-note">ⓘ 额度与活动信息来自收录时的公开说明，以服务商最新公示为准。</p>
+    </div>
+  </>;
 }
 
 const CAT_FILTERS = [["all", "全部"], ...CATS, ["fav", "我的收藏"]];
 const MODEL_FILTERS = [["all", "全部"], ...VERD_MODELS];
 
-function SlideRow({ className, children }) {
-  const ref = useRef(null);
-  useEffect(() => {
-    const el = ref.current;
-    if (!el) return undefined;
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return undefined;
-    let frame = 0;
-    let paused = false;
-    let last = 0;
-    const tick = (now) => {
-      frame = window.requestAnimationFrame(tick);
-      if (paused || document.hidden) {
-        last = now;
-        return;
-      }
-      if (el.scrollWidth <= el.clientWidth + 1) return;
-      const half = el.scrollWidth / 2;
-      const step = last ? Math.min(48, now - last) : 16;
-      last = now;
-      el.scrollLeft += step * 0.045;
-      if (el.scrollLeft >= half) el.scrollLeft -= half;
-    };
-    const pause = () => { paused = true; };
-    const play = () => { paused = false; last = 0; };
-    el.addEventListener("pointerenter", pause);
-    el.addEventListener("pointerleave", play);
-    frame = window.requestAnimationFrame(tick);
-    return () => {
-      window.cancelAnimationFrame(frame);
-      el.removeEventListener("pointerenter", pause);
-      el.removeEventListener("pointerleave", play);
-    };
-  }, []);
-  return (
-    <div ref={ref} className={className}>
-      <div className="slide-set">{children}</div>
-      <div className="slide-set" aria-hidden="true">{children}</div>
-    </div>
-  );
-}
 
 function Pager({ page, pages, onPage }) {
   if (pages <= 1) return null;
@@ -1607,6 +1454,13 @@ export function ListPage({ modelId = "" }) {
   const [menu, setMenu] = useState("");
   const [spin, setSpin] = useState(false);
   const [page, setPage] = useState(1);
+  const [board, setBoard] = useState("table");
+  const [cardFavs, setCardFavs] = useState(readFavs);
+  useEffect(() => {
+    const sync = () => setCardFavs(readFavs());
+    window.addEventListener("okk-account", sync);
+    return () => window.removeEventListener("okk-account", sync);
+  }, []);
   const rows = useMemo(() => {
     const favs = cat === "fav" ? readFavs() : null;
     let list = stations.filter((item) => {
@@ -1652,12 +1506,105 @@ export function ListPage({ modelId = "" }) {
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [menu]);
-  const pageSize = 20;
+  const pageSize = board === "cards" ? 18 : 20;
   const pageCount = Math.max(1, Math.ceil(rows.length / pageSize));
-  const view = rows.slice((page - 1) * pageSize, page * pageSize);
+  const safePage = Math.min(page, pageCount);
+  const view = rows.slice((safePage - 1) * pageSize, safePage * pageSize);
+
+  // Model-family routes retain their existing layout.
+  if (model) {
+    return (
+      <div className="wrap">
+        <div className={cat === "charity" ? "page-hd charity-hd" : "page-hd"}>
+          <div>
+            <h1>{heading}</h1>
+            <p className="sub">
+              {modelMeta?.desc || catMeta?.desc || `收录 ${stationTotal} 站，${modelTotal} 个模型 | 按在线率排序，充值门槛、支付方式、发票退款、延迟横向对比`}
+              {cat !== "all" || model ? ` 当前 ${rows.length} 家。` : ""}
+            </p>
+          </div>
+          <Link to="/apply" className="outline">申请收录</Link>
+        </div>
+        {cat === "charity" ? (
+          <section className="charity-notes">
+            {CHARITY_SECTIONS.map((section) => (
+              <article key={section.h}>
+                <h2>{section.h}</h2>
+                <p>{section.p}</p>
+              </article>
+            ))}
+            <div className="charity-faq">
+              {CHARITY_FAQ.map((item) => (
+                <p key={item[0]}><b>{item[0]}</b> {item[1]}</p>
+              ))}
+            </div>
+          </section>
+        ) : null}
+        <SponsorStrip items={listSponsors} place="list" />
+        <div className="slb-pcfilter">
+          <label className="slb-search">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+              <circle cx="11" cy="11" r="7" />
+              <path d="M20 20l-3.5-3.5" />
+            </svg>
+            <input placeholder="搜索站点 / 简介" value={q} onChange={(event) => setQ(event.target.value)} />
+          </label>
+          <div className="slb-controls">
+            <FilterPill label="分类" options={CAT_FILTERS} current={cat} open={menu} onOpen={setMenu} onPick={goCat} />
+            <FilterPill label="模型" options={MODEL_FILTERS} current={model || "all"} open={menu} onOpen={setMenu} onPick={goModel} />
+            <FilterPill label="支付方式" options={PAY_FILTERS} current={pay} open={menu} onOpen={setMenu} onPick={setPay} />
+            <FilterPill label="最低充值" options={MIN_FILTERS} current={min} open={menu} onOpen={setMenu} onPick={setMin} />
+            <FilterPill label="发票" options={INV_FILTERS} current={invoice} open={menu} onOpen={setMenu} onPick={setInvoice} />
+            <FilterPill label="排序" options={SORT_FILTERS} current={sort} open={menu} onOpen={setMenu} onPick={setSort} />
+            <button
+              type="button"
+              className={`slb-refresh${spin ? " spin" : ""}`}
+              aria-label="刷新"
+              onClick={() => {
+                setSpin(true);
+                window.setTimeout(() => setSpin(false), 600);
+              }}
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M21 12a9 9 0 1 1-2.6-6.4" />
+                <path d="M21 3v6h-6" />
+              </svg>
+            </button>
+          </div>
+        </div>
+        <div className="vd-board-switch" role="group" aria-label="列表样式">
+          <button type="button" className={board === "cards" ? "on" : ""} aria-pressed={board === "cards"} onClick={() => setBoard("cards")}>卡片</button>
+          <button type="button" className={board === "table" ? "on" : ""} aria-pressed={board === "table"} onClick={() => setBoard("table")}>表格</button>
+        </div>
+        {view.length ? (board === "cards" ? (
+          <div className="vd-site-cards">
+            {view.map((item) => (
+              <article key={item.slug} className="vd-site-card">
+                <div className="vd-site-top">
+                  <Logo station={item} />
+                  <StarButton on={false} onToggle={() => toggleFav(item.slug)} />
+                </div>
+                <Link to={stationPath(item)} {...hubMark(item, "list-rank")}><h3>{item.name}</h3></Link>
+                <div className="vd-site-host">{item.host}</div>
+                <p>{item.blurb}</p>
+                <div className="vd-site-tags">{(item.tags || []).slice(0, 3).map((tag) => <span key={tag}>{tag}</span>)}</div>
+                <div className="vd-site-metrics">
+                  <div><b>{showUptime(item.uptime)}</b><small>在线率</small></div>
+                  <div><b>{showLatency(item.latency)}</b><small>平均延迟</small></div>
+                  <div><b>{item.modelsList || "—"}</b><small>支持模型</small></div>
+                </div>
+                <Link className="vd-site-go" to={stationPath(item)}>探索站点 →</Link>
+              </article>
+            ))}
+          </div>
+        ) : <RankTable rows={view} mode="list" />) : <div className="empty">没有符合条件的站点</div>}
+        <Pager page={safePage} pages={pageCount} onPage={setPage} />
+      </div>
+    );
+  }
 
   return (
-    <div className="wrap">
+    <div className="wrap vd-list">
       <div className={cat === "charity" ? "page-hd charity-hd" : "page-hd"}>
         <div>
           <h1>{heading}</h1>
@@ -1691,6 +1638,7 @@ export function ListPage({ modelId = "" }) {
             <path d="M20 20l-3.5-3.5" />
           </svg>
           <input placeholder="搜索站点 / 简介" value={q} onChange={(event) => setQ(event.target.value)} />
+          {q || pay !== "all" || min !== "all" || invoice !== "all" || sort !== "overall" || cat !== "all" || model ? <button type="button" className="vd-clear-filters" onClick={() => { setQ(""); setPay("all"); setMin("all"); setInvoice("all"); setSort("overall"); setPage(1); navigate("/list"); }}>清除筛选</button> : null}
         </label>
         <div className="slb-controls">
           <FilterPill label="分类" options={CAT_FILTERS} current={cat} open={menu} onOpen={setMenu} onPick={goCat} />
@@ -1713,10 +1661,35 @@ export function ListPage({ modelId = "" }) {
               <path d="M21 3v6h-6" />
             </svg>
           </button>
+          <div className="vd-board-switch" role="group" aria-label="列表样式">
+            <button type="button" className={board === "cards" ? "on" : ""} aria-pressed={board === "cards"} aria-label="卡片视图" onClick={() => setBoard("cards")}><DirectoryIcon name="grid" /></button>
+            <button type="button" className={board === "table" ? "on" : ""} aria-pressed={board === "table"} aria-label="表格视图" onClick={() => setBoard("table")}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden="true"><path d="M8 6h13M8 12h13M8 18h13M3 6h1M3 12h1M3 18h1" /></svg></button>
+          </div>
         </div>
       </div>
-      {view.length ? <RankTable rows={view} mode="list" /> : <div className="empty">没有符合条件的站点</div>}
-      <Pager page={page} pages={pageCount} onPage={setPage} />
+      {view.length ? (board === "cards" ? (
+        <div className="vd-site-cards">
+          {view.map((item) => (
+            <article key={item.slug} className="vd-site-card">
+              <div className="vd-site-top">
+                <Logo station={item} />
+                <StarButton on={Boolean(cardFavs[item.slug])} onToggle={() => setCardFavs(toggleFav(item.slug))} />
+              </div>
+              <Link to={stationPath(item)} {...hubMark(item, "list-rank")}><h3>{item.name}</h3></Link>
+              <div className="vd-site-host">{item.host}</div>
+              <p className="vd-site-description" title={item.blurb}>{item.blurb}</p>
+              <div className="vd-site-categories"><DirectoryTags item={item} limit={4} /></div>
+              <div className="vd-site-metrics">
+                <div><b>{showUptime(item.uptime)}</b><small>在线率</small></div>
+                <div><b>{showLatency(item.latency)}</b><small>平均延迟</small></div>
+                <div><b>{item.modelsList || "—"}</b><small>支持模型</small></div>
+              </div>
+              <Link className="vd-site-go" to={stationPath(item)}>探索站点 →</Link>
+            </article>
+          ))}
+        </div>
+      ) : <DirectoryTable rows={view} offset={(safePage - 1) * pageSize} onFavorite={toggleFav} />) : <div className="empty">没有符合条件的站点</div>}
+      <Pager page={safePage} pages={pageCount} onPage={setPage} />
     </div>
   );
 }
@@ -1816,10 +1789,7 @@ function NavGlyph({ id }) {
 
 const SIDE_NAV = [
   ["score", "测评表现"],
-  ["base", "基本信息"],
   ["models", "模型与价格"],
-  ["api", "接口链接"],
-  ["compare", "综合对比"],
   ["news", "动态"],
   ["notice", "站点公告"],
   ["reviews", "评论"],
@@ -2049,6 +2019,182 @@ function cacheText(row) {
   return `${unitOf(row)}${money(row.cache)}`;
 }
 
+function realSeries(groups) {
+  let best = [];
+  for (const group of groups || []) {
+    const rows = (group.points || []).filter((point) => Array.isArray(point) && point[0] >= 1e9 && Number(point[1]) >= 0);
+    if (rows.length > best.length) best = rows;
+  }
+  return best;
+}
+
+function stationHitsAvail(station, slug) {
+  const key = String(slug || "").toLowerCase();
+  if (!key) return false;
+  if (String(station.slug || "").toLowerCase() === key) return true;
+  if ((station.aliases || []).some((alias) => String(alias).toLowerCase() === key)) return true;
+  const host = String(station.host || "").replace(/^www\./, "").toLowerCase();
+  if (host.split(".")[0] === key) return true;
+  const bits = String(station.slug || "").toLowerCase().split("-").filter(Boolean);
+  const need = key.split("-");
+  for (let index = 0; index <= bits.length - need.length; index += 1) {
+    if (need.every((part, offset) => bits[index + offset] === part)) return true;
+  }
+  return false;
+}
+
+function availCard(station, period) {
+  const board = availabilityData[period] || availabilityData["24h"];
+  return (board?.cards || []).find((card) => stationHitsAvail(station, card.slug)) || null;
+}
+
+function seriesFromCard(card) {
+  const sums = new Map();
+  const counts = new Map();
+  for (const channel of card?.channels || []) {
+    for (const point of channel.points || []) {
+      if (!Array.isArray(point) || point[0] < 1e9 || !(Number(point[1]) >= 0)) continue;
+      sums.set(point[0], (sums.get(point[0]) || 0) + Number(point[1]));
+      counts.set(point[0], (counts.get(point[0]) || 0) + 1);
+    }
+  }
+  return [...sums.keys()].sort((a, b) => a - b).map((time) => [time, sums.get(time) / counts.get(time)]);
+}
+
+function barsFromCard(card) {
+  const rows = [];
+  for (const channel of card?.channels || []) {
+    const text = String(channel.latency || "");
+    const matched = text.match(/(\d+(?:\.\d+)?)/);
+    if (!matched) continue;
+    const ms = /ms/i.test(text) ? Number(matched[1]) : Number(matched[1]) * 1000;
+    if (!Number.isFinite(ms) || ms <= 0) continue;
+    const name = channel.group || channel.model || "分组";
+    if (rows.some((row) => row.name === name)) continue;
+    rows.push({ name, ms });
+  }
+  return rows.slice(0, 8);
+}
+
+function latencyBars(groups) {
+  const rows = [];
+  for (const group of groups || []) {
+    let ms = Number(group.latencyMs);
+    if (!Number.isFinite(ms) && group.latencyText && group.latencyText !== "—") {
+      const matched = String(group.latencyText).match(/(\d+(?:\.\d+)?)/);
+      if (matched) ms = /ms/i.test(group.latencyText) ? Number(matched[1]) : Number(matched[1]) * 1000;
+    }
+    if (!Number.isFinite(ms) || ms <= 0) continue;
+    rows.push({ name: group.name || "分组", ms });
+  }
+  return rows.slice(0, 8);
+}
+
+function pointDay(stamp) {
+  if (!stamp || stamp < 1e9) return "";
+  const parts = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Shanghai", month: "numeric", day: "numeric" }).formatToParts(new Date(stamp * 1000));
+  const month = parts.find((part) => part.type === "month")?.value || "";
+  const day = parts.find((part) => part.type === "day")?.value || "";
+  return month && day ? `${month}月${day}日` : "";
+}
+
+function smoothLine(values, xAt, yAt) {
+  const spots = values.map((value, index) => [xAt(index), yAt(value)]);
+  if (spots.length < 3) {
+    return spots.map((spot, index) => `${index ? "L" : "M"}${spot[0].toFixed(1)},${spot[1].toFixed(1)}`).join(" ");
+  }
+  let path = `M${spots[0][0].toFixed(1)},${spots[0][1].toFixed(1)}`;
+  for (let index = 0; index < spots.length - 1; index += 1) {
+    const prev = spots[index - 1] || spots[index];
+    const current = spots[index];
+    const next = spots[index + 1];
+    const after = spots[index + 2] || next;
+    const c1x = current[0] + (next[0] - prev[0]) / 6;
+    const c1y = current[1] + (next[1] - prev[1]) / 6;
+    const c2x = next[0] - (after[0] - current[0]) / 6;
+    const c2y = next[1] - (after[1] - current[1]) / 6;
+    path += ` C${c1x.toFixed(1)},${c1y.toFixed(1)} ${c2x.toFixed(1)},${c2y.toFixed(1)} ${next[0].toFixed(1)},${next[1].toFixed(1)}`;
+  }
+  return path;
+}
+
+function AreaChart({ points }) {
+  if (!points || points.length < 2) return null;
+  const values = points.map((point) => Number(point[1]));
+  const high = Math.max(100, ...values);
+  const width = 420;
+  const height = 168;
+  const left = 28;
+  const right = 8;
+  const top = 12;
+  const bottom = 22;
+  const xAt = (index) => left + (index / (values.length - 1)) * (width - left - right);
+  const yAt = (value) => top + (1 - value / high) * (height - top - bottom);
+  const line = smoothLine(values, xAt, yAt);
+  const fill = `${line} L${xAt(values.length - 1).toFixed(1)},${yAt(0).toFixed(1)} L${xAt(0).toFixed(1)},${yAt(0).toFixed(1)} Z`;
+  const guides = [100, 50, 0].filter((mark) => mark <= high);
+  return (
+    <figure className="sd-chart">
+      <figcaption>在线率记录 <small>{pointDay(points[0][0])} – {pointDay(points[points.length - 1][0])}</small></figcaption>
+      <svg viewBox={`0 0 ${width} ${height}`} role="img" aria-label="在线率记录">
+        <defs>
+          <linearGradient id="sd-up-fill" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stopColor="#65A30D" stopOpacity="0.28" />
+            <stop offset="1" stopColor="#65A30D" stopOpacity="0.02" />
+          </linearGradient>
+        </defs>
+        {guides.map((mark) => (
+          <g key={mark}>
+            <line className="grid" x1={left} x2={width - right} y1={yAt(mark)} y2={yAt(mark)} />
+            <text className="tick" x={left - 6} y={yAt(mark) + 3} textAnchor="end">{mark}</text>
+          </g>
+        ))}
+        <path className="fill" d={fill} />
+        <path className="line" d={line} />
+        <text className="tick end" x={xAt(0)} y={height - 4}>{pointDay(points[0][0])}</text>
+        <text className="tick end" x={xAt(values.length - 1)} y={height - 4} textAnchor="end">{pointDay(points[points.length - 1][0])}</text>
+      </svg>
+    </figure>
+  );
+}
+
+function LatencyChart({ rows }) {
+  if (!rows.length) return null;
+  const max = Math.max(...rows.map((row) => row.ms));
+  return (
+    <figure className="sd-chart">
+      <figcaption>分组延迟</figcaption>
+      <div className="sd-bars">
+        {rows.map((row) => (
+          <div key={row.name} className="sd-bar">
+            <div className="sd-bar-top">
+              <span title={row.name}>{row.name}</span>
+              <em>{row.ms >= 1000 ? `${(row.ms / 1000).toFixed(1)}s` : `${Math.round(row.ms)}ms`}</em>
+            </div>
+            <i><b style={{ width: `${Math.max(8, (row.ms / max) * 100)}%` }} /></i>
+          </div>
+        ))}
+      </div>
+    </figure>
+  );
+}
+
+function similarStations(station) {
+  const tags = new Set(station.tags || []);
+  const vendors = new Set(station.vendors || []);
+  return stations
+    .filter((item) => item.slug !== station.slug)
+    .map((item) => {
+      const sharedTags = (item.tags || []).filter((tag) => tags.has(tag)).length;
+      const sharedVendors = (item.vendors || []).filter((name) => vendors.has(name)).length;
+      return { item, score: sharedTags * 3 + sharedVendors };
+    })
+    .filter((row) => row.score > 0)
+    .sort((a, b) => b.score - a.score || (b.item.upShown || 0) - (a.item.upShown || 0))
+    .slice(0, 4)
+    .map((row) => row.item);
+}
+
 function apiEndpoints(station) {
   const items = [];
   const seen = new Set();
@@ -2174,9 +2320,11 @@ export function StationPage() {
   const [part, setPart] = useState("score");
   const [modelOpen, setModelOpen] = useState(() => Boolean(globalThis.__VERD_STATIC__));
   const [summaryOpen, setSummaryOpen] = useState(true);
-  const [eventPage, setEventPage] = useState(1);
+  const [eventsMore, setEventsMore] = useState(false);
   const [openNotes, setOpenNotes] = useState({});
+  const [notesMore, setNotesMore] = useState(false);
   const [starred, setStarred] = useState(() => Boolean(readFavs()[slug]));
+  const [drops, setDrops] = useState([]);
   useEffect(() => {
     const sync = () => setStarred(Boolean(readFavs()[slug]));
     window.addEventListener("okk-account", sync);
@@ -2210,13 +2358,31 @@ export function StationPage() {
     setPart("score");
     setModelOpen(false);
     setSummaryOpen(true);
-    setEventPage(1);
+    setEventsMore(false);
     setOpenNotes({});
+    setNotesMore(false);
     setStarred(Boolean(readFavs()[slug]));
     setHistOpen(false);
     setFamilyOpen(false);
     setGroupOpen(new Set());
     setWriting(false);
+  }, [slug]);
+  useEffect(() => {
+    let gone = false;
+    fetch("/api/shop")
+      .then((res) => (res.ok ? res.json() : Promise.reject(new Error("shop"))))
+      .then((data) => {
+        if (gone) return;
+        const items = Array.isArray(data.items) ? data.items : [];
+        setDrops(items.filter((item) => {
+          if (!item || item.mine) return false;
+          if (item.status === "done" || item.status === "closed") return false;
+          if (item.stock != null && item.stock !== "" && Number(item.sold || 0) >= Number(item.stock)) return false;
+          return true;
+        }).slice(0, 2));
+      })
+      .catch(() => { if (!gone) setDrops([]); });
+    return () => { gone = true; };
   }, [slug]);
   useEffect(() => {
     if (!familyOpen) return undefined;
@@ -2226,7 +2392,7 @@ export function StationPage() {
   }, [familyOpen]);
   useEffect(() => {
     if (!station) return undefined;
-    const ids = ["score", "base", "models", "api", "compare", "news", "notice", "reviews"];
+    const ids = ["score", "models", "news", "notice", "reviews"];
     const nodes = ids.map((id) => document.getElementById(id)).filter(Boolean);
     const obs = new IntersectionObserver(
       (entries) => {
@@ -2342,15 +2508,7 @@ export function StationPage() {
   };
   const tests = mergeBasicTests(station.tests, serverTests);
   const events = station.events || [];
-  const eventSize = 8;
-  const eventPages = Math.max(1, Math.ceil(events.length / eventSize));
-  const eventRows = events.slice((eventPage - 1) * eventSize, eventPage * eventSize);
-  const eventGroups = [];
-  for (const item of eventRows) {
-    const last = eventGroups[eventGroups.length - 1];
-    if (last && last.day === item.day) last.items.push(item);
-    else eventGroups.push({ day: item.day, items: [item] });
-  }
+  const shownEvents = eventsMore ? events : events.slice(0, 3);
   const notes = station.announcements || [];
   const comments = [...remoteComments].reverse().concat(station.reviews || []);
   const rated = comments.filter((item) => item.rating);
@@ -2366,72 +2524,59 @@ export function StationPage() {
     setPart(id);
     document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
+  const kin = similarStations(station);
+  const tabs = [
+    ["score", "测评表现", "chart"],
+    ["models", "模型与价格", "layers"],
+    ["reviews", "评论", "message"],
+    ["news", "动态", "news"],
+    ["notice", "站点公告", "megaphone"],
+  ];
   return (
+    <div className="sd">
     <div className="wrap">
       <div className="crumb station-crumb">榜单 › {stationHeading(station)}</div>
-      <div className="layout station-layout">
-        <aside className="side station-side">
-          <div className="station-logo">
-            <Logo station={station} />
-            <div className="nm">{stationHeading(station)}</div>
+      <header className="sd-head">
+        <Logo station={station} className="sd-logo" />
+        <div className="sd-id">
+          <div className="st-title">
+            <h1>{stationHeading(station)}</h1>
+            {average != null ? (
+              <span className="score-pill"><span className="star">★</span> {average.toFixed(1)}</span>
+            ) : <span className="score-pill">暂无评分</span>}
           </div>
-          {SIDE_NAV.map(([id, label]) => (
-            <button key={id} className={part === id ? "on" : ""} onClick={() => jump(id)}><NavGlyph id={id} />{label}</button>
-          ))}
-        </aside>
-        <div>
-          <div className="station-head">
-            <div className="station-main">
-              <div className="st-title">
-                <h1>{stationHeading(station)}</h1>
-                {average != null ? (
-                  <span className="score-pill"><span className="star">★</span> {average.toFixed(1)} {rated.length}条评价</span>
-                ) : <span className="score-pill">暂无评分</span>}
-                <span className="head-votes">
-                  <b><Trophy />第{shownVotePlace}名</b>
-                  <button type="button" className={mineVote === "up" ? "up on" : "up"} aria-pressed={mineVote === "up"} onClick={() => castVote("up")}><Thumb up /> {shownUp}</button>
-                  <button type="button" className={mineVote === "down" ? "down on" : "down"} aria-pressed={mineVote === "down"} onClick={() => castVote("down")}><Thumb /> {shownDown}</button>
-                </span>
-              </div>
-              <div className="links">
-                {socials.map((item) => (
-                  <a key={item.name} href={item.url} target="_blank" rel="noreferrer" {...hubMark(station, "site-link")}>{item.name}</a>
-                ))}
-              </div>
-              {station.tags?.length ? (
-                <div className="slb-tags station-tags">
-                  {station.tags.map((tag) => (
-                    <span key={tag} className={tagTone(tag)}>{tag}</span>
-                  ))}
-                </div>
-              ) : null}
-              <p className="blurb">{station.blurb}</p>
-            </div>
-            <div className="station-actions">
-              <span className="icon-row">
-                <button className="sq" type="button" aria-label="反馈" onClick={() => jump("reviews")}>✎</button>
-                <button className={`sq ${starred ? "on" : ""}`} type="button" aria-label="收藏" onClick={() => setStarred(Boolean(toggleFav(station.slug)[station.slug]))}>☆</button>
-                <button className="sq" type="button" aria-label="分享" onClick={() => navigator.clipboard?.writeText(window.location.href)}>⤴</button>
-              </span>
-              <a className="visit" href={official} target="_blank" rel="noreferrer" {...hubMark(station, "site-go")}>前往官网 ↗</a>
-            </div>
+          <div className="slb-tags station-tags">
+            {station.tags.map((tag) => (
+              <span key={tag} className={tagTone(tag)}>{tag}</span>
+            ))}
+            {station.issue ? <span className="issue">访问异常</span> : null}
+            {station.latency != null ? <span className="slb-tag">平均延迟 {station.meanLatency || showLatency(station.latency)}</span> : null}
           </div>
-
+          <div className="sd-votes">
+            <b><Trophy />第{shownVotePlace}名</b>
+            <button type="button" className={mineVote === "up" ? "up on" : "up"} aria-pressed={mineVote === "up"} onClick={() => castVote("up")}><Thumb up /> {shownUp}</button>
+            <button type="button" className={mineVote === "down" ? "down on" : "down"} aria-pressed={mineVote === "down"} onClick={() => castVote("down")}><Thumb /> {shownDown}</button>
+          </div>
+          {station.blurb ? <p className="sd-blurb">{station.blurb}</p> : null}
+        </div>
+        <div className="sd-actions">
+          <a className="visit" href={official} target="_blank" rel="noreferrer" {...hubMark(station, "site-go")}>前往官网<DirectoryIcon name="external" /></a>
+          <button type="button" className={starred ? "sd-save on" : "sd-save"} onClick={() => setStarred(Boolean(toggleFav(station.slug)[station.slug]))}><DirectoryIcon name="bookmark" />{starred ? "已收藏" : "收藏"}</button>
+        </div>
+      </header>
+      <nav className="sd-tabs" aria-label="页内">
+        {tabs.map(([id, label, icon]) => (
+          <button key={id} type="button" className={part === id ? "on" : ""} aria-current={part === id ? "location" : undefined} onClick={() => jump(id)}><DirectoryIcon name={icon} />{label}</button>
+        ))}
+      </nav>
+      <div className="sd-pair">
           <div className="h-block" id="score">
             <h2>测评表现</h2>
-            <div className="metrics">
-              <div>
-                <div className="mini">可用指数</div>
-                <div className="idx"><span className="big">{station.upShown == null ? "—" : station.upShown}</span><Delta value={station.upDelta} /></div>
-                <Meter value={station.upShown} />
-                <div className="meter-label"><span>0%</span><span>在线率</span><span>100%</span></div>
-              </div>
-              <div>
-                <div className="mini">速度指数</div>
-                <div className="idx"><span className="big">{station.speedShown == null ? "—" : station.speedShown}</span><Delta value={station.speedDelta} /></div>
-                <Meter value={station.speedShown} />
-                <div className="meter-label"><span>0 ≥8s</span><span>延迟</span><span>100 ≤1s</span></div>
-              </div>
+            <div className="sd-stats">
+              <div><span>可用指数</span><p><b>{station.upShown == null ? "—" : station.upShown}</b><Delta value={station.upDelta} /></p></div>
+              <div><span>在线率</span><p><b className={uptimeTone(station.uptime)}>{showUptime(station.uptime)}</b></p></div>
+              <div><span>平均延迟</span><p><b className={latencyTone(station.latency)}>{station.meanLatency || showLatency(station.latency)}</b></p></div>
+              <div><span>速度指数</span><p><b>{station.speedShown == null ? "—" : station.speedShown}</b><Delta value={station.speedDelta} /></p></div>
             </div>
             <div className="summary">
               <div className="summary-hd">
@@ -2453,18 +2598,18 @@ export function StationPage() {
               ) : null}
             </div>
           </div>
-
-          <div className="h-block" id="base">
-            <h2>基本信息</h2>
-            <div className="info-grid">
-              <div className="info"><div className="k">网站名</div><div className="v">{station.name}</div></div>
-              <div className="info"><div className="k">最低充值</div><div className="v">{String(station.min).replace("￥", "¥")}</div></div>
-              <div className="info"><div className="k">支付方式</div><div className="v">{station.pay.length ? <Pays list={station.pay} /> : station.paymentText}</div></div>
-              <div className="info"><div className="k">发票</div><div className="v"><StatValue value={station.invoice} /></div></div>
-              <div className="info"><div className="k">退款政策</div><div className="v"><StatValue value={station.refund} /></div></div>
-              <div className="info"><div className="k">优惠</div><div className="v">{station.promo || "—"}</div></div>
-            </div>
+          <div className="sd-rail">
+            <h2 className="sd-rail-title">站点信息</h2>
+            <div><span className="sd-info-label"><DirectoryIcon name="wallet" />最低充值</span><b>{moneyOf(station.min).label}</b></div>
+            <div><span className="sd-info-label"><DirectoryIcon name="clock" />平均延迟</span><b>{station.meanLatency || showLatency(station.latency)}</b></div>
+            <div className="sd-pay"><span className="sd-info-label"><DirectoryIcon name="card" />支付方式</span><b>{station.pay.length ? <Pays list={station.pay} /> : "—"}</b></div>
+            <div><span className="sd-info-label"><DirectoryIcon name="receipt" />发票</span><b><StatValue value={station.invoice} /></b></div>
+            <div><span className="sd-info-label"><DirectoryIcon name="refund" />退款</span><b><StatValue value={station.refund} /></b></div>
+            <div><span className="sd-info-label"><DirectoryIcon name="layers" />模型</span><b>{station.cover ? `${station.cover} 个` : "—"}</b></div>
           </div>
+      </div>
+      <div className="sd-grid">
+        <div>
 
           <div className="h-block" id="models">
             <div className="sec-h">
@@ -2653,7 +2798,7 @@ export function StationPage() {
                           <td className="th-c-model">{test.model}</td>
                           <td className="th-c-ep">{hostOf(station.baseUrl) || station.host}</td>
                           <td className="tr"><b>{Number(test.score).toFixed(0)}</b></td>
-                          <td className="th-c-rp">{test.id ? <Link to={`/b/${test.id}`} target="_blank" rel="noreferrer">报告 ↗</Link> : null}</td>
+                          <td className="th-c-rp">{test.id ? <Link to={test.report || `/b/${test.id}`} target="_blank" rel="noreferrer">报告 ↗</Link> : null}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -2663,98 +2808,65 @@ export function StationPage() {
             </div>
           ) : null}
 
-          <div className="h-block" id="api">
-            <h2>接口链接</h2>
-            {apiEndpoints(station).length ? apiEndpoints(station).map((link) => (
-              <div key={link.url} className="link-card">
-                <div className="link-top">
-                  <b>{link.name}</b>
-                  <a href={link.url} target="_blank" rel="noreferrer" {...hubMark(station, "site-api")}>{link.url}</a>
-                </div>
-                <div className="link-sub">
-                  <span>{link.desc || "调用地址"}</span>
-                  <button type="button" onClick={() => navigator.clipboard?.writeText(link.url)}>复制</button>
-                </div>
-              </div>
-            )) : <p>还没有公开的 API 端点。</p>}
-          </div>
-
-          <div className="h-block" id="compare">
-            <h2>综合对比</h2>
-            <div className="cmp-grid">
-              <RadarChart dims={station.radar} />
-              <div>
-                <div className="cmp-stat"><span>平均延迟</span><b>{station.meanLatency || showLatency(station.latency)}</b></div>
-                <div className="mini">各分组当前延迟均值</div>
-                <div className="obar"><i style={{ width: `${station.speedShown ?? 0}%` }} /></div>
-                <div className="cmp-stat"><span>{station.monthLabel || "30 天可用率"}</span><b>{station.month == null ? "—" : `${station.month}%`}</b></div>
-                <div className="mini">{station.monthNote || "近 30 天各分组平均在线率"}</div>
-                <div className="obar"><i style={{ width: `${station.month ?? 0}%` }} /></div>
-                <div className="cmp-stat"><span>模型覆盖</span><b>{station.cover}</b></div>
-                <div className="mini">{station.coverText || `覆盖 ${station.vendors.length} 家厂商,共 ${station.cover} 个模型`}</div>
-                <div className="obar"><i style={{ width: "100%" }} /></div>
-              </div>
-            </div>
-          </div>
-
           <div className="h-block" id="news">
-            <h2>动态</h2>
-            {eventGroups.length ? (
-              <div className="events">
-                <div className="ev-head"><span>事件</span><span>类型</span><span>时间</span></div>
-                {eventGroups.map((group) => (
-                  <div key={group.day}>
-                    <div className="ev-daybar">{group.day}</div>
-                    {group.items.map((item, index) => (
-                      <div key={`${item.time}-${index}`} className="ev-line">
-                        <span>{item.text}</span>
-                        <span className="ev-pill">{item.type}</span>
-                        <span className="ev-tm">{item.time}</span>
-                      </div>
-                    ))}
+            <div className="sd-feed-hd">
+              <h2>动态</h2>
+              <span>共 {events.length} 条</span>
+            </div>
+            {shownEvents.length ? shownEvents.map((item, index) => {
+              const day = String(item.day || "");
+              const date = day.includes("·") ? day.split("·").pop().trim() : day;
+              const stamp = [date, item.time].filter(Boolean).join(" ");
+              return (
+                <article key={`${item.time}-${index}`} className="sd-note">
+                  <p>{item.text}</p>
+                  <div className="sd-note-date">
+                    {item.type ? <span className="ev-pill">{item.type}</span> : null}
+                    {stamp}
                   </div>
-                ))}
-              </div>
-            ) : (
-              <div className="events">
-                <div className="ev-head"><span>事件</span><span>类型</span><span>时间</span></div>
-                <div className="ev-line"><span>公开页面上没有动态记录。</span><span /><span /></div>
-              </div>
-            )}
-            {eventPages > 1 ? (
-              <div className="pager">
-                {Array.from({ length: eventPages }, (_, index) => (
-                  <button key={index} className={eventPage === index + 1 ? "on" : ""} onClick={() => setEventPage(index + 1)}>{index + 1}</button>
-                ))}
-              </div>
+                </article>
+              );
+            }) : <p className="mini">公开页面上没有动态记录。</p>}
+            {events.length > 3 ? (
+              <button type="button" className="sd-more" onClick={() => setEventsMore((open) => !open)}>
+                {eventsMore ? "收起" : "查看更多消息 ∨"}
+              </button>
             ) : null}
           </div>
 
-<div className="h-block" id="notice">
-          <h2>站点公告 <span className="mini">共 {notes.length} 条</span></h2>
-          {notes.length ? notes.map((item) => {
-            const long = (item.content || "").length > 180;
-            const open = Boolean(globalThis.__VERD_STATIC__) || Boolean(openNotes[item.id]);
-            const text = !long || open ? item.content : `${item.content.slice(0, 180)}…`;
-            return (
-              <article key={item.id} className="notice">
-                {item.title ? <b>{item.title}</b> : null}
-                <p>{text || "这条公告没有正文。"}</p>
-                <div className="mini">
-                  {when(item.date)}
+          <div className="h-block" id="notice">
+            <div className="sd-feed-hd">
+              <h2>站点公告</h2>
+              <span>共 {notes.length} 条</span>
+            </div>
+            {notes.length ? (notesMore ? notes : notes.slice(0, 3)).map((item) => {
+              const long = (item.content || "").length > 140;
+              const open = Boolean(globalThis.__VERD_STATIC__) || Boolean(openNotes[item.id]);
+              const text = !long || open ? item.content : `${item.content.slice(0, 140)}…`;
+              return (
+                <article key={item.id} className="sd-note">
+                  {item.title ? <b>{item.title}</b> : null}
+                  <p>{text || "这条公告没有正文。"}</p>
                   {long ? (
-                    <button onClick={() => setOpenNotes((prev) => ({ ...prev, [item.id]: !open }))}>{open ? "收起" : "展开阅读全文"}</button>
+                    <button type="button" className="sd-expand" onClick={() => setOpenNotes((prev) => ({ ...prev, [item.id]: !open }))}>
+                      {open ? "收起 ∧" : "展开阅读全文 ∨"}
+                    </button>
                   ) : null}
-                </div>
-              </article>
-            );
-          }) : <p className="mini">公开页面上没有站点公告。</p>}
-        </div>
+                  <div className="sd-note-date">{when(item.date) || item.date}</div>
+                </article>
+              );
+            }) : <p className="mini">公开页面上没有站点公告。</p>}
+            {notes.length > 3 ? (
+              <button type="button" className="sd-more" onClick={() => setNotesMore((open) => !open)}>
+                {notesMore ? "收起" : "查看更多消息 ∨"}
+              </button>
+            ) : null}
+          </div>
 
         <div className="h-block" id="reviews">
           <div className="sec-h">
-            <h2>评论 <span className="mini">{comments.length} 条</span></h2>
-            <button type="button" className="ghost-btn" onClick={() => setWriting(true)}>写点评</button>
+            <h2>用户评价</h2>
+            <span className="mini">{comments.length} 条</span>
           </div>
           {average != null ? (
             <div className="rv-head">
@@ -2762,29 +2874,38 @@ export function StationPage() {
                 <div className="big">{average.toFixed(1)}</div>
                 <Stars count={Math.round(average)} />
                 <div className="mini">{comments.length} 条评论</div>
+                <button type="button" className="sd-write" onClick={() => setWriting(true)}>写点评</button>
               </div>
               <div className="rv-bars">
-                {[5, 4, 3, 2, 1].map((star) => (
-                  <div key={star}><span>{star}★</span><b>{comments.filter((item) => Number(item.rating) === star).length}</b></div>
-                ))}
+                {[5, 4, 3, 2, 1].map((star) => {
+                  const count = comments.filter((item) => Number(item.rating) === star).length;
+                  const width = comments.length ? (count / comments.length) * 100 : 0;
+                  return (
+                    <div key={star}>
+                      <span>{star}</span>
+                      <i><b style={{ width: `${width}%` }} /></i>
+                      <em>{count}</em>
+                    </div>
+                  );
+                })}
               </div>
             </div>
-          ) : null}
+          ) : (
+            <button type="button" className="sd-write" onClick={() => setWriting(true)}>写点评</button>
+          )}
           {comments.length ? comments.map((item) => (
             <article key={item.id || item.user} className="comment">
               <div className="who">
                 <span className="avatar">{(item.user || "用").trim().slice(0, 1).toLowerCase()}</span>
-                <div>
-                  <div className="nm">{item.user}</div>
-                  <div className="mini">{when(item.date) || item.date}</div>
-                </div>
-                <Stars count={item.rating || 0} />
+                <div className="nm">{item.user}</div>
+                <span className="mini sd-cdate">{when(item.date) || item.date}</span>
               </div>
+              <Stars count={item.rating || 0} />
               {item.body ? <p>{item.body}</p> : null}
               {(item.pros || []).length || (item.cons || []).length ? (
                 <div className="pills">
-                  {(item.pros || []).map((tag) => <span key={tag} className="pill-g">👍 {tag}</span>)}
-                  {(item.cons || []).map((tag) => <span key={tag} className="pill-b">👎 {tag}</span>)}
+                  {(item.pros || []).map((tag) => <span key={tag} className="pill-g">{tag}</span>)}
+                  {(item.cons || []).map((tag) => <span key={tag} className="pill-b">{tag}</span>)}
                 </div>
               ) : null}
               {(item.replies || []).map((reply, index) => (
@@ -2807,8 +2928,36 @@ export function StationPage() {
             />
           ) : null}
         </div>
+
+        </div>
+        <aside className="sd-side">
+          {kin.length ? (
+            <div className="sd-drop">
+              <div className="sd-side-hd"><span><DirectoryIcon name="grid" />相近的站</span></div>
+              <div className="sd-kin">
+                {kin.map((item) => (
+                  <Link key={item.slug} to={item.path} className="sd-kin-card">
+                    <Logo station={item} className="sd-kin-logo" />
+                    <b>{item.name}</b>
+                    <span>{(item.tags || []).slice(0, 2).join(" · ") || item.host}</span>
+                  </Link>
+                ))}
+              </div>
+            </div>
+          ) : null}
+          <div className="sd-act">
+            <div className="sd-side-hd"><span><DirectoryIcon name="gift" />兑换奖品</span><Link to="/points">去兑换<DirectoryIcon name="arrow" /></Link></div>
+            {drops.length ? drops.map((item) => (
+              <Link key={item.id} to="/points" className="sd-act-card">
+                <img src={item.icon || item.cover || "/icons/vendor/deepseek.svg"} alt="" />
+                <b>{item.title}</b>
+                <span>{item.badge ? `${item.badge} · ` : ""}{item.cost} 积分</span>
+              </Link>
+            )) : <Link to="/points" className="sd-act-card plain"><b>积分中心</b><span>查看正在兑换的奖品</span></Link>}
+          </div>
+        </aside>
       </div>
-      </div>
+    </div>
     </div>
   );
 }
@@ -3088,11 +3237,35 @@ function ReviewDialog({ onClose, onSaved, initialSlug = "" }) {
   );
 }
 
+function VoteReviewCard({ review }) {
+  const station = review.station;
+  const score = Math.max(0, Math.min(5, Number(review.rating) || 0));
+  const user = String(review.user || "用户");
+  return <article className="vr-review">
+    <div className="vr-review-head">
+      <Link className="vr-review-station" to={station.path} aria-label={`查看 ${station.name} 站点`} {...hubMark(station, "vote-review")}>
+        <Logo station={station} /><span><strong>{station.name}</strong><small>{station.host}</small></span><DirectoryIcon name="arrow" />
+      </Link>
+      <div className="vr-review-rating"><b>{score.toFixed(1)}</b><span aria-label={`${score} 星`}>{"★".repeat(Math.round(score))}<i>{"☆".repeat(5 - Math.round(score))}</i></span></div>
+    </div>
+    <div className="vr-review-author"><span className="vr-author-avatar">{user.trim().slice(0, 1)}</span><span>{user}</span><time>{when(review.date) || review.date}</time></div>
+    {review.body ? <p className="vr-review-body">{review.body}</p> : null}
+    {(review.pros || []).length || (review.cons || []).length ? <div className="vr-review-feedback">
+      {(review.pros || []).length ? <div><b>优点</b><span>{review.pros.join(" · ")}</span></div> : null}
+      {(review.cons || []).length ? <div className="is-improve"><b>不足</b><span>{review.cons.join(" · ")}</span></div> : null}
+    </div> : null}
+    {(review.replies || []).map((reply, index) => <div className="vr-review-reply" key={index}><b>{reply.user}</b><small>{when(reply.date) || reply.date}</small><p>{reply.body}</p></div>)}
+  </article>;
+}
+
 export function ReputationPage() {
   useTitle("中转站投票排行｜赞成、反对与净票");
   const [q, setQ] = useState("");
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState("net");
+  const [reviewSort, setReviewSort] = useState("new");
+  const [view, setView] = useState("ranking");
+  const [reviewSlug, setReviewSlug] = useState("");
   const [menu, setMenu] = useState("");
   const [shown, setShown] = useState(20);
   const [board, setBoard] = useState(null);
@@ -3140,6 +3313,22 @@ export function ReputationPage() {
     rows.sort((a, b) => (b[key] - a[key]) || (b.net - a.net) || (a.order - b.order));
     return rows;
   }, [query, sort, board]);
+  const latestReviews = useMemo(() => {
+    const entries = new Map();
+    const add = (review, station) => {
+      if (!station) return;
+      const key = review.id || `${station.slug}|${review.user}|${review.date}|${review.body}`;
+      entries.set(key, { ...review, station });
+    };
+    for (const station of stations) for (const review of station.reviews || []) add(review, station);
+    for (const review of shared) add(review, findStation(review.slug));
+    return [...entries.values()].filter((review) => !query || `${review.station.name} ${review.station.host} ${review.user || ""} ${review.body || ""} ${(review.pros || []).join(" ")} ${(review.cons || []).join(" ")}`.toLowerCase().includes(query))
+      .sort((a, b) => (reviewSort === "rating" ? (Number(b.rating) || 0) - (Number(a.rating) || 0) : 0) || String(b.date || "").localeCompare(String(a.date || "")) || String(b.id || "").localeCompare(String(a.id || "")));
+  }, [shared, query, reviewSort]);
+  const showReviews = (station) => {
+    setQ(station.name); setQuery(station.name.toLowerCase()); setView("reviews"); setShown(20); setMenu("");
+    document.getElementById("vote-tab-reviews")?.focus({ preventScroll: true });
+  };
   const visible = ranked.slice(0, shown);
   const cast = async (station, side) => {
     if (voting.current) return;
@@ -3188,11 +3377,11 @@ export function ReputationPage() {
   };
   const pills = (station, key) => {
     const items = voteTags(station, localBySlug.get(station.slug) || [], key, remarks);
-    if (!items.length) return <div className="vnone">暂无</div>;
+    if (!items.length) return <div className="vnone">暂无反馈</div>;
     return (
       <div className="vpills">
         {items.map(([label, count, marked]) => (
-          <button key={label} type="button" className={marked ? `vpill ${key} on` : `vpill ${key}`} onClick={() => remark(station.slug, key, label)}>
+          <button key={label} type="button" className={marked ? `vpill ${key} on` : `vpill ${key}`} aria-pressed={Boolean(marked)} onClick={() => remark(station.slug, key, label)}>
             <ThumbIcon down={key === "cons"} />
             {label} ({count})
           </button>
@@ -3201,37 +3390,49 @@ export function ReputationPage() {
     );
   };
   return (
-    <div className="wrap vote-page" style={{ paddingBottom: 40 }}>
+    <div className="wrap vote-page vote-refresh" style={{ paddingBottom: 40 }}>
       <div className="page-hd">
         <div>
           <h1>投票</h1>
           <p className="sub">赞成减反对，净票高的排前面。每人每站一票，记在接口里，其他人也能看到。</p>
         </div>
       </div>
+      <div className="vr-tabs" role="tablist" aria-label="投票视图">
+        {[["ranking", "站点口碑榜"], ["reviews", "最新点评"]].map(([id, label], index) => <button key={id} id={`vote-tab-${id}`} role="tab" type="button" aria-selected={view === id} aria-controls="vote-content" tabIndex={view === id ? 0 : -1} onClick={() => { setView(id); setShown(20); setMenu(""); }} onKeyDown={(event) => {
+          if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) return;
+          event.preventDefault();
+          const next = event.key === "Home" ? "ranking" : event.key === "End" ? "reviews" : index === 0 ? "reviews" : "ranking";
+          setView(next); setShown(20); setMenu(""); document.getElementById(`vote-tab-${next}`)?.focus();
+        }}>{label}</button>)}
+      </div>
       <div className="vote-bar">
-        <input value={q} placeholder="搜索站点" onChange={(event) => { setQ(event.target.value); setShown(20); }} />
+        <input value={q} aria-label="搜索站点或点评" placeholder="搜索站点" onChange={(event) => { setQ(event.target.value); setShown(20); }} />
         <FilterPill
           label="排序"
-          options={[["net", "净票"], ["up", "赞成"], ["down", "反对"]]}
-          current={sort}
+          options={view === "reviews" ? [["new", "最新"], ["rating", "评分"]] : [["net", "净票"], ["up", "赞成"], ["down", "反对"]]}
+          current={view === "reviews" ? reviewSort : sort}
           open={menu}
           onOpen={setMenu}
-          onPick={(value) => { setSort(value); setShown(20); }}
+          onPick={(value) => { if (view === "reviews") setReviewSort(value); else setSort(value); setShown(20); }}
         />
-        <span className="vote-hit">{ranked.length} 家</span>
-        <button className="go pill vote-write" type="button" onClick={() => { setNote(""); setMine(true); }}>写点评</button>
+        <span className="vote-hit">{view === "reviews" ? `${latestReviews.length} 条点评` : `${ranked.length} 家`}</span>
+        <button className="go pill vote-write" type="button" onClick={() => { setNote(""); setReviewSlug(""); setMine(true); }}>写点评</button>
       </div>
-      {visible.length ? (
+      <section id="vote-content" role="tabpanel" aria-labelledby={`vote-tab-${view}`}>
+      {view === "reviews" ? (
+        latestReviews.length ? <div className="vr-reviews">{latestReviews.slice(0, shown).map((review, index) => <VoteReviewCard key={review.id || `${review.station.slug}-${index}`} review={review} />)}</div> : <p className="vr-empty">{query ? "没有匹配的点评，试试其他站点或关键词。" : "还没有点评，欢迎分享真实使用体验。"}</p>
+      ) : visible.length ? (
         <div className="vlist">
+          <div className="vr-list-heading"><span>排名</span><span>站点与产品介绍</span><span className="vr-feedback-heading">使用者反馈</span><span>你的选择</span></div>
           {visible.map((row, index) => {
             const { station } = row;
             const locals = localBySlug.get(station.slug) || [];
-            const latest = locals[locals.length - 1];
+            const reviewCount = (station.reviews || []).length + locals.length;
             const blurb = String(station.blurb || "").replace(/\s+/g, " ").trim();
             const netClass = row.net > 0 ? "pos" : row.net < 0 ? "neg" : "";
             return (
               <article key={station.slug} className="vcard">
-                <div className="vrank">{index + 1}</div>
+                <div className={`vrank${index < 3 ? " is-leading" : ""}`}>{String(index + 1).padStart(2, "0")}</div>
                 <div className="vbody">
                   <Link className="vid" to={station.path} {...hubMark(station, "vote")}>
                     <Logo station={station} />
@@ -3242,41 +3443,47 @@ export function ReputationPage() {
                   </Link>
                   <div className="vk">产品描述</div>
                   <p>{blurb || "暂无"}</p>
-                  {latest?.body ? <p className="vquote"><i>★ {latest.rating}</i> {latest.body}</p> : null}
+                  <div className="vr-entry-links">
+                    <Link to={station.path} {...hubMark(station, "vote")}>了解站点 <DirectoryIcon name="arrow" /></Link>
+                    {reviewCount ? <button type="button" onClick={() => showReviews(station)}>{reviewCount} 条使用点评 <DirectoryIcon name="next" /></button> : <button type="button" onClick={() => { setReviewSlug(station.slug); setMine(true); }}>写第一条点评 <DirectoryIcon name="next" /></button>}
+                  </div>
                 </div>
                 <div className="vcol">
                   <h4>优点</h4>
                   {pills(station, "pros")}
                 </div>
                 <div className="vcol">
-                  <h4>缺点</h4>
+                  <h4>不足</h4>
                   {pills(station, "cons")}
                 </div>
                 <div className="vvote">
                   <div className="vnet">净票 <b className={netClass}>{row.net > 0 ? `+${row.net}` : row.net}</b></div>
+                  <p className="vr-share">{row.up + row.down > 0 ? <>赞成占比 <b>{(row.up / (row.up + row.down) * 100).toFixed(1)}%</b></> : "暂无投票"}</p>
                   <div className="vbtns">
-                    <button type="button" className={row.mine === "up" ? "vbtn up on" : "vbtn up"} onClick={() => cast(station, "up")}>
+                    <button type="button" className={row.mine === "up" ? "vbtn up on" : "vbtn up"} aria-label={`赞成 ${station.name}，${row.up} 票${row.mine === "up" ? "，再次点击撤回" : ""}`} aria-pressed={row.mine === "up"} onClick={() => cast(station, "up")}>
                       <ThumbIcon />
                       <b>{row.up}</b>
                       <span>赞成</span>
                     </button>
-                    <button type="button" className={row.mine === "down" ? "vbtn down on" : "vbtn down"} onClick={() => cast(station, "down")}>
+                    <button type="button" className={row.mine === "down" ? "vbtn down on" : "vbtn down"} aria-label={`反对 ${station.name}，${row.down} 票${row.mine === "down" ? "，再次点击撤回" : ""}`} aria-pressed={row.mine === "down"} onClick={() => cast(station, "down")}>
                       <ThumbIcon down />
                       <b>{row.down}</b>
                       <span>反对</span>
                     </button>
                   </div>
-                  <Link className="vmore" to={station.path} {...hubMark(station, "vote")}>了解更多 ›</Link>
+                  <div className={`vr-vote-note${row.mine ? " has-voted" : ""}`}>{row.mine ? `已${row.mine === "up" ? "赞成" : "反对"} · 再点撤回` : "一站一票 · 可改投"}</div>
                 </div>
               </article>
             );
           })}
         </div>
       ) : <p className="mini">没有匹配的站点。</p>}
-      {shown < ranked.length ? <button className="step more-rows" type="button" onClick={() => setShown((count) => count + 20)}>加载更多</button> : null}
+      </section>
+      {shown < (view === "reviews" ? latestReviews.length : ranked.length) ? <button className="step more-rows" type="button" onClick={() => setShown((count) => count + 20)}>加载更多</button> : null}
       {note ? <p className="toast">{note}</p> : null}
       {mine ? (
         <ReviewDialog
+          initialSlug={reviewSlug}
           onClose={() => setMine(false)}
           onSaved={(review) => {
             setShared((current) => [...current, review]);
@@ -3368,7 +3575,7 @@ export function ActivityPage() {
     return !query || blob.includes(query);
   });
   return (
-    <div className="wrap" style={{ paddingBottom: 40 }}>
+    <div className="wrap wa-page" style={{ paddingBottom: 40 }}>
       <div className="page-hd">
         <div>
           <h1>福利羊毛</h1>
@@ -3394,58 +3601,13 @@ export function ActivityPage() {
           </>
         ) : null}
       </div>
-      {tab === "free" ? (
-        freeList.length ? freeList.map(({ item }) => (
-          <article key={item.claimUrl} className="act">
-            <div className="act-top">
-              <div className="act-id">
-                <Logo station={{ img: item.logoUrl, name: item.model }} />
-                <div>
-                  <b>{item.model}</b>
-                  <div className="mini">{item.provider}</div>
-                </div>
-              </div>
-              <div><div className="mini">上下文</div><b>{item.context}</b></div>
-              <div><div className="mini">最大输出</div><b>{item.maxOutput}</b></div>
-              <div>
-                <div className="mini">门槛</div>
-                <div className="gate">
-                  {item.bindCard ? <span className="gate-ok">{item.bindCard}</span> : null}
-                  {item.network ? <span className={String(item.network).includes("海外") ? "gate-net" : "gate-ok"}>{item.network}</span> : null}
-                </div>
-              </div>
-              <a className="ghost-btn" href={item.claimUrl} target="_blank" rel="noreferrer">立即前往 ↗</a>
-            </div>
-            <div className="act-foot">
-              <span className="mini">{item.quota}</span>
-              <div className="modes">{(item.modality || []).map((name) => <ActMod key={name} name={name} />)}</div>
-              <span className="mini">截止 {untilLabel(item)}</span>
-            </div>
-          </article>
-        )) : <p className="mini">没有符合条件的免费 API。</p>
-      ) : (
-        promoList.length ? promoList.map((item) => (
-          <article key={`${item.claimUrl}|${item.station}|${item.activity}`} className="act">
-            <div className="act-top promo">
-              <div className="act-id">
-                <Logo station={{ img: item.logoUrl, name: item.station }} />
-                <div>
-                  <b>{item.station}</b>
-                  <div className="mini">{item.host}</div>
-                </div>
-              </div>
-              <a className="ghost-btn" href={item.claimUrl} target="_blank" rel="noreferrer">立即前往 ↗</a>
-            </div>
-            <p className="promo-copy">{item.activity}</p>
-            <div className="mini">参与条件</div>
-            <p>{item.eligibility}</p>
-            <div className="mini">参与步骤</div>
-            <p className="promo-steps">{item.steps}</p>
-            {item.terms ? <details className="promo-terms"><summary>活动规则</summary><p>{item.terms}</p></details> : null}
-            <div className="act-foot"><span className="mini">截止 {untilLabel(item)}</span></div>
-          </article>
-        )) : <p className="mini">没有符合条件的优惠活动。</p>
-      )}
+      <ActivityOffers
+        key={JSON.stringify([tab, query, provider, status, gate, mode, sort])}
+        items={tab === "free" ? freeList.map(({ item }) => item) : promoList}
+        kind={tab}
+        filtered={Boolean(query) || (tab === "free" && (provider !== "all" || status !== "all" || gate !== "all" || mode !== "all" || sort !== "context"))}
+        Modality={ActMod}
+      />
     </div>
   );
 }
@@ -3907,6 +4069,7 @@ export function PrivacyPage() {
     <Article title="隐私政策" seoTitle="隐私政策｜Cookie、检测 Key 和评价内容如何留存">
       <p>本站只使用维持登录和语言偏好所必需的 cookie，以及匿名的访问量统计，不用于广告追踪。</p>
       <p>你在检测框里填写的 API Key 留在浏览器里，这份本地复刻不会把它发往任何服务器。</p>
+      <p>检测记录默认保存在本机。你主动使用分享功能时，本站会保存脱敏后的站点、模型、题目结果和生成画面；持有分享链接或海报二维码的人可以查看。分享报告不包含 API Key。</p>
       <p>公开评价和商务联系方式由用户主动提交。不要在评价里写下密钥或订单号。</p>
     </Article>
   );
@@ -4166,23 +4329,55 @@ function ShopCard({ item, busy, onRedeem, showKey, onToggleKey, onCopy, copied }
         <span className="shop-cost"><i />{item.cost} 积分</span>
         <span>{left == null ? `每人限 ${item.perPerson || 1} 份` : `剩 ${left} 份，每人限 ${item.perPerson || 1} 份`}</span>
       </div>
-      {item.mine && item.url ? (
+      {item.mine && (item.url || item.key) ? (
         <div className="shop-cred">
-          <div>
+          {item.url ? <div>
             <span>接口</span>
             <code>{item.url}</code>
             <button type="button" onClick={() => onCopy(item.url, `${item.id}-url`)}>{copied === `${item.id}-url` ? "已复制" : "复制"}</button>
-          </div>
-          <div>
-            <span>Key</span>
+          </div> : null}
+          {item.key ? <div>
+            <span>{item.codeMode === "unique" ? "兑换码" : "Key"}</span>
             <code>{showKey ? item.key : "••••••••"}</code>
             <button type="button" onClick={onToggleKey}>{showKey ? "隐藏" : "显示"}</button>
             <button type="button" onClick={() => onCopy(item.key, `${item.id}-key`)}>{copied === `${item.id}-key` ? "已复制" : "复制"}</button>
-          </div>
+          </div> : null}
         </div>
       ) : null}
       <button type="button" className="shop-go" disabled={sold || busy || item.mine} onClick={onRedeem}>{label}</button>
     </article>
+  );
+}
+
+function RedemptionNotice({ notice, onClose, onEarn }) {
+  const dialog = useRef(null);
+  useEffect(() => {
+    const node = dialog.current;
+    const previous = document.activeElement;
+    node.showModal();
+    return () => {
+      node.close();
+      if (previous?.isConnected) previous.focus();
+    };
+  }, []);
+  const missing = Math.max(0, notice.cost - notice.balance);
+  return (
+    <dialog ref={dialog} className="pts-redemption-notice" aria-labelledby="pts-redemption-title" aria-describedby="pts-redemption-description" onCancel={onClose} onClick={(event) => { if (event.target === event.currentTarget) onClose(); }}>
+      <div className="pts-redemption-content">
+        <button className="pts-redemption-close" type="button" aria-label="关闭兑换提示" onClick={onClose}>×</button>
+        <span className="pts-redemption-symbol" aria-hidden="true">!</span>
+        <h2 id="pts-redemption-title">{notice.insufficient ? "积分不足" : "兑换未完成"}</h2>
+        <p id="pts-redemption-description">{notice.insufficient ? (missing > 0 ? `还差 ${missing} 积分，完成任务后再来兑换吧。` : "当前可用积分不足，请刷新余额后重试。") : notice.message}</p>
+        {notice.insufficient ? <div className="pts-redemption-balance">
+          <div><span>本次需要</span><strong>{notice.cost}<small> 积分</small></strong></div>
+          <div><span>当前积分</span><strong>{notice.balance}<small> 积分</small></strong></div>
+        </div> : null}
+        <div className="pts-redemption-actions">
+          <button type="button" onClick={onClose}>{notice.insufficient ? "暂不兑换" : "知道了"}</button>
+          {notice.insufficient ? <button className="primary" type="button" onClick={onEarn}>去赚积分 →</button> : null}
+        </div>
+      </div>
+    </dialog>
   );
 }
 
@@ -4206,6 +4401,7 @@ export function PointsPage() {
   const [shopNote, setShopNote] = useState("");
   const [busyId, setBusyId] = useState("");
   const [reveal, setReveal] = useState({});
+  const [redemptionNotice, setRedemptionNotice] = useState(null);
 
   useEffect(() => {
     const sync = () => {
@@ -4514,16 +4710,26 @@ export function PointsPage() {
                       window.dispatchEvent(new Event("okk-open-auth"));
                       return;
                     }
+                    setNote("");
                     setBusyId(item.id);
                     try {
                       const result = await redeemShop(item.id);
                       if (result.points) replacePoints(result.points);
                       setShop((current) => current.map((row) => (row.id === result.item.id ? result.item : row)));
                       setReveal((current) => ({ ...current, [item.id]: true }));
-                      setNote("兑换成功，接口和 Key 已显示在卡片上");
+                      setNote("兑换成功，兑换信息已显示在卡片上，请妥善保存");
                     } catch (error) {
-                      setNote(error.status === 401 ? "请先登录再兑换" : error.message || "兑换没有完成");
-                      if (error.status === 401) window.dispatchEvent(new Event("okk-open-auth"));
+                      if (error.status === 401) {
+                        setNote("请先登录再兑换");
+                        window.dispatchEvent(new Event("okk-open-auth"));
+                      } else {
+                        const notice = { message: error.message || "兑换没有完成，请稍后重试。", insufficient: /积分不够|积分不足/.test(error.message || ""), cost: Number(item.cost) || 0, balance };
+                        setRedemptionNotice(notice);
+                        if (notice.insufficient) fetchAccount().then((account) => {
+                          applyRemoteAccount(account);
+                          setRedemptionNotice((current) => current === notice ? { ...notice, balance: Number(account.points?.balance) || 0 } : current);
+                        }).catch(() => {});
+                      }
                     } finally {
                       setBusyId("");
                     }
@@ -4565,6 +4771,7 @@ export function PointsPage() {
         </div>
       ) : null}
       </div>
+      {redemptionNotice ? <RedemptionNotice notice={redemptionNotice} onClose={() => setRedemptionNotice(null)} onEarn={() => { setRedemptionNotice(null); setTab("tasks"); setNote(""); }} /> : null}
       {inviteOpen ? (
         <InviteDialog
           copied={copied}

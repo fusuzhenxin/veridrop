@@ -731,8 +731,9 @@ export const latestTests = stations.flatMap((station) => {
     model: best.test.model || best.test.channel || "测试",
     date: monthDay(best.time),
     at: best.time,
+    score: typeof best.test.score === "number" && Number.isFinite(best.test.score) ? best.test.score : null,
     vendor: vendorFromModel(best.test.model),
-    href: best.test.id ? `/b/${best.test.id}` : station.path,
+    href: best.test.report || (best.test.id ? `/b/${best.test.id}` : station.path),
   }];
 }).sort((a, b) => b.at - a.at);
 

@@ -21,6 +21,8 @@ from pathlib import Path
 from urllib.parse import parse_qs, unquote, urlparse
 
 import basic_reports
+import shared_reports
+import proposals
 import visits
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -262,7 +264,44 @@ def shop_book(store: dict) -> dict:
     return book
 
 
-def public_shop_item(item: dict, owned: dict | None = None, sold: int = 0) -> dict:
+def shop_codes(item: dict) -> list[str]:
+    raw = item.get("codes") or []
+    if isinstance(raw, str):
+        raw = raw.splitlines()
+    return list(dict.fromkeys(str(code).strip() for code in raw if str(code).strip())) if isinstance(raw, list) else []
+
+
+def code_digest(code: str) -> str:
+    return hashlib.sha256(code.encode("utf-8")).hexdigest()
+
+
+def shop_used_codes(store: dict, item_id: str) -> set[str]:
+    book = shop_book(store)
+    used = set((book.get("issuedCodes") or {}).get(item_id) or [])
+    # Include old orders when switching an existing prize to individual codes.
+    for orders in book["orders"].values():
+        owned = orders.get(item_id) if isinstance(orders, dict) else None
+        if isinstance(owned, dict) and owned.get("key"):
+            used.add(code_digest(str(owned["key"])))
+    return used
+
+
+def shop_inventory(store: dict, item: dict) -> dict:
+    item_id = str(item.get("id") or "")
+    sold = shop_sold(store, item_id)
+    stock = item.get("stock")
+    remaining = None if stock in (None, "") else max(0, int(stock) - sold)
+    result = {"sold": sold, "remaining": remaining}
+    if item.get("codeMode") == "unique":
+        codes = shop_codes(item)
+        used = shop_used_codes(store, item_id)
+        available = sum(code_digest(code) not in used for code in codes)
+        result.update(codeTotal=len(codes), codeUsed=len(codes) - available, codeRemaining=available,
+                      remaining=available if remaining is None else min(remaining, available))
+    return result
+
+
+def public_shop_item(item: dict, owned: dict | None = None, sold: int = 0, remaining: int | None = None) -> dict:
     status = str(item.get("status") or "open")
     stock = item.get("stock")
     row = {
@@ -280,10 +319,14 @@ def public_shop_item(item: dict, owned: dict | None = None, sold: int = 0) -> di
         "stock": None if stock in (None, "") else int(stock),
         "sold": int(sold or 0),
         "mine": bool(owned),
+        "codeMode": "unique" if item.get("codeMode") == "unique" else "shared",
     }
+    if item.get("codeMode") == "unique":
+        row["remaining"] = int(remaining or 0)
+        row["stock"] = sold + row["remaining"]
     if owned:
-        row["url"] = str(item.get("url") or owned.get("url") or "")
-        row["key"] = str(item.get("key") or owned.get("key") or "")
+        row["url"] = str(owned.get("url", item.get("url")) or "")
+        row["key"] = str(owned.get("key", item.get("key")) or "")
         row["redeemedAt"] = str(owned.get("at") or "")
     return row
 
@@ -301,7 +344,8 @@ def public_shop(store: dict, email: str = "") -> dict:
         owned = orders.get(item_id) if email else None
         if str(item.get("status") or "open") != "open" and not owned:
             continue
-        items.append(public_shop_item(item, owned, shop_sold(store, item_id)))
+        inventory = shop_inventory(store, item)
+        items.append(public_shop_item(item, owned, inventory["sold"], inventory["remaining"]))
     return {"items": items}
 
 
@@ -324,21 +368,29 @@ def redeem_shop_item(store: dict, email: str, item_id: str) -> dict:
     item = next((row for row in shop_items() if str(row.get("id") or "") == wanted), None)
     if not item:
         raise ValueError("没有这件奖品")
-    if str(item.get("status") or "open") != "open":
-        raise ValueError("这件奖品已经结束")
-    stock = item.get("stock")
-    if stock not in (None, ""):
-        if shop_sold(store, wanted) >= int(stock):
-            raise ValueError("已经兑完")
-    cost = int(item.get("cost") or 0)
     orders = shop_book(store).setdefault("orders", {}).setdefault(email, {})
     owned = orders.get(wanted)
+    inventory = shop_inventory(store, item)
     if owned:
-        return {"item": public_shop_item(item, owned), "points": public_points(store, email)}
+        return {"item": public_shop_item(item, owned, inventory["sold"], inventory["remaining"]), "points": public_points(store, email)}
+    if str(item.get("status") or "open") != "open":
+        raise ValueError("这件奖品已经结束")
+    if inventory["remaining"] is not None and inventory["remaining"] <= 0:
+        raise ValueError("已经兑完")
+    key = str(item.get("key") or "")
+    if item.get("codeMode") == "unique":
+        used = shop_used_codes(store, wanted)
+        key = next((code for code in shop_codes(item) if code_digest(code) not in used), "")
+        if not key:
+            raise ValueError("已经兑完")
+    cost = int(item.get("cost") or 0)
     spend_points(store, email, "redeem", cost, item.get("title") or "兑换奖品")
-    owned = {"at": utcnow(), "url": str(item.get("url") or ""), "key": str(item.get("key") or "")}
+    owned = {"at": utcnow(), "url": str(item.get("url") or ""), "key": key}
     orders[wanted] = owned
-    return {"item": public_shop_item(item, owned), "points": public_points(store, email)}
+    if item.get("codeMode") == "unique":
+        shop_book(store).setdefault("issuedCodes", {}).setdefault(wanted, []).append(code_digest(key))
+    inventory = shop_inventory(store, item)
+    return {"item": public_shop_item(item, owned, inventory["sold"], inventory["remaining"]), "points": public_points(store, email)}
 
 
 def empty_store() -> dict:
@@ -822,6 +874,34 @@ class Handler(BaseHTTPRequestHandler):
             raise ValueError("请求格式不对")
         return data
 
+    def _proposal_api(self, method, parsed) -> None:
+        try:
+            with FileLock(DATA):
+                user = self._user(load_store())
+            parts = [part for part in parsed.path.split("/") if part][2:]
+            who = user["email"] if user else ""
+            if method == "GET":
+                query = {k: v[-1] for k, v in parse_qs(parsed.query).items()}
+                result = proposals.detail(parts[0], who) if len(parts) == 1 else proposals.listing(query, who) if not parts else None
+            elif not user:
+                self._send(401, {"error": "登录后可以提交、支持和评论"})
+                return
+            else:
+                body = self._read_json()
+                if not parts:
+                    result = proposals.create(body, user)
+                elif len(parts) == 2 and parts[1] == "support":
+                    result = proposals.support(parts[0], user, body.get("on"))
+                elif len(parts) == 2 and parts[1] == "comments":
+                    result = proposals.comment(parts[0], user, body.get("content"))
+                else:
+                    result = None
+            self._send(200 if result is not None else 404, result if result is not None else {"error": "没有这个接口"})
+        except (ValueError, TypeError) as err:
+            self._send(400, {"error": str(err)})
+        except Exception:
+            self._send(503, {"error": "提案暂时无法保存或读取，请稍后重试"})
+
     def _user(self, store: dict) -> dict | None:
         return user_from_header(store, self.headers.get("Authorization") or "")
 
@@ -836,6 +916,13 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_GET(self) -> None:
         parsed = urlparse(self.path)
+        if parsed.path.rstrip("/") == "/api/proposals" or parsed.path.startswith("/api/proposals/"):
+            self._proposal_api("GET", parsed)
+            return
+        if parsed.path.startswith("/api/shared-reports/"):
+            report = shared_reports.read(parsed.path.rsplit("/", 1)[-1])
+            self._send(200 if report else 404, report or {"error": "这份分享不存在或已失效"})
+            return
         if parsed.path.rstrip("/") == "/api/visit":
             self._visit_get(parse_qs(parsed.query))
             return
@@ -920,6 +1007,25 @@ class Handler(BaseHTTPRequestHandler):
     def do_POST(self) -> None:
         parsed = urlparse(self.path)
         path = parsed.path.rstrip("/")
+        if path == "/api/proposals" or path.startswith("/api/proposals/"):
+            self._proposal_api("POST", parsed)
+            return
+        if path == "/api/shared-reports":
+            try:
+                if self.headers.get("X-Veridrop-Share") != "1":
+                    self._send(403, {"error": "请从检测结果页发起分享"})
+                    return
+                length = int(self.headers.get("Content-Length") or 0)
+                if not 0 < length <= shared_reports.LIMIT:
+                    self._send(413, {"error": "分享内容过大"})
+                    return
+                body = json.loads(self.rfile.read(length).decode("utf-8"))
+                self._send(201, shared_reports.create(body, self.client_address[0]))
+            except (ValueError, TypeError, AttributeError):
+                self._send(400, {"error": "分享未生成，请检查检测是否已完成，或稍后重试"})
+            except OSError:
+                self._send(503, {"error": "分享暂时无法保存，请稍后重试"})
+            return
         if path == "/api/visit":
             self._visit_post()
             return

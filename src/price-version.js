@@ -1,1 +1,1 @@
-export const priceVersion = "b619f649e1";
+export const priceVersion = "7a616fc9f5";

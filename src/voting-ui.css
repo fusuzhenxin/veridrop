@@ -1,0 +1,120 @@
+/* Reputation presentation only. Keep the original toolbar and review dialog. */
+.vote-refresh { --vr-body: #3f3f46; --vr-secondary: #62626c; --vr-rule: var(--line); }
+.vote-refresh .vr-tabs { display: flex; gap: 28px; border-bottom: 1px solid var(--vr-rule); margin-bottom: 18px; }
+.vote-refresh .vr-tabs > button { position: relative; padding: 13px 0; font-size: 14px; color: var(--vr-secondary); font-weight: 500; }
+.vote-refresh .vr-tabs > button[aria-selected="true"] { color: var(--orange-2); font-weight: 650; }
+.vote-refresh .vr-tabs > button[aria-selected="true"]::after { content: ""; position: absolute; bottom: -1px; left: 0; right: 0; height: 2px; background: var(--orange); }
+.vote-refresh .vlist { gap: 0; }
+.vote-refresh .vr-list-heading, .vote-refresh .vcard { display: grid; grid-template-columns: 25px minmax(0, 1.45fr) minmax(0, .62fr) minmax(0, .62fr) 176px; column-gap: 24px; }
+.vote-refresh .vr-list-heading { padding: 13px 0; border-block: 1px solid var(--vr-rule); font-size: 12px; color: var(--vr-body); font-weight: 600; }
+.vote-refresh .vr-feedback-heading { grid-column: 3 / span 2; }
+.vote-refresh .vr-list-heading > :last-child { text-align: center; }
+.vote-refresh .vcard { padding: 25px 0; border: 0; border-bottom: 1px solid var(--vr-rule); border-radius: 0; background: none; box-shadow: none; row-gap: 16px; align-items: start; }
+.vote-refresh .vrank { color: var(--vr-secondary); font-size: 15px; font-weight: 500; padding-top: 8px; font-variant-numeric: tabular-nums; text-align: left; }
+.vote-refresh .vrank.is-leading { color: var(--orange-2); font-weight: 650; }
+.vote-refresh .vid { align-items: center; gap: 11px; }
+.vote-refresh .vid > span { min-width: 0; }
+.vote-refresh .vid .nm { font-size: 17px; line-height: 1.4; font-weight: 650; overflow-wrap: anywhere; }
+.vote-refresh .vid .sub { font-size: 12px; color: var(--vr-secondary); overflow-wrap: anywhere; }
+.vote-refresh .vcard .logo-img, .vote-refresh .vcard .logo-fallback { width: 44px; height: 44px; border-radius: 12px; flex-shrink: 0; object-fit: contain; }
+.vote-refresh .vid:hover .nm { color: var(--orange-2); }
+.vote-refresh .vk { margin: 14px 0 4px; font-size: 11px; color: var(--vr-secondary); }
+.vote-refresh .vbody p { display: block; overflow: visible; -webkit-line-clamp: unset; font-size: 14px; line-height: 1.85; color: var(--vr-body); white-space: pre-line; overflow-wrap: anywhere; }
+.vote-refresh .vr-entry-links { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 19px; margin-top: 12px; }
+.vote-refresh .vr-entry-links > a, .vote-refresh .vr-entry-links > button { display: inline-flex; align-items: center; gap: 5px; padding: 0; font-size: 12px; line-height: 1.7; color: var(--vr-secondary); }
+.vote-refresh .vr-entry-links svg { width: 12px; height: 12px; }
+.vote-refresh .vr-entry-links > a:hover, .vote-refresh .vr-entry-links > button:hover { color: var(--orange-2); }
+.vote-refresh .vcol { min-width: 0; }
+.vote-refresh .vcol h4 { color: var(--fg); font-size: 13px; margin: 2px 0 11px; line-height: 1.6; }
+.vote-refresh .vpills { gap: 8px; }
+.vote-refresh .vpill { background: none; border: 0; border-radius: 0; box-shadow: none; padding: 0; min-height: 0; color: var(--orange-2); font-size: 13px; line-height: 1.7; align-items: flex-start; text-align: left; overflow-wrap: anywhere; }
+.vote-refresh .vpill svg { margin-top: 4px; width: 13px; height: 13px; }
+.vote-refresh .vpill.cons { color: var(--vr-body); background: none; }
+.vote-refresh .vpill.on { outline: 0; font-weight: 650; text-decoration: underline; text-underline-offset: 3px; }
+.vote-refresh .vpill:hover { text-decoration: underline; text-underline-offset: 3px; }
+.vote-refresh .vnone { color: var(--vr-secondary); font-size: 12px; padding-top: 0; }
+.vote-refresh .vvote { gap: 0; }
+.vote-refresh .vnet { font-size: 12px; color: var(--vr-secondary); display: flex; align-items: baseline; justify-content: center; gap: 8px; }
+.vote-refresh .vnet b { color: var(--orange-2); font-size: 26px; font-weight: 650; margin: 0; line-height: 1.2; font-variant-numeric: tabular-nums; }
+.vote-refresh .vnet b.neg { color: #a34d3d; }
+.vote-refresh .vr-share { text-align: center; font-size: 11px; color: var(--vr-secondary); line-height: 1.5; margin: 2px 0 10px; }
+.vote-refresh .vr-share b { color: var(--orange-2); font-weight: 600; font-variant-numeric: tabular-nums; }
+.vote-refresh .vbtn { position: relative; display: grid; grid-template-columns: 16px auto; grid-template-rows: auto auto; justify-content: center; align-content: center; align-items: center; gap: 4px 6px; min-height: 64px; padding: 9px 4px; border: 1px solid var(--vr-rule); border-radius: 9px; background: var(--bg); color: var(--vr-secondary); }
+.vote-refresh .vbtn svg { width: 15px; height: 15px; }
+.vote-refresh .vbtn b { color: var(--fg); font-size: 18px; font-weight: 600; line-height: 1.2; font-variant-numeric: tabular-nums; }
+.vote-refresh .vbtn > span { grid-column: 1 / -1; font-size: 12px; }
+.vote-refresh .vbtn.up:hover, .vote-refresh .vbtn.up.on { background: var(--soft); border-color: #a6c37b; color: var(--orange-2); }
+.vote-refresh .vbtn.up.on b { color: var(--orange-2); }
+.vote-refresh .vbtn.down:hover, .vote-refresh .vbtn.down.on { background: #fbf4ef; border-color: #dac2b5; color: #97533b; }
+.vote-refresh .vbtn.down.on b { color: #97533b; }
+.vote-refresh .vr-vote-note { margin-top: 8px; min-height: 17px; text-align: center; color: var(--vr-secondary); font-size: 11px; line-height: 1.6; }
+.vote-refresh .vr-vote-note.has-voted { color: var(--orange-2); }
+.vote-refresh .vr-empty { padding: 36px 0; font-size: 14px; color: var(--vr-secondary); }
+.vote-refresh .vr-reviews { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; margin-top: 18px; }
+.vote-refresh .vr-review { padding: 22px; min-width: 0; border: 1px solid var(--vr-rule); border-radius: 12px; background: var(--card); }
+.vote-refresh .vr-review-head { display: flex; justify-content: space-between; align-items: center; gap: 16px; padding-bottom: 16px; border-bottom: 1px solid var(--vr-rule); }
+.vote-refresh .vr-review-station { display: flex; align-items: center; gap: 11px; min-width: 0; }
+.vote-refresh .vr-review-station .logo-img { width: 42px; height: 42px; border-radius: 11px; flex-shrink: 0; object-fit: contain; }
+.vote-refresh .vr-review-station > span { min-width: 0; }
+.vote-refresh .vr-review-station strong { display: block; color: var(--fg); font-size: 17px; line-height: 1.5; font-weight: 650; overflow-wrap: anywhere; }
+.vote-refresh .vr-review-station small { display: block; color: var(--vr-secondary); font-size: 12px; overflow-wrap: anywhere; }
+.vote-refresh .vr-review-station > svg { width: 14px; height: 14px; color: var(--vr-secondary); flex-shrink: 0; }
+.vote-refresh .vr-review-station:hover strong { color: var(--orange-2); }
+.vote-refresh .vr-review-rating { display: flex; flex-direction: column; align-items: flex-end; flex-shrink: 0; color: #a66b08; }
+.vote-refresh .vr-review-rating b { font-size: 21px; line-height: 1.3; font-weight: 650; font-variant-numeric: tabular-nums; }
+.vote-refresh .vr-review-rating > span { font-size: 11px; letter-spacing: 1px; white-space: nowrap; }
+.vote-refresh .vr-review-rating i { font-style: normal; }
+.vote-refresh .vr-review-author { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 15px; color: var(--vr-body); font-size: 12px; }
+.vote-refresh .vr-author-avatar { display: grid; place-items: center; width: 24px; height: 24px; border-radius: 50%; background: var(--soft); color: var(--orange-2); font-size: 11px; font-weight: 600; }
+.vote-refresh .vr-review-author time { color: var(--vr-secondary); font-size: 11px; }
+.vote-refresh .vr-review-body { margin: 13px 0 18px; color: var(--vr-body); font-size: 14px; line-height: 1.85; white-space: pre-wrap; overflow-wrap: anywhere; }
+.vote-refresh .vr-review-feedback { display: grid; gap: 7px; font-size: 13px; line-height: 1.8; }
+.vote-refresh .vr-review-feedback > div { display: flex; gap: 9px; color: var(--vr-body); }
+.vote-refresh .vr-review-feedback b { color: var(--orange-2); font-weight: 550; flex-shrink: 0; }
+.vote-refresh .vr-review-feedback .is-improve b { color: var(--vr-body); }
+.vote-refresh .vr-review-feedback span { overflow-wrap: anywhere; }
+.vote-refresh .vr-review-reply { border-left: 2px solid var(--vr-rule); padding-left: 12px; margin-top: 14px; color: var(--vr-body); font-size: 13px; overflow-wrap: anywhere; }
+.vote-refresh .vr-review-reply small { margin-left: 10px; color: var(--vr-secondary); }
+.vote-refresh .vr-review-reply p { margin: 6px 0 0; line-height: 1.8; white-space: pre-wrap; }
+.vote-refresh #vote-content button:focus-visible, .vote-refresh #vote-content a:focus-visible, .vote-refresh .vr-tabs button:focus-visible { outline: 2px solid var(--orange); outline-offset: 4px; }
+:root[data-theme="dark"] .vote-refresh { --vr-body: #e0e0e5; --vr-secondary: #b8b8c2; }
+:root[data-theme="dark"] .vote-refresh .vnet b:not(.neg), :root[data-theme="dark"] .vote-refresh .vr-share b, :root[data-theme="dark"] .vote-refresh .vpill.pros, :root[data-theme="dark"] .vote-refresh .vr-review-feedback > div:not(.is-improve) b, :root[data-theme="dark"] .vote-refresh .vrank.is-leading { color: #b8d68c; }
+:root[data-theme="dark"] .vote-refresh .vbtn.up.on, :root[data-theme="dark"] .vote-refresh .vbtn.up:hover { color: #b8d68c; background: var(--soft); border-color: #6d854c; }
+:root[data-theme="dark"] .vote-refresh .vbtn.up.on b, :root[data-theme="dark"] .vote-refresh .vr-vote-note.has-voted, :root[data-theme="dark"] .vote-refresh .vr-tabs > button[aria-selected="true"] { color: #b8d68c; }
+:root[data-theme="dark"] .vote-refresh .vbtn.down.on, :root[data-theme="dark"] .vote-refresh .vbtn.down:hover { color: #e9b29b; background: #352b27; border-color: #7d6256; }
+:root[data-theme="dark"] .vote-refresh .vbtn.down.on b, :root[data-theme="dark"] .vote-refresh .vnet b.neg { color: #e9b29b; }
+:root[data-theme="dark"] .vote-refresh .vr-review-rating { color: #e4b55b; }
+@media (max-width: 1080px) {
+  .vote-refresh .vcard, .vote-refresh .vr-list-heading { grid-template-columns: 25px minmax(0, 1fr) minmax(0, 1fr) 170px; column-gap: 20px; }
+  .vote-refresh .vr-list-heading > :nth-child(2) { grid-column: 2 / span 2; }
+  .vote-refresh .vr-list-heading > .vr-feedback-heading { display: none; }
+  .vote-refresh .vbody { grid-column: 2 / span 2; grid-row: 1; }
+  .vote-refresh .vcol { grid-column: 2; grid-row: 2; }
+  .vote-refresh .vcol + .vcol { grid-column: 3; }
+  .vote-refresh .vvote { grid-column: 4; grid-row: 1 / span 2; }
+}
+@media (max-width: 760px) {
+  .vote-refresh .vr-tabs { gap: 24px; }
+  .vote-refresh .vcard, .vote-refresh .vr-list-heading { grid-template-columns: 21px minmax(0, 1fr) minmax(0, 1fr); column-gap: 10px; }
+  .vote-refresh .vr-list-heading > :first-child, .vote-refresh .vr-list-heading > :last-child { display: none; }
+  .vote-refresh .vcard { padding: 22px 0; }
+  .vote-refresh .vrank { font-size: 13px; }
+  .vote-refresh .vid .nm { font-size: 16px; }
+  .vote-refresh .vcard .logo-img { width: 40px; height: 40px; }
+  .vote-refresh .vbody p { font-size: 14px; }
+  .vote-refresh .vcol h4 { margin-bottom: 7px; }
+  .vote-refresh .vvote { grid-column: 2 / span 2; grid-row: 3; display: grid; grid-template-columns: 77px minmax(0, 1fr); gap: 4px 15px; align-items: center; }
+  .vote-refresh .vnet { grid-column: 1; grid-row: 1; flex-direction: column; align-items: flex-start; gap: 3px; }
+  .vote-refresh .vnet b { font-size: 25px; }
+  .vote-refresh .vr-share { grid-column: 1 / span 2; grid-row: 2; text-align: left; margin: 4px 0 0; }
+  .vote-refresh .vbtns { grid-column: 2; grid-row: 1; }
+  .vote-refresh .vbtn { min-height: 56px; }
+  .vote-refresh .vr-vote-note { grid-column: 1 / span 2; grid-row: 3; text-align: right; margin-top: 0; }
+  .vote-refresh .vr-reviews { grid-template-columns: minmax(0, 1fr); gap: 13px; }
+  .vote-refresh .vr-review { padding: 17px; }
+  .vote-refresh .vr-review-head { gap: 10px; padding-bottom: 13px; }
+  .vote-refresh .vr-review-station strong { font-size: 16px; }
+  .vote-refresh .vr-review-station .logo-img { width: 38px; height: 38px; }
+  .vote-refresh .vr-review-station > svg { display: none; }
+  .vote-refresh .vr-review-rating b { font-size: 19px; }
+}
