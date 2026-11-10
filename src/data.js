@@ -734,6 +734,7 @@ export const latestTests = stations.flatMap((station) => {
   }
   if (!best) return [];
   return [{
+    slug: station.slug,
     station: stationHeading(station),
     img: station.img || "",
     model: best.test.model || best.test.channel || "测试",

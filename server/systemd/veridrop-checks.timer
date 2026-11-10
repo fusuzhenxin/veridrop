@@ -1,0 +1,12 @@
+[Unit]
+Description=Run Veridrop checks at 09:00 Asia/Shanghai
+
+[Timer]
+# This server runs in UTC: 01:00 UTC is 09:00 Asia/Shanghai.
+OnCalendar=*-*-* 01:00:00
+Persistent=true
+AccuracySec=1min
+Unit=veridrop-checks.service
+
+[Install]
+WantedBy=timers.target

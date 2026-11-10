@@ -1,0 +1,16 @@
+[Unit]
+Description=Veridrop daily basic checks and three-day full checks
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=/opt/veridrop-okk
+EnvironmentFile=/etc/veridrop/scheduled-checks.env
+Environment=PYTHON=/opt/python311/bin/python3
+Environment=PATH=/opt/python311/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin
+ExecStart=/usr/local/bin/node scripts/check-schedule.mjs
+TimeoutStartSec=5400
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true

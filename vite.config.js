@@ -1,5 +1,5 @@
 import fs from "node:fs";
-import { bootFor, readReport, summariesFor } from "./server/basic_report_store.mjs";
+import { bootFor, readReport, recentSummaries, summariesFor } from "./server/basic_report_store.mjs";
 import http from "node:http";
 import path from "node:path";
 import { spawn } from "node:child_process";
@@ -355,7 +355,7 @@ function htmlSnapshot() {
         const url = new URL(req.url || path, "http://127.0.0.1");
         const payload = id
           ? (readReport(id) || { error: "没有这份报告" })
-          : { reports: summariesFor(url.searchParams.get("station") || "", url.searchParams.get("host") || "") };
+          : { reports: url.searchParams.get("recent") === "1" ? recentSummaries() : summariesFor(url.searchParams.get("station") || "", url.searchParams.get("host") || "") };
         const body = JSON.stringify(payload);
         res.statusCode = id && payload.error ? 404 : 200;
         res.setHeader("content-type", "application/json; charset=utf-8");

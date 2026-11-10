@@ -796,6 +796,9 @@ class Handler(BaseHTTPRequestHandler):
             return
         station_id = (query.get("station") or [""])[0]
         host = (query.get("host") or [""])[0]
+        if (query.get("recent") or [""])[0] == "1":
+            self._send(200, {"reports": basic_reports.recent_summaries()})
+            return
         self._send(200, {"reports": basic_reports.summaries_for(station_id, host)})
 
     def _visit_get(self, query: dict) -> None:

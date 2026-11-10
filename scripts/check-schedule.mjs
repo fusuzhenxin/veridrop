@@ -31,7 +31,7 @@ function shareReport(report) {
   const script = "import json,sys;sys.path.insert(0,'server');import shared_reports;print(json.dumps(shared_reports.create(json.load(sys.stdin),'scheduled')))";
   const env = { ...process.env, PYTHONIOENCODING: "utf-8" };
   for (const key of Object.keys(env)) if (/_BASIC_KEY$/.test(key)) delete env[key];
-  const out = spawnSync("python", ["-c", script], { cwd: root, env, input: JSON.stringify(report), encoding: "utf8", maxBuffer: 4000000, windowsHide: true });
+  const out = spawnSync(process.env.PYTHON || "python", ["-c", script], { cwd: root, env, input: JSON.stringify(report), encoding: "utf8", maxBuffer: 4000000, windowsHide: true });
   if (out.status !== 0) throw new Error("完整报告保存失败，请检查 Python 和报告目录");
   return JSON.parse(out.stdout).path;
 }

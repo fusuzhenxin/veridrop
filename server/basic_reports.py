@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import json
+import math
 import re
+from datetime import datetime
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -73,6 +75,27 @@ def summaries_for(station_id: str, host: str) -> list:
         if (verd and str(row.get("stationId") or "") == verd) or (name and row_host in (name, f"api.{name}")) or (name == f"api.{row_host}" and row_host):
             rows.append(row)
     return rows
+
+
+def recent_summaries(limit: int = 20) -> list:
+    """Public summaries only; never expose response bodies or configuration."""
+    rows = []
+    for row in read_index():
+        if not isinstance(row, dict) or not _safe_id(row.get("id")):
+            continue
+        score = row.get("score")
+        if isinstance(score, bool) or not isinstance(score, (int, float)) or not math.isfinite(score) or not 0 <= score <= 100:
+            continue
+        try:
+            at = datetime.fromisoformat(str(row.get("at") or "").replace("Z", "+00:00"))
+            if at.tzinfo is None:
+                continue
+        except ValueError:
+            continue
+        summary = {key: _scrub(row.get(key)) for key in ("id", "stationId", "host", "model", "score", "at", "channel")}
+        rows.append((at.timestamp(), summary))
+    rows.sort(key=lambda item: item[0], reverse=True)
+    return [row for _, row in rows[:max(1, min(100, limit))]]
 
 
 def report_html(report: dict) -> str:

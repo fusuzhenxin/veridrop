@@ -69,6 +69,13 @@ export function summariesFor(stationId, host) {
   });
 }
 
+export function recentSummaries(limit = 20) {
+  return readIndex().filter((row) => safeId(row?.id) && typeof row.score === "number" && Number.isFinite(row.score) && row.score >= 0 && row.score <= 100 && Number.isFinite(Date.parse(row.at)))
+    .sort((a, b) => Date.parse(b.at) - Date.parse(a.at))
+    .slice(0, Math.max(1, Math.min(100, limit)))
+    .map((row) => Object.fromEntries(["id", "stationId", "host", "model", "score", "at", "channel"].map((key) => [key, scrubValue(row[key])])));
+}
+
 export function bootFor(pathname) {
   const pathName = String(pathname || "/").split("?")[0];
   if (pathName.startsWith("/b/basic-")) {
@@ -76,7 +83,7 @@ export function bootFor(pathname) {
     const report = readReport(id);
     return { report: report && report.id === id ? report : null, index: null };
   }
-  if (pathName.startsWith("/site/")) return { report: null, index: readIndex() };
+  if (pathName === "/" || pathName.startsWith("/site/")) return { report: null, index: readIndex() };
   return { report: null, index: null };
 }
 

@@ -1,7 +1,8 @@
 import { Fragment, useEffect, useId, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import codexRows from "./codex.json";
-import { hubMark, iq, latestTests, stationHeading, stationPath } from "./data.js";
+import { hubMark, iq, latestTests, stations, stationHeading, stationPath } from "./data.js";
+import { mergeRecentTests } from "./recent-tests.js";
 import { readFavs } from "./account.js";
 import { fetchComments, fetchShop } from "./community.js";
 import { useStationModels } from "./prices.js";
@@ -151,11 +152,20 @@ const digestTabs = [
 
 export function DirectoryDigest() {
   const [tab, setTab] = useState(digestTabs[0][0]);
+  const [tests, setTests] = useState(() => mergeRecentTests(latestTests, globalThis.__VD_BASIC_INDEX__, stations, stationHeading));
   const [rewards, setRewards] = useState([]);
   const [rewardState, setRewardState] = useState("loading");
   const id = useId();
   const entries = [...iq].filter((item) => Number.isFinite(item.score)).sort((a, b) => b.score - a.score).slice(0, 3);
   const active = digestTabs.find(([key]) => key === tab) || digestTabs[0];
+  useEffect(() => {
+    const controller = new AbortController();
+    fetch("/api/basic-reports?recent=1", { cache: "no-store", signal: controller.signal })
+      .then((response) => { if (!response.ok) throw new Error("reports"); return response.json(); })
+      .then((data) => { if (!controller.signal.aborted) setTests(mergeRecentTests(latestTests, data.reports, stations, stationHeading)); })
+      .catch(() => {});
+    return () => controller.abort();
+  }, []);
   useEffect(() => {
     if (tab !== "rewards") return undefined;
     let cancelled = false;
@@ -193,7 +203,7 @@ export function DirectoryDigest() {
         <em>{String(index + 1).padStart(2, "0")}</em><Vendor name={item.vendor} /><span>{item.name}<small>{index ? "综合能力评分" : "综合能力领先"}</small></span><b>{item.score}<small>分</small></b>
       </Link>) : tab === "codex" ? resets.slice(0, 3).map((item, index) => <Link key={item.id} to="/tools/codex-resets" className="vd-digest-entry">
         <DirectoryIcon name="clock" /><span><small>{index ? "历史重置" : "最近一次重置"}</small><strong>{resetDate(item.at, { month: "2-digit", day: "2-digit" })}</strong></span><span className="vd-reset-time">{resetDate(item.at, { hour: "2-digit", minute: "2-digit", hourCycle: "h23" })}<small>{resets[index + 1] ? `间隔 ${((item.at - resets[index + 1].at) / 86400000).toFixed(1)} 天` : "公开记录"}</small></span>
-      </Link>) : tab === "tests" ? latestTests.slice(0, 3).map((item) => <Link key={item.href} to={item.href} className="vd-digest-entry vd-digest-test" title={`${item.station} · ${item.model} · ${item.date}`}>
+      </Link>) : tab === "tests" ? tests.slice(0, 3).map((item) => <Link key={item.href} to={item.href} className="vd-digest-entry vd-digest-test" title={`${item.station} · ${item.model} · ${item.date}`}>
         <Logo station={{ img: item.img }} className="vd-digest-logo" /><span className="vd-digest-copy"><span>{item.station}</span><small>{item.model}</small></span><span className="vd-digest-result"><b>{item.score == null ? "已记录" : <>{item.score}<small>分</small></>}</b><time dateTime={new Date(item.at).toISOString()}>{item.date}</time></span>
       </Link>) : rewardState !== "ready" ? <p className="vd-digest-message" role="status">{rewardState === "loading" ? "正在读取可兑奖品…" : <>奖品暂未加载，<Link to="/points#redeem">前往积分中心查看 <DirectoryIcon name="arrow" /></Link></>}</p> : rewards.length ? rewards.map((item) => <Link key={item.id} to="/points#redeem" className="vd-digest-entry vd-digest-reward" title={`${item.title}\n${item.desc || ""}`}>
         {item.icon ? <Logo station={{ img: item.icon }} className="vd-digest-logo" /> : <DirectoryIcon name="gift" className="vd-digest-logo" />}<span className="vd-digest-copy"><span>{item.title}</span><small>{item.desc || item.badge || item.brand}</small><small>{item.stock == null || item.stock === "" ? `每人限 ${item.perPerson || 1} 份` : `剩 ${Math.max(0, Number(item.stock) - Number(item.sold || 0))} 份 · 每人限 ${item.perPerson || 1} 份`}</small></span><span className="vd-digest-result"><b>{item.cost}<small>积分</small></b><small>去兑换 →</small></span>

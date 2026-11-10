@@ -1,5 +1,17 @@
 # 三站自动检测
 
+## 线上运行
+
+生产服务器使用 `server/systemd/veridrop-checks.service` 和 `veridrop-checks.timer`。服务器时区为 UTC，计时器每天 01:00 UTC（北京时间 09:00）启动。开启 `Persistent=true`，停机错过时间会在恢复后补跑；同日去重和运行锁继续由原有运行器负责。部署时须确认服务器时区为 UTC。
+
+线上名单仍为 `data/basic-daily.json` 三站，密钥由 root 专用 `/etc/veridrop/scheduled-checks.env` 加载（目录700、文件600），不放入代码、日志、前端或部署包。Python 解释器通过 `PYTHON` 指定为 `/opt/python311/bin/python3`。检查配置使用同一服务环境运行 `node scripts/check-schedule.mjs --dry-run`；检查状态使用 `systemctl list-timers veridrop-checks.timer` 和 `journalctl -u veridrop-checks.service`。
+
+从本机迁移时合并公开基础报告索引、复制完整分享报告并迁移去重记录，保留线上已有报告；不重复执行当天测试。线上服务验证通过后停用原 Codex 本机任务，避免两处同时扣费。
+
+首页“最近实测”通过 `/api/basic-reports?recent=1` 读取新报告，与历史记录按站点合并，每站保留最新时间。站点详情沿用现有基础报告接口。定时执行无需重建前端；分数、题库和评分规则沿用现有运行器。
+
+以下为保留的本机运行方式。
+
 运行入口：`node scripts/run-scheduled-checks.mjs`。
 先验证配置和凭据加载（不请求模型）：加 `--dry-run`。仅执行当日基础检查：加 `--basic-only`。
 
