@@ -230,7 +230,7 @@ function waitForCommunity() {
 function communityApi() {
   const handle = async (req, res, next) => {
     const path = (req.url || "").split("?")[0];
-    if (path !== "/api/votes" && path !== "/api/comments" && path !== "/api/checkin" && path !== "/api/points" && path !== "/api/shop" && path !== "/api/notice" && !path.startsWith("/api/proposals") && !path.startsWith("/api/shared-reports") && !path.startsWith("/api/shop") && !path.startsWith("/api/auth") && !path.startsWith("/api/account")) return next();
+    if (path !== "/api/station-status" && path !== "/api/votes" && path !== "/api/comments" && path !== "/api/checkin" && path !== "/api/points" && path !== "/api/shop" && path !== "/api/notice" && !path.startsWith("/api/proposals") && !path.startsWith("/api/shared-reports") && !path.startsWith("/api/shop") && !path.startsWith("/api/auth") && !path.startsWith("/api/account")) return next();
     req.pause();
     const ready = await waitForCommunity();
     if (!ready) {

@@ -36,6 +36,7 @@ import {
 } from "./verd-meta.js";
 import { ModelBoard, ModIcon } from "./model-board.jsx";
 import { useStationModels } from "./prices.js";
+import { mergeStatusModels, useStationStatus } from "./station-status.js";
 
 import { applyRemoteAccount, fitAvatar, readAvatar, readFavs, readSession, readSubmissions, writeAvatar, writeFavs, writeSession } from "./account.js";
 import { authToken, changePassword, fetchAccount, fetchComments, fetchShop, fetchVotes, redeemShop, saveAvatar, saveFavorite, sendCheckin, sendComment, sendVote, setAuthToken, stationVoteId, updateProfile } from "./community.js";
@@ -1839,7 +1840,7 @@ function heatColor(value) {
 }
 
 function sparkTip(point) {
-  const avail = `${Number(point[1]).toFixed(1)}%`;
+  const avail = Number(point[1]) < 0 ? "暂无数据" : `${Number(point[1]).toFixed(2)}%`;
   if (!point[0] || point[0] < 1e9) return `可用率 ${avail}`;
   const stamp = new Intl.DateTimeFormat("zh-CN", {
     timeZone: "Asia/Shanghai",
@@ -1889,14 +1890,15 @@ function uptimeText(uptime) {
   return Number.isInteger(number) ? `${number}%` : `${number.toFixed(0)}%`;
 }
 
-function UpRate({ uptime }) {
-  const text = uptimeText(uptime);
+function UpRate({ uptime, precise = false }) {
+  const text = precise && uptimeNumber(uptime) != null ? `${uptimeNumber(uptime)}%` : uptimeText(uptime);
   if (!text) return <span className="dash">—</span>;
   return <b className="up-rate">{text}</b>;
 }
 
-function UpTrend({ uptime, points }) {
+function UpTrend({ uptime, points, monitored = false }) {
   const number = uptimeNumber(uptime);
+  if (monitored) return <div className="up-trend"><div className="up-trend-top"><span>历史可用率</span></div><Spark points={points} height={12} width={132} /></div>;
   if (number == null) return <span className="dash">—</span>;
   const latest = Array.isArray(points) && points.length ? points[points.length - 1] : null;
   const when = latest && latest[0] >= 1e9 ? agoLabel(latest[0] * 1000) : "";
@@ -2340,6 +2342,8 @@ export function StationPage() {
   const voting = useRef(false);
   const voteBoard = useRef(null);
   const [params, setParams] = useSearchParams();
+  const windowKey = params.get("w") === "7d" || params.get("w") === "30d" ? params.get("w") : "24h";
+  const stationStatus = useStationStatus(station, windowKey);
   useEffect(() => {
     setServerTests(serverBasicTests(station));
     if (!station) return undefined;
@@ -2467,17 +2471,19 @@ export function StationPage() {
       </div>
     );
   }
-  const rows = stationModels;
-  const windowKey = params.get("w") === "7d" || params.get("w") === "30d" ? params.get("w") : "24h";
+  const rows = stationStatus.data ? mergeStatusModels(stationModels, stationStatus.data.models) : stationModels;
   const view = params.get("view") === "group" ? "group" : "model";
   const sortKey = params.get("sort") === "score" || params.get("sort") === "up" ? params.get("sort") : "price";
-  const menu = station.familiesMenu?.length ? station.familiesMenu : derivedMenu(rows);
+  const menu = stationStatus.data ? derivedMenu(rows).sort((a, b) => {
+    const order = ["ChatGPT", "Claude", "Gemini", "Grok"];
+    return (order.indexOf(a.key) < 0 ? 99 : order.indexOf(a.key)) - (order.indexOf(b.key) < 0 ? 99 : order.indexOf(b.key));
+  }) : station.familiesMenu?.length ? station.familiesMenu : derivedMenu(rows);
   const family = menu.some((item) => item.key === params.get("f")) ? params.get("f") : (menu[0]?.key || "ChatGPT");
-  const windowGroups = station.windows?.[windowKey] || station.windows?.["24h"] || null;
+  const windowGroups = stationStatus.data?.groups || station.windows?.[windowKey] || station.windows?.["24h"] || null;
   const groupMap = new Map((windowGroups || []).map((group) => [group.name, group]));
   const catalogFamily = globalThis.__VERD_STATIC__ ? rows : rows.filter((row) => familyOf(row) === family);
   const priceRows = catalogFamily.length
-    ? catalogFamily.map((row) => overlayRow(row, groupMap.get(row.group)))
+    ? catalogFamily.map((row) => row.monitored ? row : overlayRow(row, groupMap.get(row.group)))
     : synthRows(windowGroups, family, station.labels);
   const sorted = sortKey === "price" && catalogFamily.length
     ? priceRows
@@ -2652,10 +2658,19 @@ export function StationPage() {
                 ))}
               </div>
             </div>
-            {view === "model" ? (
+            {stationStatus.enabled ? (
+              <div className="sd-monitor-note" role="status">
+                <a href="https://status.claudecode.net.cn/" target="_blank" rel="noreferrer"><DirectoryIcon name="pulse" />站方状态监测<DirectoryIcon name="external" /></a>
+                <span>{stationStatus.loading ? "正在读取模型与线路监测数据…" : stationStatus.error || (stationStatus.data?.stale ? "暂时无法更新，显示上次读取的数据" : "延迟为最近一次探测；在线率与趋势对应所选时间范围")}</span>
+                {stationStatus.data ? <span>读取于 {new Date(stationStatus.data.fetchedAt * 1000).toLocaleTimeString("zh-CN", { timeZone: "Asia/Shanghai", hour: "2-digit", minute: "2-digit", hour12: false })}</span> : null}
+                {stationStatus.error || stationStatus.data?.stale ? <button type="button" onClick={stationStatus.retry}>重新读取</button> : null}
+              </div>
+            ) : null}
+            {stationStatus.loading ? <p className="sd-monitor-loading" aria-busy="true">正在加载监测数据…</p> : view === "model" ? (
               sorted.length ? (
                 <div className="table-wrap">
-                  <table className="price">
+                  <table className={stationStatus.data ? "price price-monitored" : "price"}>
+                    {stationStatus.data ? <colgroup>{[22, 18, 5, 11, 5, 6, 7, 9, 17].map((width, index) => <col key={index} style={{ width: `${width}%` }} />)}</colgroup> : null}
                     <thead>
                       <tr>
                         <th>模型</th>
@@ -2689,9 +2704,9 @@ export function StationPage() {
                           <td>{ioText(row)}</td>
                           <td>{cacheText(row)}</td>
                           <td><Purity score={row.score} service={row.service} /></td>
-                          <td>{row.latency || "—"}</td>
-                          <td className="up-rate-cell"><UpRate uptime={row.uptime} /></td>
-                          <td className="up-cell"><UpTrend uptime={row.uptime} points={row.points} /></td>
+                          <td title={row.monitored ? "站方最近一次探测延迟" : undefined}>{row.latency || "—"}</td>
+                          <td className="up-rate-cell"><UpRate uptime={row.uptime} precise={row.monitored} /></td>
+                          <td className="up-cell"><UpTrend uptime={row.uptime} points={row.points} monitored={row.monitored} /></td>
                         </tr>
                       ))}
                     </tbody>
@@ -2734,9 +2749,9 @@ export function StationPage() {
                               <td>{group.ratio == null ? "—" : `${group.ratio}x`}</td>
                               <td>{group.startPrice == null ? "—" : `${unitOf(group)}${money(group.startPrice)} 起`}</td>
                               <td><Purity score={group.score} service={group.service} /></td>
-                              <td>{latency}</td>
-                              <td className="up-rate-cell" onClick={(event) => event.stopPropagation()}><UpRate uptime={group.avail == null ? "" : `${group.avail}%`} /></td>
-                              <td className="up-cell" onClick={(event) => event.stopPropagation()}><UpTrend uptime={group.avail == null ? "" : `${group.avail}%`} points={group.points} /></td>
+                              <td title={stationStatus.data ? "分组内最近探测的最大延迟；在线率与趋势取各模型最低值" : undefined}>{latency}</td>
+                              <td className="up-rate-cell" onClick={(event) => event.stopPropagation()}><UpRate uptime={group.avail == null ? "" : `${group.avail}%`} precise={Boolean(stationStatus.data)} /></td>
+                              <td className="up-cell" onClick={(event) => event.stopPropagation()}><UpTrend uptime={group.avail == null ? "" : `${group.avail}%`} points={group.points} monitored={Boolean(stationStatus.data)} /></td>
                             </tr>
                             {open ? (
                               <tr key={`${group.name}-open`} className="gm-exp">

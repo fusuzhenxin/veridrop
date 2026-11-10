@@ -24,6 +24,7 @@ import basic_reports
 import shared_reports
 import proposals
 import visits
+import station_status
 
 ROOT = Path(__file__).resolve().parent.parent
 
@@ -935,6 +936,11 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_GET(self) -> None:
         parsed = urlparse(self.path)
+        if parsed.path.rstrip("/") == "/api/station-status":
+            query = parse_qs(parsed.query)
+            status, payload = station_status.read((query.get("station") or [""])[0], (query.get("period") or ["24h"])[0])
+            self._send(status, payload)
+            return
         if parsed.path.rstrip("/") == "/api/proposals" or parsed.path.startswith("/api/proposals/"):
             self._proposal_api("GET", parsed)
             return
