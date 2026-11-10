@@ -82,6 +82,52 @@ class PublicStatusTests(unittest.TestCase):
         clock.return_value = 14000
         self.assertEqual(status.read("3", "24h")[0], 502)
 
+    def test_foxcode_keeps_routes_separate_and_uses_upstream_uptime(self):
+        board = {"publicGroupList": [{"name": "Claude Code 分组", "monitorList": [
+            {"id": 2, "name": "Claude Code 官方专用线路"}]}]}
+        heartbeat = {"uptimeList": {"2_24": .9959}, "heartbeatList": {"2": [
+            {"status": 1, "time": "2026-11-10 01:05:00", "ping": 1500},
+            {"status": 0, "time": "2026-11-10 01:00:00", "ping": 0},
+            {"status": 2, "time": "2026-11-10 01:01:00", "ping": 0},
+            {"status": 3, "time": "2026-11-10 01:02:00", "ping": 0},
+            {"status": 1, "time": "bad-date", "ping": 0},
+        ]}}
+        result = status.normalize_foxcode(board, heartbeat)
+        row = result["models"][0]
+        self.assertTrue(result["routeOnly"])
+        self.assertEqual(result["period"], "24h")
+        self.assertEqual(row["id"], "foxcode-monitor-2")
+        self.assertEqual(row["uptime"], "99.59%")
+        self.assertEqual(row["latency"], "1.50s")
+        self.assertEqual([point[1] for point in row["points"]], [0, -1, -1, 100])
+        self.assertEqual(row["points"][0][0], 1794272400)  # UTC, independent of server timezone.
+        self.assertEqual(result["groups"][0]["name"], "Claude Code 官方专用线路")
+        self.assertIsNone(row["input"])
+        self.assertIsNone(row["score"])
+        for state in (0, 2, 3, -1):
+            heartbeat["heartbeatList"]["2"][0]["status"] = state
+            self.assertEqual(status.normalize_foxcode(board, heartbeat)["models"][0]["latency"], "—")
+        heartbeat["uptimeList"]["2_24"] = float("nan")
+        self.assertEqual(status.normalize_foxcode(board, heartbeat)["models"][0]["uptime"], "—")
+        heartbeat["uptimeList"]["2_24"] = 0
+        self.assertEqual(status.normalize_foxcode(board, heartbeat)["models"][0]["uptime"], "0%")
+
+    @patch.object(status, "_fetch_foxcode")
+    @patch.object(status, "_fetch")
+    def test_foxcode_cache_cannot_leak_into_other_stations_or_fabricate_history(self, relay, fox):
+        relay.side_effect = lambda period: status.normalize(board(), period)
+        fox.return_value = {"period": "24h", "source": status.FOXCODE_SOURCE, "models": [{"id": "route"}]}
+        self.assertEqual(status.read("5", "24h")[1]["source"], status.FOXCODE_SOURCE)
+        self.assertEqual(status.read("3", "24h")[1]["source"], status.SOURCE)
+        status.read("5", "24h")
+        fox.assert_called_once()
+        relay.assert_called_once()
+        for period in ("7d", "30d"):
+            self.assertEqual(status.read("5", period)[0], 400)
+        fox.side_effect = OSError("down")
+        status._cache.clear()
+        self.assertEqual(status.read("5", "24h")[1]["source"], status.FOXCODE_SOURCE)
+
 
 if __name__ == "__main__":
     unittest.main()

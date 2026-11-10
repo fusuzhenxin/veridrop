@@ -7,7 +7,7 @@ import dns from "node:dns/promises";
 import net from "node:net";
 import { fileURLToPath } from "node:url";
 import react from "@vitejs/plugin-react";
-import { defineConfig } from "vite";
+import { defineConfig, loadEnv } from "vite";
 import { loadOfficial } from "./server/official-live.mjs";
 
 function privateIp(ip) {
@@ -177,11 +177,13 @@ function localProbe() {
 }
 
 let communityProcess = null;
+let communityPort = 4175;
 
 function startCommunity() {
   if (communityProcess && communityProcess.exitCode == null) return;
   communityProcess = spawn("python", ["server/community.py"], {
     cwd: fileURLToPath(new URL(".", import.meta.url)),
+    env: { ...process.env, PORT: String(communityPort) },
     stdio: "ignore",
     windowsHide: true,
     detached: true,
@@ -191,7 +193,7 @@ function startCommunity() {
 
 function communityUp() {
   return new Promise((resolve) => {
-    const socket = net.connect({ host: "127.0.0.1", port: 4175 });
+    const socket = net.connect({ host: "127.0.0.1", port: communityPort });
     const giveUp = setTimeout(() => {
       socket.destroy();
       resolve(false);
@@ -230,7 +232,7 @@ function waitForCommunity() {
 function communityApi() {
   const handle = async (req, res, next) => {
     const path = (req.url || "").split("?")[0];
-    if (path !== "/api/station-status" && path !== "/api/votes" && path !== "/api/comments" && path !== "/api/checkin" && path !== "/api/points" && path !== "/api/shop" && path !== "/api/notice" && !path.startsWith("/api/proposals") && !path.startsWith("/api/shared-reports") && !path.startsWith("/api/shop") && !path.startsWith("/api/auth") && !path.startsWith("/api/account")) return next();
+    if (path !== "/api/public/ads" && path !== "/api/collect" && !path.startsWith("/go/") && path !== "/api/station-status" && path !== "/api/votes" && path !== "/api/comments" && path !== "/api/checkin" && path !== "/api/points" && path !== "/api/shop" && path !== "/api/notice" && !path.startsWith("/api/proposals") && !path.startsWith("/api/shared-reports") && !path.startsWith("/api/shop") && !path.startsWith("/api/auth") && !path.startsWith("/api/account")) return next();
     req.pause();
     const ready = await waitForCommunity();
     if (!ready) {
@@ -246,10 +248,10 @@ function communityApi() {
     const proxy = http.request(
       {
         hostname: "127.0.0.1",
-        port: 4175,
+        port: communityPort,
         path: req.url,
         method: req.method,
-        headers: { ...req.headers, host: "127.0.0.1:4175" },
+        headers: { ...req.headers, host: `127.0.0.1:${communityPort}` },
       },
       (upstream) => {
         res.statusCode = upstream.statusCode || 502;
@@ -404,8 +406,12 @@ function htmlSnapshot() {
   };
 }
 
-export default defineConfig({
+export default defineConfig(({ mode }) => {
+  const env = loadEnv(mode, fileURLToPath(new URL(".", import.meta.url)), "");
+  communityPort = Number(process.env.COMMUNITY_PORT || env.COMMUNITY_PORT || 4175);
+  return {
   plugins: [utf8Text(), ssrRouterEsm(), react(), communityApi(), officialStatus(), localProbe(), htmlSnapshot()],
   server: { host: "127.0.0.1", port: 5181, strictPort: true },
   ssr: { noExternal: ["react-router", "react-router-dom"] },
+  };
 });

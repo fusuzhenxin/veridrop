@@ -92,12 +92,15 @@ class OpsHandler(BaseHTTPRequestHandler):
 
     def _public_path(self) -> bool:
         path = urlparse(self.path).path.rstrip("/")
-        return path in ("/api/collect", "/api/public/submission", "/api/login") or path.startswith("/go/")
+        return path in ("/api/collect", "/api/public/submission", "/api/public/ads", "/api/login") or path.startswith("/go/")
 
     def _dispatch(self, method: str, parsed) -> None:
         path = parsed.path.rstrip("/") or "/"
         parts = [item for item in path.split("/") if item]
         query = {key: values[-1] for key, values in parse_qs(parsed.query).items()}
+        if path == "/api/public/ads" and method == "GET":
+            self._json(200, ops_db.public_ads())
+            return
         if path == "/api/collect" and method == "POST":
             self._collect()
             return
@@ -317,6 +320,9 @@ class OpsHandler(BaseHTTPRequestHandler):
         if parts == ["notice", "upload"] and method == "POST":
             self._json(200, ops_front.save_notice_image(self._body()))
             return
+        if parts == ["ads", "upload"] and method == "POST":
+            self._json(200, ops_front.save_ad_image(self._body(limit=2_800_000)))
+            return
         if parts == ["prizes", "upload"] and method == "POST":
             self._json(200, ops_front.save_prize_image(self._body()))
             return
@@ -418,9 +424,11 @@ class OpsHandler(BaseHTTPRequestHandler):
                 return value
         return ""
 
-    def _body(self) -> dict:
+    def _body(self, limit: int = 200000) -> dict:
         length = int(self.headers.get("Content-Length") or 0)
-        raw = self.rfile.read(max(0, min(length, 200000))) if length else b"{}"
+        if length < 0 or length > limit:
+            raise ValueError("提交内容过大")
+        raw = self.rfile.read(length) if length else b"{}"
         try:
             data = json.loads(raw.decode("utf-8") or "{}")
         except json.JSONDecodeError:
@@ -460,7 +468,7 @@ class OpsHandler(BaseHTTPRequestHandler):
             self.wfile.write(body)
 
     def _file(self, path: str) -> None:
-        if path == "/icons/vendor/deepseek.svg" or re.fullmatch(r"/media/(?:notices|prizes)/[\w.-]+\.(?:png|jpg|webp|gif)", path):
+        if path == "/icons/vendor/deepseek.svg" or re.fullmatch(r"/media/(?:notices|prizes|ads|sponsors)/[\w.-]+\.(?:png|jpg|jpeg|webp|gif)", path):
             candidate = ROOT / "public" / path.lstrip("/")
             if not candidate.is_file():
                 self._json(404, {"error": "图片不存在"})

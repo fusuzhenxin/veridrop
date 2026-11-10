@@ -3,11 +3,13 @@
 from __future__ import annotations
 
 import http.client
+import base64
 import json
 import os
 import tempfile
 import threading
 import unittest
+from unittest.mock import patch
 import urllib.error
 import urllib.request
 from datetime import date, timedelta
@@ -397,6 +399,66 @@ class OpsTest(unittest.TestCase):
         row = next(item for item in report["paths"] if item["path"] == "/site/demo")
         self.assertGreaterEqual(row["human"], 1)
         self.assertGreaterEqual(row["bot"], 1)
+
+    def test_public_ads_follow_saved_schedule_without_snapshot(self):
+        day = ops_db.today()
+        end = (date.fromisoformat(day) + timedelta(days=2)).isoformat()
+        payload = {"slot": "footer", "name": "动态广告验证", "blurb": "实时更新", "description": "保存后直接展示",
+                   "image_url": "/media/sponsors/sidrune-920x350.png", "target_url": "https://example.com/runtime-ad",
+                   "start_date": day, "end_date": end}
+        status, row = self.client("POST", "/api/ads", payload)
+        self.assertEqual(status, 200, row)
+        status, feed = self.client("GET", "/api/public/ads", auth=False)
+        self.assertEqual(status, 200, feed)
+        public = next(item for item in feed["ads"]["footer"] if item["id"] == row["id"])
+        self.assertEqual(public["description"], payload["description"])
+        self.assertEqual(public["imageUrl"], payload["image_url"])
+        self.assertEqual(public["href"], f"/go/{row['id']}")
+        self.assertNotIn("target_url", public)
+        self.client("POST", f"/api/ads/{row['id']}", {**payload, "paused": True})
+        feed = self.client("GET", "/api/public/ads", auth=False)[1]
+        self.assertFalse(any(item["id"] == row["id"] for item in feed["ads"]["footer"]))
+        expired = {**payload, "start_date": (date.fromisoformat(day) - timedelta(days=2)).isoformat(), "end_date": day}
+        self.client("POST", f"/api/ads/{row['id']}", expired)
+        feed = self.client("GET", "/api/public/ads", auth=False)[1]
+        self.assertFalse(any(item["id"] == row["id"] for item in feed["ads"]["footer"]))
+
+    def test_ad_upload_requires_admin_and_accepts_banner_size(self):
+        image = base64.b64encode(b"\x89PNG\r\n\x1a\n" + b"\0" * 160000).decode()
+        anonymous = Client(self.client.base)
+        self.assertEqual(anonymous("POST", "/api/ads/upload", {"data": image})[0], 401)
+        with patch.object(ops_http.ops_front.community, "ROOT", ROOT):
+            (ROOT / "dist").mkdir(exist_ok=True)
+            status, uploaded = self.client("POST", "/api/ads/upload", {"data": image})
+            self.assertEqual(status, 200, uploaded)
+            self.assertTrue(uploaded["url"].startswith("/media/ads/"))
+            self.assertEqual((ROOT / "public" / uploaded["url"].lstrip("/")).read_bytes(), (ROOT / "dist" / uploaded["url"].lstrip("/")).read_bytes())
+            self.assertEqual(self.client("POST", "/api/ads/upload", {"data": base64.b64encode(b"<script/>").decode()})[0], 400)
+
+    def test_ad_packages_expand_and_share_placement_capacity(self):
+        day = ops_db.today()
+        end = (date.fromisoformat(day) + timedelta(days=2)).isoformat()
+        # Other tests book the two corner slots; isolate this scenario.
+        previous = self.client("GET", "/api/ads?size=200")[1]["items"]
+        for item in previous:
+            self.client("POST", f"/api/ads/{item['id']}", {**item, "paused": True})
+        payload = {"slot": "full", "name": "三处投放", "target_url": "https://example.com/full",
+                   "start_date": day, "end_date": end}
+        status, row = self.client("POST", "/api/ads", payload)
+        self.assertEqual(status, 200, row)
+        feed = self.client("GET", "/api/public/ads", auth=False)[1]["ads"]
+        for key in ("sponsor", "listTop", "footer"):
+            self.assertTrue(any(item["id"] == row["id"] for item in feed[key]))
+        self.client("POST", "/api/ads", {**payload, "slot": "sponsor", "name": "另一个角标"})
+        status, blocked = self.client("POST", "/api/ads", {**payload, "name": "超额套餐"})
+        self.assertEqual(status, 400, blocked)
+        self.assertIn("左右角标", blocked["error"])
+        status, pair = self.client("POST", "/api/ads", {**payload, "slot": "list_footer", "name": "列表与页脚"})
+        self.assertEqual(status, 200, pair)
+        feed = self.client("GET", "/api/public/ads", auth=False)[1]["ads"]
+        self.assertFalse(any(item["id"] == pair["id"] for item in feed["sponsor"]))
+        for key in ("listTop", "footer"):
+            self.assertTrue(any(item["id"] == pair["id"] for item in feed[key]))
 
     def test_submission_approve_and_complaint(self):
         status, row = self.client("POST", "/api/submissions", {

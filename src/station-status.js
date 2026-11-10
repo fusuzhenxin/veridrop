@@ -1,7 +1,15 @@
 import { useEffect, useState } from "react";
 
-const supported = new Set(["3", "479"]);
+const sources = {
+  3: { source: "https://status.claudecode.net.cn/", periods: ["24h", "7d", "30d"] },
+  479: { source: "https://status.claudecode.net.cn/", periods: ["24h", "7d", "30d"] },
+  5: { source: "https://status.rjj.cc/status/foxcode", periods: ["24h"] },
+};
 const cache = new Map();
+
+export function stationStatusConfig(station) {
+  return sources[String(station?.verdId || "")] || null;
+}
 
 export function mergeStatusModels(catalog, monitored) {
   const keys = new Set(monitored.map((row) => `${row.id}|${row.group}`));
@@ -18,7 +26,8 @@ export function mergeStatusModels(catalog, monitored) {
 
 export function useStationStatus(station, period) {
   const id = String(station?.verdId || "");
-  const enabled = supported.has(id);
+  const config = stationStatusConfig(station);
+  const enabled = Boolean(config);
   const key = `${id}:${period}`;
   const [state, setState] = useState({ key: "", data: null, loading: false, error: "" });
   const [attempt, setAttempt] = useState(0);
@@ -50,5 +59,5 @@ export function useStationStatus(station, period) {
       .finally(() => clearTimeout(timer));
     return () => { stop = true; clearTimeout(timer); controller.abort(); };
   }, [enabled, key, id, period, attempt]);
-  return { enabled, ...(state.key === key ? state : { data: null, loading: enabled, error: "" }), retry: () => { cache.delete(key); setAttempt((value) => value + 1); } };
+  return { enabled, source: config?.source, ...(state.key === key ? state : { data: null, loading: enabled && !globalThis.__VERD_STATIC__, error: "" }), retry: () => { cache.delete(key); setAttempt((value) => value + 1); } };
 }

@@ -237,6 +237,10 @@ def save_notice_image(body: dict) -> dict:
     return _save_image(body, "notices")
 
 
+def save_ad_image(body: dict) -> dict:
+    return _save_image(body, "ads")
+
+
 def _save_image(body: dict, category: str) -> dict:
     raw = str(body.get("data") or "")
     if "," in raw[:80]:

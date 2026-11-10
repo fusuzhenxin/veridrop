@@ -936,6 +936,13 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_GET(self) -> None:
         parsed = urlparse(self.path)
+        if parsed.path.rstrip("/") == "/api/public/ads":
+            try:
+                import ops_db
+                self._send(200, ops_db.public_ads())
+            except Exception:
+                self._send(503, {"error": "广告暂时无法读取"})
+            return
         if parsed.path.rstrip("/") == "/api/station-status":
             query = parse_qs(parsed.query)
             status, payload = station_status.read((query.get("station") or [""])[0], (query.get("period") or ["24h"])[0])

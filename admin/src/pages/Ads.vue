@@ -7,7 +7,7 @@
       <a-button type="primary" @click="search">查询</a-button>
       <a-button type="primary" @click="router.push('/ads/new')">新建</a-button>
     </div>
-    <p class="muted">全站赞助同时 2 条，列表页顶部同时 4 条，页脚不限。到期日当天撤下。空位不留白框。投放不改排行、在线率和延迟。</p>
+    <p class="muted">全站赞助位是左右下角固定角标（列表页、站点详情页除外），最多 2 条；列表页顶部仅 /list 展示，最多 4 条；全站页脚不限。可单选位置，也可选「列表页加页脚」或「全包」套餐，套餐计入各位置容量。保存后前台自动更新，无需推代码。</p>
     <a-table :columns="columns" :data="rows" :loading="loading" :pagination="pager" row-key="id" @page-change="onPage">
       <template #slot="{ record }">{{ SLOT[record.slot] || record.slot }}</template>
       <template #live="{ record }">

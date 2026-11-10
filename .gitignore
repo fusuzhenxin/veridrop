@@ -41,6 +41,8 @@ public/media/prizes/*
 !public/media/prizes/.gitkeep
 public/media/notices/*
 !public/media/notices/.gitkeep
+public/media/ads/*
+!public/media/ads/.gitkeep
 data/basic-reports/*.json
 data/shared-reports/
 data/ops-build.log

@@ -4,6 +4,7 @@ import { activities, findStation, hubMark, logoUrl, models, perks, reviews, stat
 import { clearSession, readAccounts, readAvatar, readSession, writeAvatar, writeSession } from "./account.js";
 import { authToken, loginAccount, pullAccount, registerAccount, requestCode, resetAccount, sendPoints, setAuthToken } from "./community.js";
 import { grant, replacePoints, saveNick } from "./points.js";
+import { useAds } from "./ads.js";
 
 const SITE_NOTICE = {
   id: "shop-deepseek-3000",
@@ -470,6 +471,7 @@ export function Shell({ children }) {
           <a href="https://www.modeltool.cn" target="_blank" rel="noreferrer">降智检测</a>
         </div>
       </header>
+      <SponsorStrip place="sides" />
       <main>{children}</main>
       <div className="side-dock">
         <button
@@ -491,7 +493,7 @@ export function Shell({ children }) {
         </button>
       </div>
       <div className="wrap">
-        <SponsorStrip items={homeSponsors} place="home" />
+        <SponsorStrip place="footer" />
       </div>
       <footer className="footer">
         <div className="wrap">
@@ -1050,67 +1052,75 @@ function FootFold({ title, startOpen, children }) {
   );
 }
 
-export function SponsorStrip({ items = [], place = "list" }) {
+export function SponsorStrip({ place = "list" }) {
+  const location = useLocation();
+  const ads = useAds();
+  const excluded = place === "sides" ? /^\/(?:list(?:\/|$)|site\/|station\/)/.test(location.pathname) : place === "list" && location.pathname !== "/list";
+  const items = excluded ? [] : (place === "sides" ? ads?.sponsor : place === "footer" ? ads?.footer : ads?.listTop) || [];
+  const box = useRef(null);
+  const seen = useRef(new Set());
   const [hidden, setHidden] = useState(false);
-  if (hidden) return null;
-  const cards = items.filter(Boolean).slice(0, 4);
+  const [dismissed, setDismissed] = useState([]);
+  const content = JSON.stringify(items);
+  useEffect(() => {
+    setHidden(false);
+    setDismissed([]);
+  }, [location.pathname, location.search, content]);
+  useEffect(() => {
+    if (hidden || !box.current) return;
+    const observer = new IntersectionObserver((entries) => {
+      for (const entry of entries) {
+        if (!entry.isIntersecting) continue;
+        const id = entry.target.dataset.adId;
+        if (!seen.current.has(id)) {
+          seen.current.add(id);
+          fetch("/api/collect", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ad_id: Number(id) }), keepalive: true }).catch(() => {});
+        }
+        observer.unobserve(entry.target);
+      }
+    });
+    box.current.querySelectorAll("[data-ad-id]").forEach((node) => observer.observe(node));
+    return () => observer.disconnect();
+  }, [ads, hidden, place, excluded, location.pathname]);
+  if (hidden || !items.length) return null;
+  const cards = items.filter(item => !dismissed.includes(item.id));
+  const card = (item) => (
+    <a data-ad-id={item.id} className={`sp-card${place === "sides" ? " sp-side-card" : ""}`} href={item.href} target="_blank" rel="sponsored nofollow noreferrer" data-vd-ad={place} onClick={() => { if (authToken()) grant("sponsor", 5, "点击赞助商", "day"); }}>
+      <div className="sp-art">{item.imageUrl ? <img src={item.imageUrl} alt="" /> : <span className="sp-initial">{item.name.slice(0, 1)}</span>}</div>
+      <div className="bd">
+        <b><span>{item.name}</span>{place !== "sides" ? <span className="sp-flag">赞助</span> : null}</b>
+        {item.blurb ? <span className="sp-line">{item.blurb}</span> : null}
+        {item.description ? <span className="sp-desc">{item.description}</span> : null}
+      </div>
+      {place === "sides" ? <span className="sp-side-action"><span>访问站点</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden="true"><path d="M7 17 17 7M7 7h10v10" /></svg></span> : null}
+    </a>
+  );
+  if (place === "sides") return (
+    <aside className="sponsor-rails" data-ad-place="sides" aria-label="全站赞助" ref={box}>
+      {cards.map(item => (
+        <section key={item.id} className={`sponsor-rail sp-side-shell ${items.indexOf(item) === 0 ? "left" : "right"}`}>
+          <div className="sp-side-head"><span><i aria-hidden="true" />赞助商</span><button type="button" className="sponsor-rail-close" onClick={() => setDismissed(ids => [...ids, item.id])} aria-label={`关闭${item.name}赞助`}><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true"><path d="m6 6 8 8m0-8-8 8" /></svg></button></div>
+          {card(item)}
+        </section>
+      ))}
+    </aside>
+  );
   return (
-    <section className="sponsor-box">
+    <section className="sponsor-box" data-ad-place={place} ref={box}>
       <div className="sponsor-hd">
         赞助商 <Link to="/about">成为赞助商</Link>
       </div>
       <button className="sponsor-x" onClick={() => setHidden(true)} aria-label="关闭">
         ×
       </button>
-      {cards.length ? (
         <div className="sponsor-grid four">
           {cards.map((item) => (
-            <a key={item.title} className="sp-card" href={item.href} target="_blank" rel="sponsored noreferrer" data-vd-ad={place} onClick={() => { if (authToken()) grant("sponsor", 5, "点击赞助商", "day"); }}>
-              <div className="sp-art" style={item.img ? { background: item.bg || "#fff" } : { background: item.bg, color: item.color || "#1d1d1f" }}>
-                {item.img ? <img src={item.img} alt="" /> : item.art}
-              </div>
-              <div className="bd">
-                <b>
-                  <span>{item.title}</span>
-                  <span className="sp-flag">赞助</span>
-                </b>
-                {item.line ? <span className="sp-line">{item.line}</span> : null}
-                {item.detail ? <span className="sp-desc">{item.detail}</span> : (item.desc ? <span className="sp-desc">{item.desc}</span> : null)}
-              </div>
-            </a>
+            <div key={item.id}>{card(item)}</div>
           ))}
         </div>
-      ) : (
-        <div className="sponsor-grid four">
-          <Link className="sp-card sp-empty" to="/about">
-            <b>广告位招商</b>
-            <span>这个位置空着，欢迎合作</span>
-          </Link>
-        </div>
-      )}
     </section>
   );
 }
-
-export const homeSponsors = [
-  {
-    title: "Sidrune AI：自营号池，支持开票及对公转账",
-    href: "https://cn.sidrune.ai/register?promo=VERIDROPCN",
-    img: "/media/sponsors/sidrune-920x350.png",
-    bg: "#fff",
-    detail: "Claude 13条线路，分组倍率0.25–4.5x。为开发者和团队提供模型 API 接入，含官方及云平台线路。充值倍率1.00，即¥1人民币＝US$1站内额度。具体价格以模型广场为准。",
-  },
-];
-
-export const listSponsors = [
-  {
-    title: "aruhub API",
-    href: "https://aruhub.com/sign-up?aff=M3dH",
-    img: "/media/sponsors/aruhub-mark.png",
-    bg: "#fff",
-    desc: "注册送测试额度！一个站点通用大语言模型、图像生成模型、视频生成模型。全天稳定可用，可随时进行智商检测。支持支付宝/微信付款，支持开发票，不满意可退款",
-  },
-];
 
 export function ReviewCard({ item }) {
   const station = findStation(item.slug);

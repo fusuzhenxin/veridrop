@@ -1,7 +1,7 @@
 import { createReadStream, existsSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { defineConfig } from "vite";
+import { defineConfig, loadEnv } from "vite";
 import vue from "@vitejs/plugin-vue";
 
 const sitePublic = fileURLToPath(new URL("../public/", import.meta.url));
@@ -33,7 +33,7 @@ function siteIcons() {
         const path = (req.url || "").split("?")[0];
         let file = "";
         if (icons.has(path)) file = join(sitePublic, ...path.slice(1).split("/"));
-        else if (/^\/media\/(prizes|notices)\//.test(path)) {
+        else if (/^\/media\/(prizes|notices|ads|sponsors)\//.test(path)) {
           const [, category, name] = path.match(/^\/media\/([^/]+)\/(.*)$/);
           if (!/^[\w.-]+$/.test(name)) return next();
           file = join(sitePublic, "media", category, name);
@@ -48,14 +48,18 @@ function siteIcons() {
   };
 }
 
-export default defineConfig({
+export default defineConfig(({ mode }) => {
+  const env = loadEnv(mode, fileURLToPath(new URL(".", import.meta.url)), "");
+  const apiTarget = process.env.OPS_API_TARGET || env.OPS_API_TARGET || "http://127.0.0.1:4180";
+  return {
   base: process.env.OPS_BASE || "/",
   plugins: [siteIcons(), vue()],
   server: {
     port: 5180,
     proxy: {
-      "/api": "http://127.0.0.1:4180",
-      "/go": "http://127.0.0.1:4180",
+      "/api": apiTarget,
+      "/go": apiTarget,
     },
   },
+  };
 });

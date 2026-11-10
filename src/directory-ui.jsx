@@ -31,6 +31,8 @@ export function DirectoryIcon({ name, ...props }) {
     refund: "M7 7H3V3m0 4a9 9 0 1 1-1 9M9 12h6m-3-3v6",
     layers: "m12 3 10 5-10 5L2 8zm-10 9 10 5 10-5M2 16l10 5 10-5",
     message: "M4 4h16v12H9l-5 4zM8 8h8M8 12h5",
+    send: "m22 2-7 20-4-9-9-4Zm0 0L11 13",
+    mail: "M3 5h18v14H3zM3 5l9 7 9-7",
     news: "M5 4h15v16H5zM5 8H2v12h3M9 8h7M9 12h7M9 16h4",
     megaphone: "m3 10 17-6v16L3 14zM7 15l2 6h4l-2-5M3 10v4",
     image: "M3 4h18v16H3zM3 16l5-5 4 4 3-3 6 6M8 8h.01",

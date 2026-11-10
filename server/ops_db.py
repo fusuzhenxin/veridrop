@@ -19,8 +19,11 @@ TZ = timezone(timedelta(hours=8))
 LOCK = threading.RLock()
 MODES = {"public", "auth", "none", "plaza"}
 TIERS = {"ad", "featured", "traffic", "longtail"}
-SLOTS = {"sponsor": 2, "list_top": 4, "footer": None}
-SLOT_NAMES = {"sponsor": "全站赞助", "list_top": "列表页顶部", "footer": "全站页脚"}
+SLOTS = {"sponsor": 2, "list_top": 4, "footer": None, "list_footer": 4, "full": 2}
+AD_PLACEMENTS = {"sponsor": ("sponsor",), "list_top": ("list_top",), "footer": ("footer",),
+                 "list_footer": ("list_top", "footer"), "full": ("sponsor", "list_top", "footer")}
+SLOT_NAMES = {"sponsor": "全站左右角标", "list_top": "列表页顶部", "footer": "全站页脚",
+              "list_footer": "列表页加页脚", "full": "全包"}
 SOURCES = {"main", "external", "replica"}
 DEFAULTS = {
     "probe_hour": "3",
@@ -280,6 +283,10 @@ def init_schema(conn: sqlite3.Connection) -> None:
         conn.execute("ALTER TABLE stations ADD COLUMN service_status_url TEXT NOT NULL DEFAULT ''")
     if "page_note" not in columns:
         conn.execute("ALTER TABLE stations ADD COLUMN page_note TEXT NOT NULL DEFAULT ''")
+    ad_columns = {row["name"] for row in conn.execute("PRAGMA table_info(ads)")}
+    if "description" not in ad_columns:
+        conn.execute("ALTER TABLE ads ADD COLUMN description TEXT NOT NULL DEFAULT ''")
+    _migrate_legacy_ads(conn)
 
 
 def _tx(fn):
@@ -1075,6 +1082,31 @@ def _ad_live(item: dict, day: str) -> bool:
     return not item["paused"] and item["start_date"] <= day < item["end_date"]
 
 
+def _migrate_legacy_ads(conn) -> None:
+    # Import the former code-defined placements once, without reviving paused ads.
+    key = "ads_runtime_migrated_v1"
+    if conn.execute("SELECT 1 FROM settings WHERE key=?", (key,)).fetchone():
+        return
+    defaults = (
+        ("footer", "Sidrune AI：自营号池，支持开票及对公转账", "/media/sponsors/sidrune-920x350.png",
+         "https://cn.sidrune.ai/register?promo=VERIDROPCN",
+         "Claude 13条线路，分组倍率0.25–4.5x。为开发者和团队提供模型 API 接入，含官方及云平台线路。充值倍率1.00，即¥1人民币＝US$1站内额度。具体价格以模型广场为准。"),
+        ("list_top", "aruhub API", "/media/sponsors/aruhub-mark.png",
+         "https://aruhub.com/sign-up?aff=M3dH",
+         "注册送测试额度！一个站点通用大语言模型、图像生成模型、视频生成模型。全天稳定可用，可随时进行智商检测。支持支付宝/微信付款，支持开发票，不满意可退款"),
+    )
+    for slot, name, image, target, description in defaults:
+        # Existing placements, including paused or expired ones, take precedence.
+        if conn.execute("SELECT 1 FROM ads WHERE slot=? LIMIT 1", (slot,)).fetchone():
+            continue
+        conn.execute(
+            """INSERT INTO ads(slot,name,image_url,target_url,description,start_date,end_date,paused,created_at,updated_at)
+               VALUES(?,?,?,?,?,'2026-11-09','2099-01-01',0,?,?)""",
+            (slot, name, image, target, description, now_iso(), now_iso()),
+        )
+    conn.execute("INSERT INTO settings(key,value) VALUES(?, '1')", (key,))
+
+
 def _ad_stats_map(conn, ids: list[int]) -> dict:
     if not ids:
         return {}
@@ -1110,47 +1142,62 @@ def _save_ad(conn, payload: dict, ad_id: int | None) -> int:
         raise ValueError("请填写广告名称")
     if len(blurb) > 40:
         raise ValueError("介绍最多 40 个字")
+    description = str(payload.get("description") or "").strip()
+    if len(description) > 500:
+        raise ValueError("详细文案最多 500 个字")
     for word in ("推荐", "站长在用", "公益", "低延迟"):
         if word in name or word in blurb:
             raise ValueError(f"广告文案不能使用「{word}」")
     target = _http_url(str(payload.get("target_url") or ""))
+    if re.search(r"[\x00-\x20\x7f]", target):
+        raise ValueError("跳转地址不能包含空格或换行")
     image = str(payload.get("image_url") or "").strip()[:500]
+    if image and not re.fullmatch(r"/media/(?:ads|sponsors)/[\w.-]+\.(?:png|jpg|jpeg|webp|gif)", image):
+        image = _http_url(image)
     start = _day(str(payload.get("start_date") or ""), "开始日")
     end = _day(str(payload.get("end_date") or ""), "到期日")
     if start >= end:
         raise ValueError("到期日要晚于开始日。到期当天撤下")
     paused = 1 if payload.get("paused") else 0
     if not paused:
-        cap = SLOTS[slot]
-        if cap is not None:
-            rows = conn.execute(
-                """
-                SELECT id FROM ads
-                WHERE slot=? AND paused=0 AND id!=? AND start_date < ? AND end_date > ?
-                """,
-                (slot, ad_id or 0, end, start),
-            ).fetchall()
-            if len(rows) >= cap:
-                raise ValueError(f"{SLOT_NAMES[slot]}同时最多 {cap} 条")
+        rows = conn.execute(
+            "SELECT slot,start_date,end_date FROM ads WHERE paused=0 AND id!=? AND start_date < ? AND end_date > ?",
+            (ad_id or 0, end, start),
+        ).fetchall()
+        for placement in AD_PLACEMENTS[slot]:
+            cap = SLOTS[placement]
+            if cap is None:
+                continue
+            # Count simultaneous occupancy, including bundles, rather than every
+            # booking that overlaps any part of this date range.
+            events = [(start, 1), (end, -1)]
+            for row in rows:
+                if placement in AD_PLACEMENTS.get(row["slot"], ()):
+                    events.extend(((max(start, row["start_date"]), 1), (min(end, row["end_date"]), -1)))
+            occupied = 0
+            for _, delta in sorted(events):
+                occupied += delta
+                if occupied > cap:
+                    raise ValueError(f"{SLOT_NAMES[placement]}同时最多 {cap} 条（含套餐）")
     current = now_iso()
     if ad_id:
         if not conn.execute("SELECT id FROM ads WHERE id=?", (ad_id,)).fetchone():
             raise ValueError("没有这条广告")
         conn.execute(
             """
-            UPDATE ads SET slot=?, name=?, blurb=?, image_url=?, target_url=?, start_date=?, end_date=?, paused=?, updated_at=?
+            UPDATE ads SET slot=?, name=?, blurb=?, image_url=?, target_url=?, start_date=?, end_date=?, paused=?, updated_at=?, description=?
             WHERE id=?
             """,
-            (slot, name, blurb, image, target, start, end, paused, current, ad_id),
+            (slot, name, blurb, image, target, start, end, paused, current, description, ad_id),
         )
         saved = ad_id
     else:
         cur = conn.execute(
             """
-            INSERT INTO ads(slot, name, blurb, image_url, target_url, start_date, end_date, paused, created_at, updated_at)
-            VALUES(?,?,?,?,?,?,?,?,?,?)
+            INSERT INTO ads(slot, name, blurb, image_url, target_url, start_date, end_date, paused, created_at, updated_at, description)
+            VALUES(?,?,?,?,?,?,?,?,?,?,?)
             """,
-            (slot, name, blurb, image, target, start, end, paused, current, current),
+            (slot, name, blurb, image, target, start, end, paused, current, current, description),
         )
         saved = int(cur.lastrowid)
     _sync_ad_tiers(conn)
@@ -1740,21 +1787,26 @@ def _live_ads(conn) -> dict:
         (day, day),
     ).fetchall()
     for row in rows:
-        key = mapping[row["slot"]]
-        cap = {"sponsor": 2, "listTop": 4, "footer": None}[key]
-        bucket = grouped[key]
-        if cap is not None and len(bucket) >= cap:
-            continue
-        bucket.append(
-            {
+        for placement in AD_PLACEMENTS.get(row["slot"], ()):
+            key = mapping[placement]
+            cap = SLOTS[placement]
+            bucket = grouped[key]
+            if cap is not None and len(bucket) >= cap:
+                continue
+            bucket.append({
                 "id": row["id"],
                 "name": row["name"],
                 "blurb": row["blurb"],
                 "imageUrl": row["image_url"],
+                "description": row["description"],
                 "href": f"/go/{row['id']}",
-            }
-        )
+            })
     return grouped
+
+
+@_tx
+def public_ads(conn) -> dict:
+    return {"ads": _live_ads(conn)}
 
 
 @_tx

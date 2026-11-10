@@ -36,7 +36,7 @@ import {
 } from "./verd-meta.js";
 import { ModelBoard, ModIcon } from "./model-board.jsx";
 import { useStationModels } from "./prices.js";
-import { mergeStatusModels, useStationStatus } from "./station-status.js";
+import { mergeStatusModels, stationStatusConfig, useStationStatus } from "./station-status.js";
 
 import { applyRemoteAccount, fitAvatar, readAvatar, readFavs, readSession, readSubmissions, writeAvatar, writeFavs, writeSession } from "./account.js";
 import { authToken, changePassword, fetchAccount, fetchComments, fetchShop, fetchVotes, redeemShop, saveAvatar, saveFavorite, sendCheckin, sendComment, sendVote, setAuthToken, stationVoteId, updateProfile } from "./community.js";
@@ -51,7 +51,6 @@ import {
   Vendor,
   VendorIcon,
   vendorOfModel,
-  listSponsors,
   useTitle,
 } from "./ui.jsx";
 
@@ -990,6 +989,7 @@ function RankTable({ rows, mode }) {
 }
 
 const REC_PICKS = [
+  ["843-fluxionai-space", "sidrune.png", "站长在用", "mine"],
   ["1852-aruhub-com", "aruhub.png", "站长在用", "mine"],
   ["800003-newapi-gogogogoapp-mom", "gogateway.png", "站长在用", "mine"],
   ["2825-api-hubway-cc", "hubway.png", "站长在用", "mine"],
@@ -1005,6 +1005,7 @@ function recLatency(station) {
     if (ms < 1000) return `${Math.round(ms)}ms`;
     return `${(ms / 1000).toFixed(1)}s`;
   }
+  if (station.latency == null) return "待实测";
   const seconds = Number(station.latency);
   if (!Number.isFinite(seconds)) return "—";
   if (seconds < 1) return `${Math.round(seconds * 1000)}ms`;
@@ -1541,7 +1542,7 @@ export function ListPage({ modelId = "" }) {
             </div>
           </section>
         ) : null}
-        <SponsorStrip items={listSponsors} place="list" />
+        <SponsorStrip place="list" />
         <div className="slb-pcfilter">
           <label className="slb-search">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
@@ -1631,7 +1632,7 @@ export function ListPage({ modelId = "" }) {
           </div>
         </section>
       ) : null}
-      <SponsorStrip items={listSponsors} place="list" />
+      <SponsorStrip place="list" />
       <div className="slb-pcfilter">
         <label className="slb-search">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
@@ -1840,8 +1841,9 @@ function heatColor(value) {
 }
 
 function sparkTip(point) {
+  const state = point[2];
   const avail = Number(point[1]) < 0 ? "暂无数据" : `${Number(point[1]).toFixed(2)}%`;
-  if (!point[0] || point[0] < 1e9) return `可用率 ${avail}`;
+  if (!point[0] || point[0] < 1e9) return state || `可用率 ${avail}`;
   const stamp = new Intl.DateTimeFormat("zh-CN", {
     timeZone: "Asia/Shanghai",
     month: "2-digit",
@@ -1850,7 +1852,7 @@ function sparkTip(point) {
     minute: "2-digit",
     hourCycle: "h23",
   }).format(new Date(point[0] * 1000));
-  return `${stamp} 可用率 ${avail}`;
+  return `${stamp} ${state || `可用率 ${avail}`}`;
 }
 
 function Spark({ points, height = 20, width = 120 }) {
@@ -1896,9 +1898,9 @@ function UpRate({ uptime, precise = false }) {
   return <b className="up-rate">{text}</b>;
 }
 
-function UpTrend({ uptime, points, monitored = false }) {
+function UpTrend({ uptime, points, monitored = false, label }) {
   const number = uptimeNumber(uptime);
-  if (monitored) return <div className="up-trend"><div className="up-trend-top"><span>历史可用率</span></div><Spark points={points} height={12} width={132} /></div>;
+  if (monitored) return <div className="up-trend"><div className="up-trend-top"><span>{label || "历史可用率"}</span></div><Spark points={points} height={12} width={132} /></div>;
   if (number == null) return <span className="dash">—</span>;
   const latest = Array.isArray(points) && points.length ? points[points.length - 1] : null;
   const when = latest && latest[0] >= 1e9 ? agoLabel(latest[0] * 1000) : "";
@@ -2342,7 +2344,9 @@ export function StationPage() {
   const voting = useRef(false);
   const voteBoard = useRef(null);
   const [params, setParams] = useSearchParams();
-  const windowKey = params.get("w") === "7d" || params.get("w") === "30d" ? params.get("w") : "24h";
+  const statusConfig = stationStatusConfig(station);
+  const requestedWindow = params.get("w") === "7d" || params.get("w") === "30d" ? params.get("w") : "24h";
+  const windowKey = statusConfig && !statusConfig.periods.includes(requestedWindow) ? "24h" : requestedWindow;
   const stationStatus = useStationStatus(station, windowKey);
   useEffect(() => {
     setServerTests(serverBasicTests(station));
@@ -2502,7 +2506,9 @@ export function StationPage() {
       if (right == null) return -1;
       return left - right;
     });
-  const groupRows = windowGroups || derivedGroups(rows);
+  const groupRows = stationStatus.data?.routeOnly
+    ? [...stationStatus.data.groups, ...derivedGroups(stationModels)]
+    : windowGroups || derivedGroups(rows);
   const shown = modelOpen ? sorted : sorted.slice(0, 10);
   const shownGroups = modelOpen ? groupRows : groupRows.slice(0, 10);
   const hiddenCount = view === "group" ? Math.max(0, groupRows.length - 10) : Math.max(0, sorted.length - 10);
@@ -2654,14 +2660,14 @@ export function StationPage() {
               ) : null}
               <div className="seg seg-time">
                 {[["24h", "24小时"], ["7d", "7天"], ["30d", "30天"]].map(([key, label]) => (
-                  <button key={key} type="button" className={windowKey === key ? "on" : ""} onClick={() => setQuery({ w: key })}>{label}</button>
+                  <button key={key} type="button" className={windowKey === key ? "on" : ""} disabled={Boolean(statusConfig && !statusConfig.periods.includes(key))} title={statusConfig && !statusConfig.periods.includes(key) ? "站方暂未公开此时间范围的监测历史" : undefined} onClick={() => setQuery({ w: key })}>{label}</button>
                 ))}
               </div>
             </div>
             {stationStatus.enabled ? (
               <div className="sd-monitor-note" role="status">
-                <a href="https://status.claudecode.net.cn/" target="_blank" rel="noreferrer"><DirectoryIcon name="pulse" />站方状态监测<DirectoryIcon name="external" /></a>
-                <span>{stationStatus.loading ? "正在读取模型与线路监测数据…" : stationStatus.error || (stationStatus.data?.stale ? "暂时无法更新，显示上次读取的数据" : "延迟为最近一次探测；在线率与趋势对应所选时间范围")}</span>
+                <a href={stationStatus.source} target="_blank" rel="noreferrer"><DirectoryIcon name="pulse" />站方状态监测<DirectoryIcon name="external" /></a>
+                <span>{stationStatus.loading ? "正在读取模型与线路监测数据…" : stationStatus.error || (stationStatus.data?.stale ? "暂时无法更新，显示上次读取的数据" : stationStatus.data?.note || "延迟为最近一次探测；在线率与趋势对应所选时间范围")}</span>
                 {stationStatus.data ? <span>读取于 {new Date(stationStatus.data.fetchedAt * 1000).toLocaleTimeString("zh-CN", { timeZone: "Asia/Shanghai", hour: "2-digit", minute: "2-digit", hour12: false })}</span> : null}
                 {stationStatus.error || stationStatus.data?.stale ? <button type="button" onClick={stationStatus.retry}>重新读取</button> : null}
               </div>
@@ -2704,9 +2710,9 @@ export function StationPage() {
                           <td>{ioText(row)}</td>
                           <td>{cacheText(row)}</td>
                           <td><Purity score={row.score} service={row.service} /></td>
-                          <td title={row.monitored ? "站方最近一次探测延迟" : undefined}>{row.latency || "—"}</td>
+                          <td title={row.monitored ? row.scope === "route" ? "站方最近一次线路探测延迟，非单个模型响应时间" : "站方最近一次探测延迟" : undefined}>{row.latency || "—"}</td>
                           <td className="up-rate-cell"><UpRate uptime={row.uptime} precise={row.monitored} /></td>
-                          <td className="up-cell"><UpTrend uptime={row.uptime} points={row.points} monitored={row.monitored} /></td>
+                          <td className="up-cell"><UpTrend uptime={row.uptime} points={row.points} monitored={row.monitored} label={row.trendLabel} /></td>
                         </tr>
                       ))}
                     </tbody>
@@ -2742,16 +2748,16 @@ export function StationPage() {
                                   <span className="chev">{open ? "⌄" : "›"}</span>
                                   <div>
                                     <b>{group.name}</b>
-                                    <div className="mini">{group.models.length} 模型</div>
+                                    <div className="mini">{group.scope === "route" ? "线路监测" : `${group.models.length} 模型`}</div>
                                   </div>
                                 </div>
                               </td>
                               <td>{group.ratio == null ? "—" : `${group.ratio}x`}</td>
                               <td>{group.startPrice == null ? "—" : `${unitOf(group)}${money(group.startPrice)} 起`}</td>
                               <td><Purity score={group.score} service={group.service} /></td>
-                              <td title={stationStatus.data ? "分组内最近探测的最大延迟；在线率与趋势取各模型最低值" : undefined}>{latency}</td>
+                              <td title={group.scope === "route" ? "站方最近一次线路探测延迟" : stationStatus.data ? "分组内最近探测的最大延迟；在线率与趋势取各模型最低值" : undefined}>{latency}</td>
                               <td className="up-rate-cell" onClick={(event) => event.stopPropagation()}><UpRate uptime={group.avail == null ? "" : `${group.avail}%`} precise={Boolean(stationStatus.data)} /></td>
-                              <td className="up-cell" onClick={(event) => event.stopPropagation()}><UpTrend uptime={group.avail == null ? "" : `${group.avail}%`} points={group.points} monitored={Boolean(stationStatus.data)} /></td>
+                              <td className="up-cell" onClick={(event) => event.stopPropagation()}><UpTrend uptime={group.avail == null ? "" : `${group.avail}%`} points={group.points} monitored={Boolean(stationStatus.data)} label={group.trendLabel} /></td>
                             </tr>
                             {open ? (
                               <tr key={`${group.name}-open`} className="gm-exp">
@@ -2948,6 +2954,15 @@ export function StationPage() {
 
         </div>
         <aside className="sd-side">
+          {station.resources?.length ? (
+            <div className="sd-drop sd-resources">
+              <div className="sd-side-hd"><span><DirectoryIcon name="external" />官网与联系</span></div>
+              {station.resources.map((item) => {
+                const content = <><span className="sd-resource-icon"><DirectoryIcon name={item.icon} /></span><span className="sd-resource-text"><b>{item.name}</b><small>{item.label}</small></span>{item.url ? <DirectoryIcon name="external" /> : null}</>;
+                return item.url ? <a key={item.name} className="sd-resource" href={item.url} target="_blank" rel="noopener noreferrer">{content}</a> : <div key={item.name} className="sd-resource">{content}</div>;
+              })}
+            </div>
+          ) : null}
           {kin.length ? (
             <div className="sd-drop">
               <div className="sd-side-hd"><span><DirectoryIcon name="grid" />相近的站</span></div>

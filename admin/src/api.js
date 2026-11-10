@@ -17,9 +17,11 @@ export const TIER = {
 };
 
 export const SLOT = {
-  sponsor: "全站赞助",
+  sponsor: "全站左右角标",
   list_top: "列表页顶部",
   footer: "全站页脚",
+  list_footer: "列表页加页脚",
+  full: "全包（三处）",
 };
 
 export const SOURCE = {
