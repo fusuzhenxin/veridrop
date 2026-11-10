@@ -2515,6 +2515,7 @@ export function StationPage() {
   const average = rated.length ? rated.reduce((sum, item) => sum + Number(item.rating), 0) / rated.length : null;
   const socials = station.socials?.length ? station.socials : [{ name: "官网", url: station.site }];
   const official = socials.find((item) => item.name === "官网")?.url || station.site;
+  const serviceStatus = (station.links || []).find((item) => /状态/.test(item.name || "") && /^https?:\/\//i.test(item.url || ""));
   const familyText = station.familiesText || station.lineup.replace(/^支持\s*/, "");
   const refundStat = splitStat(station.refund);
   const invoiceStat = splitStat(station.invoice);
@@ -2606,6 +2607,7 @@ export function StationPage() {
             <div><span className="sd-info-label"><DirectoryIcon name="receipt" />发票</span><b><StatValue value={station.invoice} /></b></div>
             <div><span className="sd-info-label"><DirectoryIcon name="refund" />退款</span><b><StatValue value={station.refund} /></b></div>
             <div><span className="sd-info-label"><DirectoryIcon name="layers" />模型</span><b>{station.cover ? `${station.cover} 个` : "—"}</b></div>
+            {serviceStatus ? <div><span className="sd-info-label"><DirectoryIcon name="pulse" />服务状态</span><a className="sd-status-link" href={serviceStatus.url} target="_blank" rel="noreferrer" title={serviceStatus.desc || "查看站方公开服务状态"}>查看状态<DirectoryIcon name="external" /></a></div> : null}
           </div>
       </div>
       <div className="sd-grid">

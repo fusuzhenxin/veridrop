@@ -2668,6 +2668,9 @@ table.rank.list tbody tr:hover .slb-mic { border-color: #fafafa; }
 .sd-rail .sd-info-label { display: inline-flex; align-items: center; gap: 9px; color: var(--fg); white-space: nowrap; }
 .sd-info-label > svg { width: 28px; height: 28px; padding: 6px; border-radius: 8px; background: color-mix(in srgb, var(--sd-accent) 7%, var(--card)); color: var(--sd-accent); flex: none; }
 .sd-rail b { font-weight: 650; text-align: right; }
+.sd-status-link { display: inline-flex; align-items: center; gap: 5px; padding: 5px 9px; border: 1px solid color-mix(in srgb, var(--sd-accent) 25%, var(--line)); border-radius: 6px; color: var(--sd-accent); font-size: 13px; white-space: nowrap; }
+.sd-status-link:hover { background: color-mix(in srgb, var(--sd-accent) 8%, var(--card)); }
+.sd-status-link > svg { width: 13px; height: 13px; }
 .sd-pay .slb-pay { gap: 8px; justify-content: flex-end; }
 .sd-pay .slb-payic { width: 28px; height: 28px; border-radius: 6px; }
 .sd-pay .slb-pay:has(.slb-payic) .slb-paytx { display: none; }
