@@ -673,10 +673,12 @@ export function pinBoard(list) {
     if (index < 0) return null;
     return list.splice(index, 1)[0];
   };
+  const aicodemirror = take((station) => station.host === "aicodemirror.ai" || station.verdId === 3);
+  const packycode = take((station) => station.host === "packyapi.com" || station.verdId === 25);
   const aruhub = take((station) => station.host === "aruhub.com" || station.slug === "1852-aruhub-com" || station.verdId === 1852);
   const xisu = take((station) => station.host === "xisu.ai" || station.slug === "900039-xisu-ai");
   const sevenCode = take((station) => station.host === "ai.7code.cc");
-  if (aruhub) list.splice(Math.min(4, list.length), 0, aruhub);
+  list.unshift(...[aicodemirror, packycode, aruhub].filter(Boolean));
   if (sevenCode) list.splice(Math.min(18, list.length), 0, sevenCode);
   if (xisu) list.splice(Math.min(19, list.length), 0, xisu);
   list.splice(Math.min(20, list.length), 0, ...deferred);
