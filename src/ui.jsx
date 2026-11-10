@@ -1074,7 +1074,8 @@ export function SponsorStrip({ items = [], place = "list" }) {
                   <span>{item.title}</span>
                   <span className="sp-flag">赞助</span>
                 </b>
-                <span className="sp-desc">{item.desc}</span>
+                {item.line ? <span className="sp-line">{item.line}</span> : null}
+                {item.detail ? <span className="sp-desc">{item.detail}</span> : (item.desc ? <span className="sp-desc">{item.desc}</span> : null)}
               </div>
             </a>
           ))}
@@ -1091,7 +1092,15 @@ export function SponsorStrip({ items = [], place = "list" }) {
   );
 }
 
-export const homeSponsors = [];
+export const homeSponsors = [
+  {
+    title: "Sidrune AI：自营号池，支持开票及对公转账",
+    href: "https://cn.sidrune.ai/register?promo=VERIDROPCN",
+    img: "/media/sponsors/sidrune-920x350.png",
+    bg: "#fff",
+    detail: "Claude 13条线路，分组倍率0.25–4.5x。为开发者和团队提供模型 API 接入，含官方及云平台线路。充值倍率1.00，即¥1人民币＝US$1站内额度。具体价格以模型广场为准。",
+  },
+];
 
 export const listSponsors = [
   {
