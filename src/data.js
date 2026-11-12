@@ -488,7 +488,7 @@ function mapVerdStation(row) {
     monthLabel: live?.uptime != null ? "探测在线率" : "可用率",
     monthNote: row.uptimeNote || (live?.uptime != null ? "公开探测到的在线率" : "目录记录的在线率"),
     uptimeNote: row.uptimeNote || "",
-    latencyNote: summary?.latencyNote || "",
+    latencyNote: summary?.latencyNote || row.latencyNote || "",
     meanLatency: latencyLabel(latency),
     blurb: row.description || "",
     lineup: lineup ? `支持 ${lineup}` : "",
@@ -685,6 +685,13 @@ export function pinBoard(list) {
   if (sevenCode) list.splice(Math.min(18, list.length), 0, sevenCode);
   if (xisu) list.splice(Math.min(19, list.length), 0, xisu);
   list.splice(Math.min(20, list.length), 0, ...deferred);
+  // Swap existing records into the requested slots without duplicating sites.
+  for (const [position, verdId] of [[14, 1646], [15, 843]]) {
+    const index = list.findIndex((station) => station.verdId === verdId);
+    if (index >= 0 && position < list.length) {
+      [list[position], list[index]] = [list[index], list[position]];
+    }
+  }
   return list;
 }
 
@@ -755,6 +762,7 @@ export function stationHeading(station) {
   const name = String(station?.name || "").trim();
   const host = String(station?.host || "").trim();
   if (!name) return host || "中转站";
+  if (station?.verdId === 1646) return name;
   const labels = new Set(host.toLowerCase().split(".").filter((part) => part && part !== "www"));
   const shared = (headingCounts.get(name.toLowerCase()) || 0) > 1;
   if (host && (shared || labels.has(name.toLowerCase()))) return host;
@@ -779,8 +787,11 @@ export function isAruhub(station) {
 }
 
 export function hubMark(station, place) {
-  if (!isAruhub(station)) return {};
-  return { "data-vd-hit": "aruhub", "data-vd-place": place };
+  return {
+    ...(isAruhub(station) ? { "data-vd-hit": "aruhub" } : {}),
+    "data-vd-station": station?.site || undefined,
+    "data-vd-place": place,
+  };
 }
 
 function officialDays(provider, name, existing) {

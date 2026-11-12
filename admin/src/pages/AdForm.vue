@@ -27,6 +27,12 @@
           </a-form-item>
           <a-form-item label="跳转地址" required><a-input v-model="form.target_url" placeholder="https://" /></a-form-item>
           <a-row :gutter="16"><a-col :span="12"><a-form-item label="开始日（北京时间）" required><a-date-picker v-model="form.start_date" style="width: 100%" /></a-form-item></a-col><a-col :span="12"><a-form-item label="到期撤下日" extra="不包含当天。" required><a-date-picker v-model="form.end_date" style="width: 100%" /></a-form-item></a-col></a-row>
+          <section class="ad-availability" :class="{ conflict: availability && !availability.available && !form.paused }" aria-label="所选档期广告位检查" aria-live="polite" :aria-busy="availabilityLoading">
+            <div class="ad-availability-heading"><strong>档期位置检查</strong><span v-if="availabilityLoading">正在检查…</span><span v-else-if="availability">{{ form.paused ? '已暂停，不占名额' : availability.available ? '所选档期可投放' : '所选档期有位置已满' }} <button type="button" @click="checkAvailability">重新检查</button></span></div>
+            <p v-if="availabilityError" class="ad-preview-error">{{ availabilityError }} <button type="button" @click="checkAvailability">重新检查</button></p>
+            <template v-else-if="availability"><div v-for="item in availability.placements" :key="item.slot" class="ad-availability-row"><div><b>{{ item.label }}</b><span>{{ item.capacity == null ? '不限名额' : `最多同时 ${item.capacity} 条 · 档期内至少余 ${item.remaining} 位` }}</span></div><small v-if="item.conflict">{{ item.conflict.start }} 至 {{ item.conflict.end }}（不含结束日）已满：{{ item.conflict.ads.map(ad => ad.name).join('、') }}</small></div><p>{{ form.paused ? '暂停的广告不预留名额，恢复时会重新检查档期。' : '按整个档期的同时占位检查，已包含套餐；编辑时不重复计算本条广告。' }}</p></template>
+            <p v-else-if="!availabilityLoading && !availabilityError">选好投放位置和起止日期后，自动检查余量。</p>
+          </section>
           <a-form-item label="暂停投放"><a-switch v-model="form.paused" /></a-form-item>
           <a-space><a-button type="primary" :loading="saving" :disabled="uploading || loading" @click="save">保存广告</a-button><a-button @click="router.push('/ads')">返回列表</a-button></a-space>
           <p class="muted">预览不会自动保存，预览卡片也不会记录浏览或点击。</p>
@@ -54,12 +60,13 @@
         </aside>
       </div>
     </a-spin>
+    <p v-if="daily.length" class="muted">以下为累计广告位原始数据（含历史未分类）。过滤口径、列表归因和每日趋势请在「经营 → 流量」中查看。</p>
     <a-table v-if="daily.length" style="margin-top: 24px" :columns="columns" :data="daily" :pagination="false" row-key="day" />
   </a-card>
 </template>
 
 <script setup>
-import { computed, onMounted, reactive, ref, watch } from "vue";
+import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { Message } from "@arco-design/web-vue";
 import { api, dayText, todayText } from "../api";
@@ -70,6 +77,28 @@ const id = ref(route.params.id && route.params.id !== "new" ? String(route.param
 const saving = ref(false), loading = ref(false), uploading = ref(false), imageError = ref(false), device = ref("desktop"), daily = ref([]);
 const defaults = () => ({ slot: "footer", name: "", blurb: "", description: "", image_url: "", target_url: "", start_date: todayText(), end_date: "", paused: false });
 const form = reactive(defaults());
+const availability = ref(null), availabilityLoading = ref(false), availabilityError = ref("");
+let availabilityRequest = 0, availabilityTimer;
+function capacityQuery() {
+  const start = dayText(form.start_date), end = dayText(form.end_date);
+  if (!start || !end || end <= start) return null;
+  return new URLSearchParams({ slot: form.slot, start, end, exclude_id: id.value || "0" });
+}
+async function checkAvailability() {
+  clearTimeout(availabilityTimer);
+  const current = ++availabilityRequest, query = capacityQuery();
+  availability.value = null; availabilityError.value = ""; availabilityLoading.value = !!query;
+  if (!query) return;
+  try { const data = await api("/api/ads/availability?" + query); if (current === availabilityRequest) availability.value = data; }
+  catch (err) { if (current === availabilityRequest) availabilityError.value = err.message; }
+  finally { if (current === availabilityRequest) availabilityLoading.value = false; }
+}
+watch(() => [id.value, form.slot, dayText(form.start_date), dayText(form.end_date)], () => {
+  clearTimeout(availabilityTimer); availabilityRequest++;
+  availability.value = null; availabilityError.value = ""; availabilityLoading.value = !!capacityQuery();
+  if (availabilityLoading.value) availabilityTimer = setTimeout(checkAvailability, 300);
+}, { immediate: true });
+onBeforeUnmount(() => { clearTimeout(availabilityTimer); availabilityRequest++; });
 const columns = [{ title: "日期", dataIndex: "day" }, { title: "浏览", dataIndex: "impressions" }, { title: "点击", dataIndex: "clicks" }];
 const previewLabels = { sides: "全站赞助位", list: "列表页顶部", footer: "全站页脚" };
 const previewPositions = computed(() => ({ sponsor: ["sides"], list_top: ["list"], footer: ["footer"], list_footer: ["list", "footer"], full: ["sides", "list", "footer"] })[form.slot] || ["footer"]);
@@ -115,15 +144,17 @@ async function load() {
   finally { loading.value = false; }
 }
 async function save() {
+  if (saving.value || uploading.value || loading.value) return;
   if (!form.name.trim() || !form.target_url.trim() || !form.start_date || !form.end_date) { Message.warning("请填写名称、跳转地址和档期"); return; }
   if (dayText(form.start_date) >= dayText(form.end_date)) { Message.warning("到期日要晚于开始日"); return; }
+  if (!form.paused && availability.value && !availability.value.available) { Message.warning("所选档期有广告位已满，请调整日期、位置，或先暂停保存"); return; }
   saving.value = true;
   try {
     const saved = await api(id.value ? "/api/ads/" + id.value : "/api/ads", { method: "POST", body: JSON.stringify({ ...form, start_date: dayText(form.start_date), end_date: dayText(form.end_date) }) });
     Object.assign(form, saved, { paused: !!saved.paused });
     Message.success("已保存，前台按投放档期自动更新");
     if (!id.value) { id.value = String(saved.id); router.replace("/ads/" + saved.id); }
-  } catch (err) { Message.error(err.message); } finally { saving.value = false; }
+  } catch (err) { Message.error(err.message); checkAvailability(); } finally { saving.value = false; }
 }
 onMounted(load);
 </script>
@@ -145,6 +176,7 @@ onMounted(load);
 .ad-preview-target { margin-top: 16px; color: #86909c; font-size: 12px; line-height: 1.8; overflow-wrap: anywhere; }
 .ad-preview-target span { color: #4e5969; }
 .ad-preview-error { color: #f53f3f; }
+.ad-availability{padding:15px 16px;border:1px solid #e2e7ee;border-radius:9px;background:#f8fafc;margin-bottom:24px;color:#53637b}.ad-availability.conflict{border-color:#eddbb6;background:#fffcf5}.ad-availability-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;font-size:12px}.ad-availability-heading strong{color:#283b55}.ad-availability-heading>span{font-size:11px;color:#7b8ba1}.ad-availability-row{margin-top:12px;border-top:1px solid #e9edf3;padding-top:12px}.ad-availability-row>div{display:flex;justify-content:space-between;gap:10px;font-size:11px}.ad-availability-row b{font-weight:500}.ad-availability-row small{display:block;color:#a77e36;font-size:11px;line-height:1.8;margin-top:6px}.ad-availability p{font-size:11px;line-height:1.8;color:#8b98a9;margin:12px 0 0}.ad-availability button{color:#4976ce;background:transparent;border:0;padding:0;cursor:pointer}
 .ad-preview-positions { margin: 0 0 12px; }
 .ad-preview-corners { position: relative; min-height: 390px; align-items: end; justify-items: start; overflow: hidden; }
 .ad-preview-page { position: absolute; inset: 16px 18%; border: 1px solid #e5e5ea; border-radius: 8px; background: #fff; text-align: center; color: #86909c; padding: 0 12px; font-size: 12px; }

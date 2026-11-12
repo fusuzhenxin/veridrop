@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
+import { stationHref } from "./outbound-links.js";
 import { authToken, commentProposal, createProposal, fetchProposal, fetchProposals, supportProposal } from "./community.js";
 import { DirectoryIcon } from "./directory-ui.jsx";
 import { useTitle } from "./ui.jsx";
@@ -14,7 +15,7 @@ function ProposalCard({ item, onSupport, busy, detail = false }) {
   return <article className={`proposal-card${detail ? " expanded" : ""}`}>
     <button className={`proposal-support${item.mine ? " on" : ""}`} type="button" aria-pressed={item.mine} aria-label={`${item.mine ? "撤回支持" : "支持收录"}${item.name}，已有 ${item.votes} 人支持`} disabled={busy || (!item.mine && ["done", "closed"].includes(item.status))} onClick={() => onSupport(item)}><span aria-hidden="true">↑</span><b>{item.votes}</b><small>{item.mine ? "已支持" : "想收录"}</small></button>
     <div className="proposal-card-content">
-      <div className="proposal-card-top"><span className="proposal-monogram" aria-hidden="true">{item.name.slice(0, 1).toUpperCase()}</span><div><h2>{detail ? item.name : <Link to={`/proposals?id=${item.id}`}>{item.name}</Link>}</h2><a className="proposal-site-link" href={item.url} target="_blank" rel="noopener noreferrer" aria-label={`访问${item.name}中转站官网（新标签页）`}><span>访问中转站</span><strong>{item.host}</strong><DirectoryIcon name="external" /></a></div><span className={`proposal-status ${item.status}`}>{statuses[item.status]}</span></div>
+      <div className="proposal-card-top"><span className="proposal-monogram" aria-hidden="true">{item.name.slice(0, 1).toUpperCase()}</span><div><h2>{detail ? item.name : <Link to={`/proposals?id=${item.id}`}>{item.name}</Link>}</h2><a className="proposal-site-link" href={stationHref(item.url)} target="_blank" rel="noopener noreferrer" aria-label={`访问${item.name}中转站官网（新标签页）`}><span>访问中转站</span><strong>{item.host}</strong><DirectoryIcon name="external" /></a></div><span className={`proposal-status ${item.status}`}>{statuses[item.status]}</span></div>
       <p className="proposal-reason">{item.reason}</p>
       <div className="proposal-test-tags"><span>希望测试</span>{item.tests.map((key) => <span className={`proposal-test-tag ${key}`} key={key}><DirectoryIcon name={key === "basic" ? "pulse" : key === "candy" ? "layers" : "image"} />{tests[key]}</span>)}</div>
       {item.note ? <p className="proposal-update"><DirectoryIcon name="news" /><span><b>运营进展</b>{item.note}</span></p> : null}

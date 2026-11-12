@@ -1,4 +1,5 @@
 import "./price-prime.js";
+import { stationHref } from "./outbound-links.js";
 import { findStation, modelTotal, modelsOf, stationHeading, stationTotal, stations } from "./data.js";
 import modelRows from "./model-rows.json";
 import publishedBasic from "./published-basic.json";
@@ -198,7 +199,7 @@ function stationDocument(station, community) {
     station.uptime == null ? "" : `<li>在线率：${esc(station.uptime)}%</li>`,
     station.latency == null ? "" : `<li>延迟：${esc(station.latency)} 秒</li>`,
     station.host ? `<li>域名：${esc(station.host)}</li>` : "",
-    station.site ? `<li>官网：<a href="${esc(station.site)}">${esc(station.site)}</a></li>` : "",
+    station.site ? `<li>官网：<a href="${esc(stationHref(station.site))}">${esc(station.site)}</a></li>` : "",
     station.pay?.length ? `<li>支付：${esc(station.pay.join("、"))}</li>` : "",
     station.min && station.min !== "—" ? `<li>最低充值：${esc(station.min)}</li>` : "",
     station.invoice && station.invoice !== "—" ? `<li>发票：${esc(station.invoice)}</li>` : "",

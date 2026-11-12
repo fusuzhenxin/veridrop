@@ -41,7 +41,7 @@ export function dayText(value) {
 }
 
 export function todayText() {
-  return dayText(new Date());
+  return new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Shanghai", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date());
 }
 
 export async function api(path, options = {}) {

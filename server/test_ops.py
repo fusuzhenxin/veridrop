@@ -12,6 +12,7 @@ import unittest
 from unittest.mock import patch
 import urllib.error
 import urllib.request
+from urllib.parse import quote
 from datetime import date, timedelta
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -392,6 +393,23 @@ class OpsTest(unittest.TestCase):
         gone = connection.getresponse()
         self.assertEqual(gone.status, 404)
 
+    def test_ad_analytics_endpoint_filters_ai_and_attributes_directory(self):
+        day = ops_db.today()
+        row = ops_db.save_ad({"slot":"footer", "name":"归因测试", "target_url":"https://analytics.example/register",
+                              "start_date":day,"end_date":(date.fromisoformat(day)+timedelta(days=2)).isoformat()})
+        base = {"kind":"ad", "surface":"directory", "target_url":"https://analytics.example/", "placement":"directory-visit", "path":"/list?secret=hidden"}
+        for agent, action in [("Mozilla/5.0 Chrome/130.0","impression"),("GPTBot/1.2","impression"),("Mozilla/5.0 Chrome/130.0","click")]:
+            status, _ = self.client("POST","/api/collect",{**base,"action":action},auth=False,headers={"User-Agent":agent})
+            self.assertEqual(status,204)
+        route = f"/api/ads/analytics?ad_id={row['id']}&start={day}&end={day}"
+        status, report = self.client("GET",route)
+        self.assertEqual(status,200)
+        self.assertEqual(report["all"]["impressions"],2)
+        self.assertEqual(report["human"]["impressions"],1)
+        self.assertEqual(report["summary"]["clicks"],1)
+        self.assertEqual(report["sources"][0]["path"],"/list")
+        self.assertEqual(Client(self.client.base)("GET",route)[0],401)
+
     def test_traffic_splits_bots(self):
         self.client("POST", "/api/collect", {"path": "/site/demo", "referrer": "https://news.example/a"}, auth=False, headers={"User-Agent": "Mozilla/5.0"})
         self.client("POST", "/api/collect", {"path": "/site/demo", "referrer": ""}, auth=False, headers={"User-Agent": "curl/8.0"})
@@ -459,6 +477,70 @@ class OpsTest(unittest.TestCase):
         self.assertFalse(any(item["id"] == pair["id"] for item in feed["sponsor"]))
         for key in ("listTop", "footer"):
             self.assertTrue(any(item["id"] == pair["id"] for item in feed[key]))
+
+    def test_ad_placement_check_requires_login_and_returns_capacity(self):
+        day = ops_db.today()
+        end = (date.fromisoformat(day) + timedelta(days=3)).isoformat()
+        query = f"/api/ads/availability?slot=full&start={day}&end={end}"
+        self.assertEqual(Client(self.base)("GET", query, auth=False)[0], 401)
+        status, body = self.client("GET", query)
+        self.assertEqual(status, 200, body)
+        self.assertEqual([item["slot"] for item in body["placements"]], ["sponsor", "list_top", "footer"])
+        self.assertIsNone(body["placements"][2]["capacity"])
+        self.assertEqual(self.client("GET", query.replace("slot=full", "slot=invalid"))[0], 400)
+        created = self.client("POST", "/api/ads", {"slot": "footer", "name": "状态切换", "target_url": "https://example.com/state", "start_date": day, "end_date": end})[1]
+        status, paused = self.client("POST", f"/api/ads/{created['id']}/state", {"paused": True})
+        self.assertEqual(status, 200, paused)
+        self.assertEqual(paused["status"], "paused")
+        self.assertEqual(self.client("POST", f"/api/ads/{created['id']}/state", {})[0], 400)
+
+    def test_ad_order_ledger_is_private_and_records_installments(self):
+        day = ops_db.today()
+        end = (date.fromisoformat(day) + timedelta(days=30)).isoformat()
+        anonymous = Client(self.base)
+        self.assertEqual(anonymous('GET', '/api/ad-orders', auth=False)[0], 401)
+        payload = {'advertiser':'订单广告主', 'title':'接口订单', 'slot':'footer', 'start_date':day, 'end_date':end,
+                   'amount':'100.10', 'request_key':'test-order-ledger-0001'}
+        status, order = self.client('POST', '/api/ad-orders', payload)
+        self.assertEqual(status, 200, order)
+        self.assertEqual(self.client('POST', '/api/ad-orders', payload)[1]['id'], order['id'])
+        self.assertEqual(anonymous('GET', f"/api/ad-orders/{order['id']}", auth=False)[0], 401)
+        status, partial = self.client('POST', f"/api/ad-orders/{order['id']}/payments", {
+            'kind':'receipt', 'amount':'40.05', 'paid_on':day, 'method':'微信', 'request_key':'test-order-payment-0001'})
+        self.assertEqual(status, 200, partial)
+        self.assertEqual(partial['outstanding_cents'], 6005)
+        self.assertEqual(self.client('GET', '/api/ad-orders?q=' + quote('接口订单'))[1]['total'], 1)
+        self.assertEqual(self.client('POST', f"/api/ad-orders/{order['id']}/cancel", {'version':1})[0], 409)
+        cancelled = self.client('POST', f"/api/ad-orders/{order['id']}/cancel", {'version':partial['version']})[1]
+        self.assertEqual(cancelled['status'], 'cancelled')
+
+    def test_ad_campaign_report_calendar_and_delivery_are_private(self):
+        day = ops_db.today()
+        end = (date.fromisoformat(day) + timedelta(days=10)).isoformat()
+        renewed_end = (date.fromisoformat(end) + timedelta(days=10)).isoformat()
+        ad = self.client('POST','/api/ads',{'name':'排期接口广告','slot':'footer','target_url':'https://example.com/','start_date':day,'end_date':end})[1]
+        status, order = self.client('POST','/api/ad-orders',{'title':'排期验证合同','advertiser':'测试广告主','contact':'private@example.com','ad_id':ad['id'],'slot':'footer','start_date':end,'end_date':renewed_end,'amount':'99.90','request_key':'campaign-http-order-0001'})
+        self.assertEqual(status,200,order)
+        path = f"/api/ad-orders/{order['id']}"
+        for route in (path+'/report',path+'/delivery-preview','/api/ads/calendar?month='+day[:7]):
+            self.assertEqual(Client(self.base)('GET',route,auth=False)[0],401)
+            self.assertEqual(self.client('GET',route)[0],200)
+        report = self.client('GET',path+'/report')[1]
+        self.assertNotIn('contact',report['order'])
+        self.assertNotIn('amount_cents',report['order'])
+        self.assertEqual(self.client('GET',path+'/report?mode=invalid')[0],400)
+        self.assertEqual(self.client('GET','/api/ads/calendar?month=bad')[0],400)
+        plan = self.client('GET',path+'/delivery-preview')[1]
+        self.assertTrue(plan['can_apply'])
+        self.assertEqual(self.client('GET',f"/api/ads/{ad['id']}")[1]['end_date'],end)
+        self.assertEqual(Client(self.base)('POST',path+'/delivery',{},auth=False,headers={'X-Ops':'1'})[0],401)
+        self.assertEqual(self.client('POST',path+'/delivery',{'request_key':'http-preview-wrong-0001','preview_token':'stale'})[0],409)
+        body={'request_key':'http-delivery-apply-0001','preview_token':plan['preview_token']}
+        status, updated = self.client('POST',path+'/delivery',body)
+        self.assertEqual(status,200,updated)
+        self.assertEqual(len(updated['deliveries']),1)
+        self.assertEqual(len(self.client('POST',path+'/delivery',body)[1]['deliveries']),1)
+        self.assertEqual(self.client('GET',f"/api/ads/{ad['id']}")[1]['end_date'],renewed_end)
 
     def test_submission_approve_and_complaint(self):
         status, row = self.client("POST", "/api/submissions", {

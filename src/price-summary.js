@@ -36,6 +36,15 @@ export function familyKey(name) {
   return "";
 }
 
+export function minimumInputPrice(models) {
+  const prices = (models || [])
+    .map((row) => row.input)
+    .filter((value) => value != null && value !== "" && typeof value !== "boolean")
+    .map(Number)
+    .filter((value) => Number.isFinite(value) && value >= 0);
+  return prices.length ? Math.min(...prices) : null;
+}
+
 function latencySeconds(value) {
   const text = String(value || "");
   const seconds = text.match(/(\d+(?:\.\d+)?)\s*s\b/i);

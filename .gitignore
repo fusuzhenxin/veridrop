@@ -25,6 +25,7 @@ data/model-list-progress.json
 __pycache__/
 *.pyc
 data/ops.sqlite
+data/backups/
 data/ops.sqlite-*
 data/proposals.sqlite
 data/proposals.sqlite-*

@@ -5,6 +5,7 @@ import { clearSession, readAccounts, readAvatar, readSession, writeAvatar, write
 import { authToken, loginAccount, pullAccount, registerAccount, requestCode, resetAccount, sendPoints, setAuthToken } from "./community.js";
 import { grant, replacePoints, saveNick } from "./points.js";
 import { useAds } from "./ads.js";
+import { useAdAnalytics, sponsorHref } from "./ad-tracking.js";
 
 const SITE_NOTICE = {
   id: "shop-deepseek-3000",
@@ -204,6 +205,7 @@ const NAV = [
 ];
 
 export function Shell({ children }) {
+  useAdAnalytics();
   const location = useLocation();
   const navigate = useNavigate();
   const [open, setOpen] = useState("");
@@ -611,7 +613,7 @@ export function Shell({ children }) {
             !
           </span>
           <p>
-            我们仅使用保障登录、语言偏好等必要 cookie，以及匿名的访问量统计，不用于广告追踪。继续浏览即视为同意，详见
+            我们仅使用保障登录、语言偏好等必要 cookie，以及匿名的访问量、站内曝光与点击统计，不用于跨站追踪或个性化广告。继续浏览即视为同意，详见
             <Link to="/privacy">隐私政策</Link>。
           </p>
           <button
@@ -1058,7 +1060,6 @@ export function SponsorStrip({ place = "list" }) {
   const excluded = place === "sides" ? /^\/(?:list(?:\/|$)|site\/|station\/)/.test(location.pathname) : place === "list" && location.pathname !== "/list";
   const items = excluded ? [] : (place === "sides" ? ads?.sponsor : place === "footer" ? ads?.footer : ads?.listTop) || [];
   const box = useRef(null);
-  const seen = useRef(new Set());
   const [hidden, setHidden] = useState(false);
   const [dismissed, setDismissed] = useState([]);
   const content = JSON.stringify(items);
@@ -1066,26 +1067,10 @@ export function SponsorStrip({ place = "list" }) {
     setHidden(false);
     setDismissed([]);
   }, [location.pathname, location.search, content]);
-  useEffect(() => {
-    if (hidden || !box.current) return;
-    const observer = new IntersectionObserver((entries) => {
-      for (const entry of entries) {
-        if (!entry.isIntersecting) continue;
-        const id = entry.target.dataset.adId;
-        if (!seen.current.has(id)) {
-          seen.current.add(id);
-          fetch("/api/collect", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ad_id: Number(id) }), keepalive: true }).catch(() => {});
-        }
-        observer.unobserve(entry.target);
-      }
-    });
-    box.current.querySelectorAll("[data-ad-id]").forEach((node) => observer.observe(node));
-    return () => observer.disconnect();
-  }, [ads, hidden, place, excluded, location.pathname]);
   if (hidden || !items.length) return null;
   const cards = items.filter(item => !dismissed.includes(item.id));
   const card = (item) => (
-    <a data-ad-id={item.id} className={`sp-card${place === "sides" ? " sp-side-card" : ""}`} href={item.href} target="_blank" rel="sponsored nofollow noreferrer" data-vd-ad={place} onClick={() => { if (authToken()) grant("sponsor", 5, "点击赞助商", "day"); }}>
+    <a data-ad-id={item.id} className={`sp-card${place === "sides" ? " sp-side-card" : ""}`} href={sponsorHref(item.href, place, location.pathname)} target="_blank" rel="sponsored nofollow noreferrer" data-vd-ad={place} onClick={() => { if (authToken()) grant("sponsor", 5, "点击赞助商", "day"); }}>
       <div className="sp-art">{item.imageUrl ? <img src={item.imageUrl} alt="" /> : <span className="sp-initial">{item.name.slice(0, 1)}</span>}</div>
       <div className="bd">
         <b><span>{item.name}</span>{place !== "sides" ? <span className="sp-flag">赞助</span> : null}</b>

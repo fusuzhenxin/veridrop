@@ -1,5 +1,6 @@
 import { Fragment, useEffect, useId, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { stationHref } from "./outbound-links.js";
 import codexRows from "./codex.json";
 import { hubMark, iq, latestTests, stations, stationHeading, stationPath } from "./data.js";
 import { mergeRecentTests } from "./recent-tests.js";
@@ -270,8 +271,8 @@ export function DirectoryTable({ rows, offset = 0, onFavorite }) {
       const rating = reviews.length ? reviews.reduce((sum, row) => sum + Number(row.rating), 0) / reviews.length : null;
       const close = (restoreFocus) => { setOpen(""); if (restoreFocus) triggers.current.get(item.slug)?.focus(); };
       const name = <>{stationHeading(item)}{item.ownerPick ? <small className="vd-owner-pick">· 精选</small> : null}</>;
-      const official = /^https?:\/\//i.test(item.site || "") ? item.site : "";
-      return <Fragment key={item.slug}><tr className="vd-directory-row" onClick={(event) => {
+      const official = /^https?:\/\//i.test(item.site || "") ? stationHref(item.site) : "";
+      return <Fragment key={item.slug}><tr className="vd-directory-row" {...hubMark(item, "directory-row")} onClick={(event) => {
         if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.target.closest('a, button, input, select, textarea, [role="button"], [tabindex]') || window.getSelection()?.toString()) return;
         navigate(stationPath(item));
       }}>

@@ -34,6 +34,14 @@
             <template #icon><IconTags /></template>
             广告
           </a-menu-item>
+          <a-menu-item key="/ad-orders">
+            <template #icon><IconStorage /></template>
+            广告订单
+          </a-menu-item>
+          <a-menu-item key="/ad-calendar">
+            <template #icon><IconHistory /></template>
+            广告排期
+          </a-menu-item>
           <a-menu-item key="/traffic">
             <template #icon><IconThunderbolt /></template>
             流量
@@ -138,6 +146,8 @@ const groupOf = {
   "/alerts": "catalog",
   "/changes": "catalog",
   "/ads": "business",
+  "/ad-orders": "business",
+  "/ad-calendar": "business",
   "/traffic": "business",
   "/spend": "business",
   "/sites": "sites",

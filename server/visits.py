@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import hmac
+from traffic_identity import classify
 import json
 import os
 import re
@@ -76,10 +77,6 @@ SITES = {
         "kinds": None,
     },
 }
-BOT_RE = re.compile(
-    r"ahrefs|mj12bot|bingbot|yandex|shapbot|applebot|googlebot|google-inspectiontool|google-extended|petalbot|bytespider|baiduspider|semrush|dotbot|sogou|360spider|yisouspider|gptbot|chatgpt-user|oai-searchbot|claudebot|claude-searchbot|claude-user|anthropic-ai|perplexity|ccbot|amazonbot|meta-externalagent|meta-externalfetcher|cohere-ai|diffbot|youbot|curl/|wget/|python-requests|go-http-client|headlesschrome|local-mirror|scrapy|httpclient|spider|crawler|slurp|\bbot\b",
-    re.I,
-)
 BLOB_PATH = "visits.json"
 DAYS = 30
 _LOCK = threading.Lock()
@@ -116,10 +113,7 @@ def recent_days(count: int = DAYS, now: datetime | None = None) -> list[str]:
 
 
 def is_bot(ua: str) -> bool:
-    text = str(ua or "").strip()
-    if len(text) < 12:
-        return True
-    return bool(BOT_RE.search(text))
+    return classify(ua)[0] != "human"
 
 
 def clean_id(raw) -> str:

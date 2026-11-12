@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
+import { stationHref } from "./outbound-links.js";
 import modelRows from "./model-rows.json";
 import { hubMark, models, modelsOf, stationHeading, stationPath, stations } from "./data.js";
 import { preloadModelPrices } from "./prices.js";
@@ -28,10 +29,7 @@ function publicHref(url) {
   try {
     const next = new URL(url);
     if (/(^|\.)okkmax\.com$/i.test(next.hostname)) return "";
-    for (const key of [...next.searchParams.keys()]) {
-      if (key.toLowerCase().startsWith("utm_")) next.searchParams.delete(key);
-    }
-    return next.toString();
+    return stationHref(url);
   } catch {
     return "";
   }
@@ -258,7 +256,7 @@ function OutIcon() {
 
 function StationName({ row }) {
   const local = localStation(row);
-  const outbound = publicHref(local?.site || "") || row.href || "";
+  const outbound = publicHref(local?.site || "") || publicHref(row.href || "");
   const label = (
     <>
       <span className="slb-nm">{row.name}</span>

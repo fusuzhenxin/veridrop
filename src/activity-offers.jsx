@@ -1,6 +1,10 @@
 import { useRef, useState } from "react";
 import { Logo } from "./ui.jsx";
 import { DirectoryIcon } from "./directory-ui.jsx";
+import { stations } from "./data.js";
+import { listedStationHref } from "./outbound-links.js";
+
+const stationSites = stations.map(station => station.site);
 
 function expiry(item) {
   if (item.dead) return "已失效";
@@ -34,7 +38,7 @@ function Offer({ item, kind, featured, main, Modality }) {
           {free ? <div className="modes" aria-label="支持模态">{(item.modality || []).map((name) => <Modality key={name} name={name} />)}</div> : null}
           <span>截止 {expiry(item)}</span>
         </div>
-        <a className="wa-visit" href={item.claimUrl} target="_blank" rel="noreferrer" aria-label={`立即前往 ${name}`}>立即前往 <DirectoryIcon name={main ? "arrow" : "external"} /></a>
+        <a className="wa-visit" href={listedStationHref(item.claimUrl, stationSites)} target="_blank" rel="noreferrer" aria-label={`立即前往 ${name}`}>立即前往 <DirectoryIcon name={main ? "arrow" : "external"} /></a>
       </div>
       {!free ? <div className="wa-details">
         <details><summary>参与步骤</summary><p>{item.steps}</p></details>

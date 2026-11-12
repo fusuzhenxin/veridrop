@@ -2,6 +2,7 @@ import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useLocation, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { DirectoryAtmosphere, DirectoryCarousel, DirectoryDigest, DirectoryIcon, DirectoryStats, DirectoryTable, DirectoryTags } from "./directory-ui.jsx";
 import activityData from "./activity.json";
+import { listedStationHref, stationHref } from "./outbound-links.js";
 import { ActivityOffers } from "./activity-offers.jsx";
 import availabilityData from "./availability.json";
 import modelRows from "./model-rows.json";
@@ -36,6 +37,7 @@ import {
 } from "./verd-meta.js";
 import { ModelBoard, ModIcon } from "./model-board.jsx";
 import { useStationModels } from "./prices.js";
+import { minimumInputPrice } from "./price-summary.js";
 import { mergeStatusModels, stationStatusConfig, useStationStatus } from "./station-status.js";
 
 import { applyRemoteAccount, fitAvatar, readAvatar, readFavs, readSession, readSubmissions, writeAvatar, writeFavs, writeSession } from "./account.js";
@@ -806,7 +808,7 @@ export function Tester({ extended = false }) {
 
 function stationSite(item) {
   const url = String(item?.site || "").trim();
-  return /^https?:\/\//i.test(url) ? url : "";
+  return /^https?:\/\//i.test(url) ? stationHref(url) : "";
 }
 
 function StationJump({ item, place }) {
@@ -994,7 +996,7 @@ const REC_PICKS = [
   ["800003-newapi-gogogogoapp-mom", "gogateway.png", "站长在用", "mine"],
   ["2825-api-hubway-cc", "hubway.png", "站长在用", "mine"],
   ["3-aicodemirror-ai", "aicodemirror.png", "企业", "biz"],
-  ["5-foxcode-rjj-cc", "foxcode.png", "低延迟", "fast"],
+  ["1646-api-sublyx-org", "sublyx.png", "站长在用", "mine"],
 ];
 
 function recLatency(station) {
@@ -1374,8 +1376,8 @@ export function HomePage() {
         </section>
         <DirectoryCarousel title="推荐站点" kind="recommendations" stats={<DirectoryStats count={stationTotal} uptime={REC_UPTIME} compact />} items={REC_ROWS} renderItem={(item) => {
           const station = findStation(item.slug);
-          const official = /^https?:\/\//i.test(station?.site || "") ? station.site : "";
-          return <div key={item.slug} className="vd-rec-card">
+          const official = /^https?:\/\//i.test(station?.site || "") ? stationHref(station.site) : "";
+          return <div key={item.slug} className="vd-rec-card" {...hubMark(station, "home-rec-row")} data-vd-exposure-only="">
             <Link className="vd-rec-detail" to={item.path} aria-label={`查看${item.name}详情`} {...hubMark(station, "home-rec")} />
             <img src={item.img} alt="" /><span><b>{official ? <a className="vd-rec-name vd-site-external" href={official} target="_blank" rel="noopener noreferrer" aria-label={`前往${item.name}官网（新标签页）`} {...hubMark(station, "home-rec-visit")}>{item.name}<DirectoryIcon name="external" /></a> : item.name}</b><small><em className={item.tone}>{item.tag}</em>延迟 {item.latency}</small></span><DirectoryIcon name="next" />
           </div>;
@@ -1404,7 +1406,7 @@ export function HomePage() {
           <h3>{item.name}</h3>
           <p>{item.modes?.length ? `支持${item.modes.join("、")}。` : ""}额度以服务商页面为准。</p>
           <div className="vd-welfare-quota"><b>{amount}</b><small>{quota}</small></div>
-          <div className="vd-welfare-foot"><span>{(item.gate || []).join(" · ")}</span><a href={item.href} target="_blank" rel="noreferrer">去看看 <DirectoryIcon name="external" /></a></div>
+          <div className="vd-welfare-foot"><span>{(item.gate || []).join(" · ")}</span><a href={listedStationHref(item.href, stations.map(station => station.site))} target="_blank" rel="noreferrer">去看看 <DirectoryIcon name="external" /></a></div>
         </article>;
       }} />
       <p className="vd-welfare-note">ⓘ 额度与活动信息来自收录时的公开说明，以服务商最新公示为准。</p>
@@ -1581,7 +1583,7 @@ export function ListPage({ modelId = "" }) {
         {view.length ? (board === "cards" ? (
           <div className="vd-site-cards">
             {view.map((item) => (
-              <article key={item.slug} className="vd-site-card">
+              <article key={item.slug} className="vd-site-card" {...hubMark(item, "list-card")} data-vd-exposure-only="">
                 <div className="vd-site-top">
                   <Logo station={item} />
                   <StarButton on={false} onToggle={() => toggleFav(item.slug)} />
@@ -1595,7 +1597,7 @@ export function ListPage({ modelId = "" }) {
                   <div><b>{showLatency(item.latency)}</b><small>平均延迟</small></div>
                   <div><b>{item.modelsList || "—"}</b><small>支持模型</small></div>
                 </div>
-                <Link className="vd-site-go" to={stationPath(item)}>探索站点 →</Link>
+                <Link className="vd-site-go" to={stationPath(item)} {...hubMark(item, "list-rank")}>探索站点 →</Link>
               </article>
             ))}
           </div>
@@ -1672,7 +1674,7 @@ export function ListPage({ modelId = "" }) {
       {view.length ? (board === "cards" ? (
         <div className="vd-site-cards">
           {view.map((item) => (
-            <article key={item.slug} className="vd-site-card">
+            <article key={item.slug} className="vd-site-card" {...hubMark(item, "list-card")} data-vd-exposure-only="">
               <div className="vd-site-top">
                 <Logo station={item} />
                 <StarButton on={Boolean(cardFavs[item.slug])} onToggle={() => setCardFavs(toggleFav(item.slug))} />
@@ -1686,7 +1688,7 @@ export function ListPage({ modelId = "" }) {
                 <div><b>{showLatency(item.latency)}</b><small>平均延迟</small></div>
                 <div><b>{item.modelsList || "—"}</b><small>支持模型</small></div>
               </div>
-              <Link className="vd-site-go" to={stationPath(item)}>探索站点 →</Link>
+              <Link className="vd-site-go" to={stationPath(item)} {...hubMark(item, "list-rank")}>探索站点 →</Link>
             </article>
           ))}
         </div>
@@ -1967,14 +1969,13 @@ function derivedGroups(models) {
     buckets.get(name).push(row);
   }
   return [...buckets.entries()].map(([name, rows]) => {
-    const prices = rows.map((row) => Number(row.input)).filter((value) => Number.isFinite(value));
     const ratios = [...new Set(rows.map((row) => row.ratio).filter((value) => value != null))];
     const scored = rows.find((row) => row.score != null);
     const avail = parseFloat(rows.find((row) => row.uptime && row.uptime !== "—")?.uptime);
     return {
       name,
       ratio: ratios.length === 1 ? ratios[0] : null,
-      startPrice: prices.length ? Math.min(...prices) : null,
+      startPrice: minimumInputPrice(rows),
       score: scored?.score ?? null,
       service: scored?.service ?? null,
       latencyMs: null,
@@ -2526,7 +2527,7 @@ export function StationPage() {
   const rated = comments.filter((item) => item.rating);
   const average = rated.length ? rated.reduce((sum, item) => sum + Number(item.rating), 0) / rated.length : null;
   const socials = station.socials?.length ? station.socials : [{ name: "官网", url: station.site }];
-  const official = socials.find((item) => item.name === "官网")?.url || station.site;
+  const official = stationHref(socials.find((item) => item.name === "官网")?.url || station.site);
   const serviceStatus = (station.links || []).find((item) => /状态/.test(item.name || "") && /^https?:\/\//i.test(item.url || ""));
   const familyText = station.familiesText || station.lineup.replace(/^支持\s*/, "");
   const refundStat = splitStat(station.refund);
@@ -2599,7 +2600,7 @@ export function StationPage() {
               {summaryOpen ? (
                 <p>
                   {station.name}支持 {familyText || "尚未列明的模型"}{station.cover ? <> 等 <span className="hl">{station.cover} 个模型</span></> : null}。
-                  {station.upShown == null ? "公开页面还没有在线率数字。" : <>在线率记为 <span className="hl">{station.upShown}%</span>{station.uptimeNote ? `（${station.uptimeNote}）` : ""}。</>}
+                  {station.upShown == null ? (station.uptimeNote || "公开页面还没有在线率数字。") : <>在线率记为 <span className="hl">{station.upShown}%</span>{station.uptimeNote ? `（${station.uptimeNote}）` : ""}。</>}
                   {station.speedShown == null ? "" : <>速度指数 <span className="hl">{station.speedShown}</span>。</>}
                   {station.latency == null ? "" : <>{station.latencyNote ? `${station.latencyNote}，` : "目录里的"}延迟是 <span className="hl">{station.latency} 秒</span>。</>}
                   {station.min && station.min !== "—" ? <>最低充值 <span className="hl">{String(station.min).replace(/[￥¥]/g, "").trim()} 元</span>。</> : null}
@@ -2959,7 +2960,7 @@ export function StationPage() {
               <div className="sd-side-hd"><span><DirectoryIcon name="external" />官网与联系</span></div>
               {station.resources.map((item) => {
                 const content = <><span className="sd-resource-icon"><DirectoryIcon name={item.icon} /></span><span className="sd-resource-text"><b>{item.name}</b><small>{item.label}</small></span>{item.url ? <DirectoryIcon name="external" /> : null}</>;
-                return item.url ? <a key={item.name} className="sd-resource" href={item.url} target="_blank" rel="noopener noreferrer">{content}</a> : <div key={item.name} className="sd-resource">{content}</div>;
+                return item.url ? <a key={item.name} className="sd-resource" href={/官网|注册/.test(item.name) ? stationHref(item.url) : item.url} target="_blank" rel="noopener noreferrer">{content}</a> : <div key={item.name} className="sd-resource">{content}</div>;
               })}
             </div>
           ) : null}
@@ -3273,7 +3274,7 @@ function VoteReviewCard({ review }) {
   const station = review.station;
   const score = Math.max(0, Math.min(5, Number(review.rating) || 0));
   const user = String(review.user || "用户");
-  return <article className="vr-review">
+  return <article className="vr-review" {...hubMark(station, "vote-review-row")} data-vd-exposure-only="">
     <div className="vr-review-head">
       <Link className="vr-review-station" to={station.path} aria-label={`查看 ${station.name} 站点`} {...hubMark(station, "vote-review")}>
         <Logo station={station} /><span><strong>{station.name}</strong><small>{station.host}</small></span><DirectoryIcon name="arrow" />
@@ -3463,7 +3464,7 @@ export function ReputationPage() {
             const blurb = String(station.blurb || "").replace(/\s+/g, " ").trim();
             const netClass = row.net > 0 ? "pos" : row.net < 0 ? "neg" : "";
             return (
-              <article key={station.slug} className="vcard">
+              <article key={station.slug} className="vcard" {...hubMark(station, "vote-row")} data-vd-exposure-only="">
                 <div className={`vrank${index < 3 ? " is-leading" : ""}`}>{String(index + 1).padStart(2, "0")}</div>
                 <div className="vbody">
                   <Link className="vid" to={station.path} {...hubMark(station, "vote")}>
@@ -3859,7 +3860,7 @@ function cleanHref(url) {
     const next = new URL(url);
     next.search = "";
     next.hash = "";
-    return next.toString();
+    return stationHref(next.toString());
   } catch {
     return "";
   }
@@ -4099,7 +4100,7 @@ export function DisclaimerPage() {
 export function PrivacyPage() {
   return (
     <Article title="隐私政策" seoTitle="隐私政策｜Cookie、检测 Key 和评价内容如何留存">
-      <p>本站只使用维持登录和语言偏好所必需的 cookie，以及匿名的访问量统计，不用于广告追踪。</p>
+      <p>本站只使用维持登录和语言偏好所必需的 cookie，以及匿名的访问量、站内曝光与点击统计，不用于跨站追踪或个性化广告。</p>
       <p>你在检测框里填写的 API Key 留在浏览器里，这份本地复刻不会把它发往任何服务器。</p>
       <p>检测记录默认保存在本机。你主动使用分享功能时，本站会保存脱敏后的站点、模型、题目结果和生成画面；持有分享链接或海报二维码的人可以查看。分享报告不包含 API Key。</p>
       <p>公开评价和商务联系方式由用户主动提交。不要在评价里写下密钥或订单号。</p>

@@ -11,12 +11,15 @@ const server = await createServer({
 });
 const mod = await server.ssrLoadModule("/src/html-snapshot.js");
 const app = await server.ssrLoadModule("/src/entry-server.jsx");
-const assetNames = fs.readdirSync(path.join(root, "dist", "assets"));
-const cssName = assetNames.find((name) => name.startsWith("index-") && name.endsWith(".css"));
-const jsName = assetNames.find((name) => name.startsWith("index-") && name.endsWith(".js"));
+const builtIndex = fs.readFileSync(path.join(root, "dist", "index.html"), "utf8");
+const cssName = builtIndex.match(/href="\/assets\/(index-[^"/]+\.css)"/)?.[1];
+const jsName = builtIndex.match(/src="\/assets\/(index-[^"/]+\.js)"/)?.[1];
 if (!cssName || !jsName) throw new Error("dist/assets is missing the built stylesheet or script");
 const template = `<!doctype html><html><head><link rel="stylesheet" crossorigin href="/assets/${cssName}"></head><body><div id="root"></div><script type="module" crossorigin src="/assets/${jsName}"></script></body></html>`;
-const paths = mod.snapshotPaths();
+const requestedRoutes = process.argv.slice(2).filter((arg) => arg.startsWith("--route=")).map((arg) => arg.slice(8));
+const allPaths = mod.snapshotPaths();
+if (requestedRoutes.some((route) => !allPaths.includes(route))) throw new Error("Unknown prerender route");
+const paths = requestedRoutes.length ? [...new Set(requestedRoutes)] : allPaths;
 let community = null;
 try {
   community = JSON.parse(fs.readFileSync(path.join(root, "data", "community.json"), "utf8"));

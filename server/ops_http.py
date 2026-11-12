@@ -127,6 +127,36 @@ class OpsHandler(BaseHTTPRequestHandler):
         self._api(method, parts[1:], query, operator)
 
     def _api(self, method: str, parts: list[str], query: dict, operator: dict) -> None:
+        if parts == ['ad-orders']:
+            if method == 'GET':
+                self._json(200, ops_db.list_ad_orders(query))
+                return
+            if method == 'POST':
+                self._json(200, ops_db.save_ad_order(self._body()))
+                return
+        if len(parts) >= 2 and parts[0] == 'ad-orders' and parts[1].isdigit():
+            order_id = int(parts[1])
+            if parts[2:] == ['report'] and method == 'GET':
+                self._json(200, ops_db.ad_order_report(order_id, query))
+                return
+            if parts[2:] == ['delivery-preview'] and method == 'GET':
+                self._json(200, ops_db.ad_delivery_preview(order_id))
+                return
+            if parts[2:] == ['delivery'] and method == 'POST':
+                self._json(200, ops_db.apply_ad_delivery(order_id, self._body()))
+                return
+            if len(parts) == 2 and method == 'GET':
+                self._json(200, ops_db.get_ad_order(order_id))
+                return
+            if len(parts) == 2 and method == 'POST':
+                self._json(200, ops_db.save_ad_order(self._body(), order_id))
+                return
+            if parts[2:] == ['payments'] and method == 'POST':
+                self._json(200, ops_db.record_ad_payment(order_id, self._body()))
+                return
+            if parts[2:] == ['cancel'] and method == 'POST':
+                self._json(200, ops_db.cancel_ad_order(order_id, self._body()))
+                return
         if parts and parts[0] == "proposals":
             if method == "GET" and len(parts) == 1:
                 self._json(200, proposals.listing(query, admin=True))
@@ -201,11 +231,23 @@ class OpsHandler(BaseHTTPRequestHandler):
         if len(parts) == 2 and parts[0] == "alerts" and parts[1].isdigit() and method == "POST":
             self._json(200, ops_db.set_alert(int(parts[1]), str(self._body().get("status") or "")))
             return
+        if parts == ["ads", "analytics"] and method == "GET":
+            self._json(200, ops_db.ad_report(query))
+            return
+        if parts == ["ads", "availability"] and method == "GET":
+            self._json(200, ops_db.ad_availability(query))
+            return
+        if parts == ["ads", "calendar"] and method == "GET":
+            self._json(200, ops_db.ad_calendar(query))
+            return
         if parts == ["ads"] and method == "GET":
             self._json(200, ops_db.list_ads(query))
             return
         if parts == ["ads"] and method == "POST":
             self._json(200, ops_db.save_ad(self._body()))
+            return
+        if len(parts) == 3 and parts[0] == "ads" and parts[1].isdigit() and parts[2] == "state" and method == "POST":
+            self._json(200, ops_db.set_ad_paused(int(parts[1]), self._body().get("paused")))
             return
         if len(parts) == 2 and parts[0] == "ads" and parts[1].isdigit():
             ad_id = int(parts[1])
@@ -354,8 +396,8 @@ class OpsHandler(BaseHTTPRequestHandler):
             self._json(204, {})
             return
         body = self._body()
-        if body.get("ad_id"):
-            ops_db.record_impression(int(body["ad_id"]))
+        if body.get("ad_id") or body.get("kind") == "ad":
+            ops_db.collect_ad_event(body, self.headers.get("User-Agent") or "")
         else:
             ops_db.record_view(str(body.get("path") or "/"), str(body.get("referrer") or ""), self.headers.get("User-Agent") or "")
         self._json(204, {})
@@ -376,7 +418,9 @@ class OpsHandler(BaseHTTPRequestHandler):
         if not part.isdigit():
             self._json(404, {"error": "没有这条广告"})
             return
-        target = ops_db.record_click(int(part))
+        context = {key: values[-1] for key, values in parse_qs(urlparse(self.path).query).items() if key in ("path", "placement", "automated")}
+        context["surface"] = "banner"
+        target = ops_db.record_click(int(part), self.headers.get("User-Agent") or "", context)
         if not target:
             self._json(404, {"error": "广告不在投放期"})
             return

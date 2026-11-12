@@ -10,6 +10,10 @@ import RunDetail from "./pages/RunDetail.vue";
 import Alerts from "./pages/Alerts.vue";
 import Ads from "./pages/Ads.vue";
 import AdForm from "./pages/AdForm.vue";
+import AdOrders from "./pages/AdOrders.vue";
+import AdOrderForm from "./pages/AdOrderForm.vue";
+import AdOrderReport from "./pages/AdOrderReport.vue";
+import AdCalendar from "./pages/AdCalendar.vue";
 import Traffic from "./pages/Traffic.vue";
 import Sites from "./pages/Sites.vue";
 import SiteForm from "./pages/SiteForm.vue";
@@ -46,6 +50,11 @@ const router = createRouter({
         { path: "ads", component: Ads, meta: { title: "广告", section: "/ads" } },
         { path: "ads/new", component: AdForm, meta: { title: "新建广告", section: "/ads" } },
         { path: "ads/:id", component: AdForm, meta: { title: "编辑广告", section: "/ads" } },
+        { path: "ad-orders", component: AdOrders, meta: { title: "广告订单", section: "/ad-orders" } },
+        { path: "ad-orders/new", component: AdOrderForm, meta: { title: "新建广告订单", section: "/ad-orders" } },
+        { path: "ad-orders/:id/report", component: AdOrderReport, meta: { title: "广告效果报告", section: "/ad-orders" } },
+        { path: "ad-calendar", component: AdCalendar, meta: { title: "广告位排期", section: "/ad-calendar" } },
+        { path: "ad-orders/:id", component: AdOrderForm, meta: { title: "广告订单详情", section: "/ad-orders" } },
         { path: "traffic", component: Traffic, meta: { title: "流量", section: "/traffic" } },
         { path: "sites", component: Sites, meta: { title: "外链和仿站", section: "/sites" } },
         { path: "sites/new", component: SiteForm, meta: { title: "登记站点", section: "/sites" } },

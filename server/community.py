@@ -847,8 +847,8 @@ class Handler(BaseHTTPRequestHandler):
             import ops_db
             body = self._read_json()
             if path == "/api/collect":
-                if body.get("ad_id"):
-                    ops_db.record_impression(int(body["ad_id"]))
+                if body.get("ad_id") or body.get("kind") == "ad":
+                    ops_db.collect_ad_event(body, self.headers.get("User-Agent") or "")
                 else:
                     ops_db.record_view(str(body.get("path") or "/"), str(body.get("referrer") or ""), self.headers.get("User-Agent") or "")
                 self._send(204, {})
@@ -868,7 +868,9 @@ class Handler(BaseHTTPRequestHandler):
             return
         try:
             import ops_db
-            target = ops_db.record_click(int(part))
+            context = {key: values[-1] for key, values in parse_qs(urlparse(self.path).query).items() if key in ("path", "placement", "automated")}
+            context["surface"] = "banner"
+            target = ops_db.record_click(int(part), self.headers.get("User-Agent") or "", context)
         except Exception:
             target = None
         if not target:

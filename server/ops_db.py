@@ -13,6 +13,10 @@ from pathlib import Path
 from urllib.parse import urlparse
 
 import ops_crypto
+import ad_analytics
+import ad_orders
+import ad_campaigns
+from traffic_identity import classify
 
 ROOT = Path(__file__).resolve().parent.parent
 TZ = timezone(timedelta(hours=8))
@@ -287,6 +291,8 @@ def init_schema(conn: sqlite3.Connection) -> None:
     if "description" not in ad_columns:
         conn.execute("ALTER TABLE ads ADD COLUMN description TEXT NOT NULL DEFAULT ''")
     _migrate_legacy_ads(conn)
+    ad_analytics.ensure_schema(conn)
+    conn.executescript(ad_orders.SCHEMA)
 
 
 def _tx(fn):
@@ -1072,7 +1078,11 @@ def set_alert(conn, alert_id: int, status: str) -> dict:
 def _ad_out(row: dict, stats: dict | None = None) -> dict:
     item = dict(row)
     item["slot_label"] = SLOT_NAMES.get(item["slot"], item["slot"])
-    item["live"] = _ad_live(item, today())
+    day = today()
+    item["status"] = _ad_status(item, day)
+    item["live"] = item["status"] == "live"
+    item["days_remaining"] = (datetime.fromisoformat(item["end_date"]) - datetime.fromisoformat(day)).days
+    item["expiring"] = item["live"] and 0 < item["days_remaining"] <= 7
     item["impressions"] = (stats or {}).get("impressions", 0)
     item["clicks"] = (stats or {}).get("clicks", 0)
     return item
@@ -1082,6 +1092,81 @@ def _ad_live(item: dict, day: str) -> bool:
     return not item["paused"] and item["start_date"] <= day < item["end_date"]
 
 
+def _ad_status(item: dict, day: str) -> str:
+    if item["paused"]:
+        return "paused"
+    if day >= item["end_date"]:
+        return "expired"
+    return "scheduled" if day < item["start_date"] else "live"
+
+
+def _ad_overview(conn, day: str) -> dict:
+    rows = [dict(row) for row in conn.execute("SELECT * FROM ads ORDER BY end_date,id")]
+    summary = dict.fromkeys(("live", "scheduled", "paused", "expired", "expiring"), 0)
+    summary["total"] = len(rows)
+    soon = (datetime.fromisoformat(day) + timedelta(days=7)).date().isoformat()
+    expiring, active = [], []
+    for row in rows:
+        state = _ad_status(row, day)
+        summary[state] += 1
+        if state == "live":
+            active.append(row)
+            if row["end_date"] <= soon:
+                summary["expiring"] += 1
+                expiring.append({"id": row["id"], "name": row["name"], "slot": row["slot"], "end_date": row["end_date"]})
+    placements = []
+    for slot in ("sponsor", "list_top", "footer"):
+        used = sum(slot in AD_PLACEMENTS[row["slot"]] for row in active)
+        cap = SLOTS[slot]
+        placements.append({"slot": slot, "label": SLOT_NAMES[slot], "capacity": cap, "used": used,
+                           "remaining": max(0, cap - used) if cap is not None else None})
+    return {"day": day, "summary": summary, "placements": placements, "expiring": expiring[:8]}
+
+
+def _ad_capacity(conn, slot: str, start: str, end: str, exclude_id: int = 0) -> dict:
+    rows = [dict(row) for row in conn.execute(
+        "SELECT id,name,slot,start_date,end_date FROM ads WHERE paused=0 AND id!=? AND start_date<? AND end_date>?",
+        (exclude_id, end, start),
+    )]
+    placements = []
+    for placement in AD_PLACEMENTS[slot]:
+        bookings = [row for row in rows if placement in AD_PLACEMENTS[row["slot"]]]
+        changes = {start: 0, end: 0}
+        for row in bookings:
+            first, last = max(start, row["start_date"]), min(end, row["end_date"])
+            changes[first] = changes.get(first, 0) + 1
+            changes[last] = changes.get(last, 0) - 1
+        points, occupied, peak, conflict = sorted(changes), 0, 0, None
+        cap = SLOTS[placement]
+        for index, point in enumerate(points[:-1]):
+            occupied += changes[point]
+            peak = max(peak, occupied)
+            if cap is not None and occupied >= cap and conflict is None:
+                conflict = {"start": point, "end": points[index + 1], "ads": [
+                    {"id": row["id"], "name": row["name"]} for row in bookings
+                    if row["start_date"] <= point < row["end_date"]
+                ]}
+        placements.append({"slot": placement, "label": SLOT_NAMES[placement], "capacity": cap,
+                           "peak": peak, "remaining": max(0, cap - peak) if cap is not None else None,
+                           "available": cap is None or peak < cap, "conflict": conflict})
+    return {"slot": slot, "start": start, "end": end,
+            "available": all(item["available"] for item in placements), "placements": placements}
+
+
+@_tx
+def ad_availability(conn, args: dict) -> dict:
+    slot = str(args.get("slot") or "")
+    if slot not in SLOTS:
+        raise ValueError("请选择投放位置")
+    start, end = _day(str(args.get("start") or ""), "开始日"), _day(str(args.get("end") or ""), "到期日")
+    if start >= end:
+        raise ValueError("到期日要晚于开始日。到期当天撤下")
+    exclude = int(args.get("exclude_id") or 0)
+    if exclude < 0:
+        raise ValueError("广告编号不正确")
+    return _ad_capacity(conn, slot, start, end, exclude)
+
+
 def _migrate_legacy_ads(conn) -> None:
     # Import the former code-defined placements once, without reviving paused ads.
     key = "ads_runtime_migrated_v1"
@@ -1089,10 +1174,10 @@ def _migrate_legacy_ads(conn) -> None:
         return
     defaults = (
         ("footer", "Sidrune AI：自营号池，支持开票及对公转账", "/media/sponsors/sidrune-920x350.png",
-         "https://cn.sidrune.ai/register?promo=VERIDROPCN",
+         "https://cn.sidrune.ai/register?promo=VERIDROPCN&utm_source=veridrop.cn",
          "Claude 13条线路，分组倍率0.25–4.5x。为开发者和团队提供模型 API 接入，含官方及云平台线路。充值倍率1.00，即¥1人民币＝US$1站内额度。具体价格以模型广场为准。"),
         ("list_top", "aruhub API", "/media/sponsors/aruhub-mark.png",
-         "https://aruhub.com/sign-up?aff=M3dH",
+         "https://aruhub.com/sign-up?aff=M3dH&utm_source=veridrop.cn",
          "注册送测试额度！一个站点通用大语言模型、图像生成模型、视频生成模型。全天稳定可用，可随时进行智商检测。支持支付宝/微信付款，支持开发票，不满意可退款"),
     )
     for slot, name, image, target, description in defaults:
@@ -1123,12 +1208,38 @@ def list_ads(conn, args: dict) -> dict:
     where = ["1=1"]
     params: list = []
     if args.get("slot") in SLOTS:
-        where.append("slot=?")
-        params.append(args["slot"])
+        selected = args["slot"]
+        slots = [slot for slot, places in AD_PLACEMENTS.items() if selected in places] if selected in ("sponsor", "list_top", "footer") else [selected]
+        where.append(f"slot IN ({','.join('?' for _ in slots)})")
+        params.extend(slots)
+    query = str(args.get("q") or "").strip()[:200]
+    if query:
+        pattern = "%" + query.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_") + "%"
+        where.append("(name LIKE ? ESCAPE '\\' OR target_url LIKE ? ESCAPE '\\')")
+        params.extend((pattern, pattern))
+    day = today()
+    state = args.get("status")
+    if state == "paused":
+        where.append("paused=1")
+    elif state in ("live", "scheduled", "expired", "expiring"):
+        where.append("paused=0")
+        if state == "scheduled":
+            where.append("start_date>?")
+            params.append(day)
+        elif state == "expired":
+            where.append("end_date<=?")
+            params.append(day)
+        else:
+            where.append("start_date<=? AND end_date>?")
+            params.extend((day, day))
+            if state == "expiring":
+                where.append("end_date<=?")
+                params.append((datetime.fromisoformat(day) + timedelta(days=7)).date().isoformat())
     sql = f"SELECT * FROM ads WHERE {' AND '.join(where)} ORDER BY id DESC"
     page = _page(conn, sql, params, int(args.get("page") or 1), int(args.get("size") or 20))
     stats = _ad_stats_map(conn, [item["id"] for item in page["items"]])
     page["items"] = [_ad_out(item, stats.get(item["id"])) for item in page["items"]]
+    page["overview"] = _ad_overview(conn, day)
     return page
 
 
@@ -1160,25 +1271,9 @@ def _save_ad(conn, payload: dict, ad_id: int | None) -> int:
         raise ValueError("到期日要晚于开始日。到期当天撤下")
     paused = 1 if payload.get("paused") else 0
     if not paused:
-        rows = conn.execute(
-            "SELECT slot,start_date,end_date FROM ads WHERE paused=0 AND id!=? AND start_date < ? AND end_date > ?",
-            (ad_id or 0, end, start),
-        ).fetchall()
-        for placement in AD_PLACEMENTS[slot]:
-            cap = SLOTS[placement]
-            if cap is None:
-                continue
-            # Count simultaneous occupancy, including bundles, rather than every
-            # booking that overlaps any part of this date range.
-            events = [(start, 1), (end, -1)]
-            for row in rows:
-                if placement in AD_PLACEMENTS.get(row["slot"], ()):
-                    events.extend(((max(start, row["start_date"]), 1), (min(end, row["end_date"]), -1)))
-            occupied = 0
-            for _, delta in sorted(events):
-                occupied += delta
-                if occupied > cap:
-                    raise ValueError(f"{SLOT_NAMES[placement]}同时最多 {cap} 条（含套餐）")
+        for placement in _ad_capacity(conn, slot, start, end, ad_id or 0)["placements"]:
+            if not placement["available"]:
+                raise ValueError(f"{placement['label']}同时最多 {placement['capacity']} 条（含套餐）")
     current = now_iso()
     if ad_id:
         if not conn.execute("SELECT id FROM ads WHERE id=?", (ad_id,)).fetchone():
@@ -1236,6 +1331,18 @@ def save_ad(conn, payload: dict, ad_id: int | None = None) -> dict:
 
 
 @_tx
+def set_ad_paused(conn, ad_id: int, paused: bool) -> dict:
+    if type(paused) is not bool:
+        raise ValueError("请指定暂停或恢复")
+    row = conn.execute("SELECT * FROM ads WHERE id=?", (ad_id,)).fetchone()
+    if not row:
+        raise ValueError("没有这条广告")
+    _save_ad(conn, {**dict(row), "paused": paused}, ad_id)
+    row = dict(conn.execute("SELECT * FROM ads WHERE id=?", (ad_id,)).fetchone())
+    return _ad_out(row, _ad_stats_map(conn, [ad_id]).get(ad_id))
+
+
+@_tx
 def get_ad(conn, ad_id: int) -> dict:
     row = conn.execute("SELECT * FROM ads WHERE id=?", (ad_id,)).fetchone()
     if not row:
@@ -1246,28 +1353,69 @@ def get_ad(conn, ad_id: int) -> dict:
     return item
 
 
-def _bump_ad(conn, ad_id: int, field: str) -> str | None:
-    row = conn.execute("SELECT * FROM ads WHERE id=?", (ad_id,)).fetchone()
-    if not row or not _ad_live(dict(row), today()):
-        return None
-    conn.execute(
-        f"""
-        INSERT INTO ad_daily(ad_id, day, impressions, clicks) VALUES(?,?,?,?)
-        ON CONFLICT(ad_id, day) DO UPDATE SET {field}={field}+1
-        """,
-        (ad_id, today(), 1 if field == "impressions" else 0, 1 if field == "clicks" else 0),
-    )
-    return row["target_url"]
+@_tx
+def list_ad_orders(conn, args: dict) -> dict:
+    return ad_orders.listing(conn, args, today())
 
 
 @_tx
-def record_impression(conn, ad_id: int) -> bool:
-    return _bump_ad(conn, ad_id, "impressions") is not None
+def get_ad_order(conn, order_id: int) -> dict:
+    return ad_orders.get(conn, order_id, today())
 
 
 @_tx
-def record_click(conn, ad_id: int) -> str | None:
-    return _bump_ad(conn, ad_id, "clicks")
+def save_ad_order(conn, payload: dict, order_id: int | None = None) -> dict:
+    return ad_orders.save(conn, payload, order_id, today(), now_iso(), SLOTS)
+
+
+@_tx
+def record_ad_payment(conn, order_id: int, payload: dict) -> dict:
+    return ad_orders.payment(conn, order_id, payload, today(), now_iso())
+
+
+@_tx
+def cancel_ad_order(conn, order_id: int, payload: dict) -> dict:
+    return ad_orders.cancel(conn, order_id, payload, today(), now_iso())
+
+
+@_tx
+def ad_order_report(conn, order_id: int, args: dict) -> dict:
+    return ad_campaigns.order_report(conn, order_id, str(args.get('mode') or 'human'), today(), now_iso())
+
+
+@_tx
+def ad_calendar(conn, args: dict) -> dict:
+    return ad_campaigns.calendar(conn, str(args.get('month') or today()[:7]), today())
+
+
+@_tx
+def ad_delivery_preview(conn, order_id: int) -> dict:
+    return ad_campaigns.delivery_plan(conn, order_id, today(), _ad_capacity)
+
+
+@_tx
+def apply_ad_delivery(conn, order_id: int, payload: dict) -> dict:
+    return ad_campaigns.apply_delivery(conn, order_id, payload, today(), now_iso(), _ad_capacity, _save_ad)
+
+
+@_tx
+def collect_ad_event(conn, body: dict, agent: str = "") -> None:
+    ad_analytics.collect(conn, body, today(), agent)
+
+
+@_tx
+def ad_report(conn, args: dict) -> dict:
+    return ad_analytics.report(conn, args, today())
+
+
+@_tx
+def record_impression(conn, ad_id: int, agent: str = "", context=None) -> bool:
+    return ad_analytics.record(conn, ad_id, "impressions", today(), agent, context) is not None
+
+
+@_tx
+def record_click(conn, ad_id: int, agent: str = "", context=None) -> str | None:
+    return ad_analytics.record(conn, ad_id, "clicks", today(), agent, context)
 
 
 @_tx
@@ -1276,7 +1424,7 @@ def record_view(conn, path: str, referrer: str, agent: str = "") -> None:
     if not clean.startswith("/"):
         clean = "/" + clean
     host = _clean_host(referrer)[:120] if referrer else ""
-    human = not re.search(r"bot|spider|crawl|slurp|bytespider|petalbot|wget|curl|python-requests|python-urllib|headless", agent or "", re.I)
+    human = classify(agent)[0] == "human"
     conn.execute(
         """
         INSERT INTO traffic_daily(day, path, referrer, human, views) VALUES(?,?,?,?,1)
@@ -1800,6 +1948,7 @@ def _live_ads(conn) -> dict:
                 "imageUrl": row["image_url"],
                 "description": row["description"],
                 "href": f"/go/{row['id']}",
+                "targetHost": ad_analytics.host(row["target_url"]),
             })
     return grouped
 
